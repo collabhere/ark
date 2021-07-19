@@ -1,0 +1,115 @@
+{
+  "name": "ark",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./build/renderer/main.js",
+  "dependencies": {
+    "@testing-library/jest-dom": "^5.14.1",
+    "@testing-library/react": "^11.2.7",
+    "@testing-library/user-event": "^12.8.3",
+    "@types/jest": "^26.0.24",
+    "@types/node": "^12.20.16",
+    "@types/react": "^17.0.14",
+    "@types/react-dom": "^17.0.9",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-scripts": "4.0.3",
+    "typescript": "^4.3.5",
+    "web-vitals": "^1.1.2"
+  },
+  "scripts": {
+    "start": "BROWSER=none ARK_ENTRY_URL=http://localhost:8080 concurrently \"react-scripts start\" \"sleep 5 && electron .\"",
+    "build:electron": "tsc --build tsconfig.renderer.json -w",
+    "build:electron:prod": "tsc --build tsconfig.renderer.json",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "pack": "electron-builder --dir",
+    "dist:macos": "electron-builder --macos",
+    "dist:linux": "electron-builder --linux",
+    "dist:windows": "electron-builder --windows"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "build": {
+    "productName": "Ark",
+    "appId": "dev.wheredevs.Ark",
+    "files": [
+      "dist/",
+      "node_modules/",
+      "public/index.html",
+      "package.json"
+    ],
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "type": "distribution",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    },
+    "dmg": {
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Development"
+    },
+    "directories": {
+      "app": ".",
+      "buildResources": "assets",
+      "output": "release"
+    },
+    "extraResources": [
+      "./assets/**"
+    ],
+    "publish": {
+      "provider": "github",
+      "owner": "wheredevsdev",
+      "repo": "ark"
+    }
+  },
+  "devDependencies": {
+    "@material-ui/core": "^4.12.2",
+    "@material-ui/icons": "^4.11.2",
+    "concurrently": "^6.2.0",
+    "electron": "^13.1.7",
+    "electron-builder": "^22.11.7",
+    "node-pty": "^0.10.1",
+    "xterm": "^4.13.0"
+  }
+}
