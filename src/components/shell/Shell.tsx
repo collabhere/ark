@@ -9,7 +9,6 @@ export default function Shell(props: ShellProps) {
 
   useEffect(() => {
     if (monaco) {
-      // monaco?.languages.typescript.javascriptDefaults.setEagerModelSync(true);
       registerCompletions(monaco);
     }
   }, [monaco]);
@@ -18,7 +17,7 @@ export default function Shell(props: ShellProps) {
     <div>
       <Editor
         height="90vh"
-        defaultValue="db.getCollection('test').find({});"
+        defaultValue="// Enter some code below"
         defaultLanguage="javascript"
       />
     </div>
