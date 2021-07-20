@@ -2,7 +2,7 @@ import path from "path";
 
 import Window from "./window";
 
-async function boot() {
+export default async function boot() {
     const window = Window.createWindow(
         {
             width: 800,
@@ -15,9 +15,5 @@ async function boot() {
 
     const loadURL = process.env.ARK_ENTRY_URL || `file://${path.join(__dirname, "../index.html")}`;
 
-    window.loadURL(loadURL);
-}
-
-export default {
-    boot
+    await window.loadURL(loadURL);
 }

@@ -6,7 +6,7 @@ app.allowRendererProcessReuse = true;
 
 app.whenReady().then(function () {
 	try {
-		Bootstrap.boot();
+		Bootstrap();
 	} catch (e) {
 		console.error(e);
 	}
