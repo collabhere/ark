@@ -1,5 +1,4 @@
 import path from "path";
-import { URL } from "url";
 
 import Window from "./window";
 
@@ -14,7 +13,7 @@ async function boot() {
         }
     );
 
-    const loadURL = process.env.ARK_ENTRY_URL || `file://${path.join(__dirname, "../dist/index.html")}`;
+    const loadURL = process.env.ARK_ENTRY_URL || `file://${path.join(__dirname, "../index.html")}`;
 
     window.loadURL(loadURL);
 }
