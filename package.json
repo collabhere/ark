@@ -8,7 +8,7 @@
     "start": "BROWSER=none ARK_ENTRY_URL=http://localhost:8080 concurrently \"react-scripts start\" \"sleep 5 && electron .\"",
     "build:electron": "tsc --build tsconfig.renderer.json -w",
     "build:electron:prod": "tsc --build tsconfig.renderer.json",
-    "build:react:prod": "react-scriptseslint build",
+    "build:react:prod": "react-scripts build",
     "build": "rimraf build && npm run build:react:prod && npm run build:electron:prod",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
@@ -116,6 +116,7 @@
     "xterm": "^4.13.0"
   },
   "dependencies": {
-    "@monaco-editor/react": "^4.2.1"
+    "@monaco-editor/react": "^4.2.1",
+    "mongodb": "^4.0.1"
   }
 }
