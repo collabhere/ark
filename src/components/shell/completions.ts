@@ -24,11 +24,6 @@ export async function registerCompletions(monaco: Monaco, intellisense: Intellis
 
     console.log("Registering completions");
 
-    monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
-        noSemanticValidation: false,
-        noSyntaxValidation: false
-    });
-
     // compiler options
     monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
         target: monaco.languages.typescript.ScriptTarget.ES2016,
@@ -36,7 +31,6 @@ export async function registerCompletions(monaco: Monaco, intellisense: Intellis
         moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
         module: monaco.languages.typescript.ModuleKind.CommonJS,
         noEmit: true,
-        // noLib: true
     });
 
     monaco.languages.typescript.javascriptDefaults.addExtraLib(libSource, libUri);

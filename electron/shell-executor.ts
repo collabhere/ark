@@ -16,7 +16,6 @@ export function createExecutor(mongoURI: string) {
     const proc = spawn(
         __dirname + "/../../bin/mongosh"
         , [mongoURI, "--quiet"]
-        ,
     );
 
     const {
