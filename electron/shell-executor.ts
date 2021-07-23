@@ -31,19 +31,9 @@ export function createExecutor(mongoURI: string) {
         REPL_PREFIX_THING = chunk.toString();
     });
 
-    const writeJS = (js: string) => {
-        mongosh.write(`${js}\n`);
-    }
-
+    const writeJS = (js: string) => mongosh.write(`${js}\n`);
     const append = (chunk: string) => script += chunk;
     const end = () => writeJS(script + "\n" + "exit;" + "\n");
-
-    const handleCursorResult = (cb: (str: string) => void) => (chunk: any) => {
-        const output: string = chunk
-            .toString()
-            .replace(REPL_PREFIX_THING, '');
-        if (output) cb(output);
-    }
 
     return {
         /**
@@ -70,9 +60,12 @@ export function createExecutor(mongoURI: string) {
             if (codeReturnsCursor(code)) {
                 return new Promise(resolve => {
                     let result = '';
-                    stdout.on('data', handleCursorResult((output) => {
-                        result += output;
-                    }));
+                    stdout.on('data', (chunk: any) => {
+                        const output: string = chunk
+                            .toString()
+                            .replace(REPL_PREFIX_THING, '');
+                        if (output) result += (output);
+                    });
                     stdout.on("close", () => {
                         resolve(JSON.parse(result));
                     });
