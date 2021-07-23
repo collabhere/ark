@@ -5,6 +5,7 @@
         "skipLibCheck": true,
         "esModuleInterop": true,
         "strict": true,
+        "sourceMap": true,
         "moduleResolution": "node",
         "resolveJsonModule": true,
         "isolatedModules": true,

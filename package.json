@@ -116,6 +116,7 @@
     "xterm": "^4.13.0"
   },
   "dependencies": {
-    "@monaco-editor/react": "^4.2.1"
+    "@monaco-editor/react": "^4.2.1",
+    "mongodb": "^4.0.1"
   }
 }
