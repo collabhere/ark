@@ -36,7 +36,7 @@ export async function registerCompletions(monaco: Monaco, intellisense: Intellis
         moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
         module: monaco.languages.typescript.ModuleKind.CommonJS,
         noEmit: true,
-        noLib: true
+        // noLib: true
     });
 
     monaco.languages.typescript.javascriptDefaults.addExtraLib(libSource, libUri);
