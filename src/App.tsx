@@ -6,7 +6,9 @@ import Shell from './components/shell/Shell';
 function App() {
   return (
     <div className="App">
-      <Shell />
+      <Shell
+        collections={["test_collection_list_1", "test_collection_list_2"]}
+      />
     </div>
   );
 }
