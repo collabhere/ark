@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import Editor, { useMonaco } from "@monaco-editor/react";
 import { registerCompletions } from "./completions";
 
