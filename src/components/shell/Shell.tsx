@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Editor, { useMonaco } from "@monaco-editor/react";
+import { Button } from "antd";
 import { registerCompletions } from "./completions";
 
 const DEFAULT_CODE = `// Mongo shell
@@ -26,6 +27,7 @@ export default function Shell(props: ShellProps) {
 
   return (
     <div>
+      <Button type="primary">Run</Button>
       <Editor
         height="90vh"
         defaultValue={code}
