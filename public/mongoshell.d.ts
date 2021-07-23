@@ -1,5 +1,5 @@
 interface Collection {
-    find(query: any, projection: any): Collection;
+    find(query: any, projection?: any): Collection;
     limit(limit: number): Collection;
     skip(skip: number): Collection;
     aggregate(pipelines: any[]): Collection;
@@ -15,9 +15,9 @@ interface CollectionInfo {
     };
     idIndex: any;
 }
-declare class Database {
+declare class Db {
     getCollection(collectionName: string): Collection;
     getCollectionInfos(filter?: any, nameOnly?: boolean, authorizedCollections?: boolean): Array<CollectionInfo>;
 }
 
-declare const db: Database;
+declare const db: Db;
