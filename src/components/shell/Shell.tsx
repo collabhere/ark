@@ -30,7 +30,7 @@ export default function Shell(props: ShellProps) {
 			onChange={(value, ev) => {
 				value && setCode(value);
 			}}
-			height="100%"
+			// height="100%"
 			defaultValue={code}
 			defaultLanguage="javascript"
 		/>
