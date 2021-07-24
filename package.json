@@ -1,125 +1,122 @@
 {
-  "name": "ark",
-  "version": "0.1.0",
-  "private": true,
-  "homepage": "./",
-  "main": "./build/renderer/main.js",
-  "scripts": {
-    "start": "BROWSER=none ARK_ENTRY_URL=http://localhost:3000 concurrently \"vite\" \"sleep 2 && electron .\"",
-    "build:electron": "tsc --build tsconfig.renderer.json -w",
-    "build:electron:prod": "tsc --build tsconfig.renderer.json",
-    "build:react:prod": "vite build",
-    "serve": "vite preview",
-    "build": "rimraf build && npm run build:react:prod && npm run build:electron:prod",
-    "pack": "electron-builder --dir",
-    "dist:macos": "electron-builder --macos",
-    "dist:linux": "electron-builder --linux",
-    "dist:windows": "electron-builder --windows"
-  },
-  "eslintConfig": {
-    "ignorePatterns": [
-      "electron"
-    ],
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
-  "build": {
-    "productName": "Ark",
-    "appId": "dev.wheredevs.Ark",
-    "extends": null,
-    "files": [
-      "build/**/*",
-      "package.json"
-    ],
-    "directories": {
-      "buildResources": "public",
-      "output": "release"
-    },
-    "mac": {
-      "target": [
-        "dmg"
-      ],
-      "type": "distribution",
-      "hardenedRuntime": true,
-      "gatekeeperAssess": false
-    },
-    "dmg": {
-      "contents": [
-        {
-          "x": 130,
-          "y": 220
-        },
-        {
-          "x": 410,
-          "y": 220,
-          "type": "link",
-          "path": "/Applications"
-        }
-      ]
-    },
-    "win": {
-      "target": [
-        "nsis"
-      ]
-    },
-    "linux": {
-      "target": [
-        "AppImage"
-      ],
-      "category": "Development"
-    },
-    "extraResources": [
-      "./bin/**"
-    ],
-    "publish": {
-      "provider": "github",
-      "owner": "wheredevsdev",
-      "repo": "ark"
-    }
-  },
-  "devDependencies": {
-    "@ant-design/icons": "^4.6.2",
-    "@material-ui/core": "^4.12.2",
-    "@material-ui/icons": "^4.11.2",
-    "@testing-library/jest-dom": "^5.14.1",
-    "@testing-library/react": "^11.2.7",
-    "@testing-library/user-event": "^12.8.3",
-    "@types/jest": "^26.0.24",
-    "@types/node": "^12.20.16",
-    "@types/react": "^17.0.14",
-    "@types/react-dom": "^17.0.9",
-    "@vitejs/plugin-react-refresh": "^1.3.1",
-    "antd": "^4.16.8",
-    "concurrently": "^6.2.0",
-    "electron": "^13.1.7",
-    "electron-builder": "^22.11.7",
-    "less": "^4.1.1",
-    "monaco-editor": "^0.26.1",
-    "node-pty": "^0.10.1",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
-    "rimraf": "^3.0.2",
-    "typescript": "^4.3.5",
-    "vite": "^2.3.2",
-    "vite-plugin-svgr": "^0.3.0",
-    "web-vitals": "^1.1.2"
-  },
-  "dependencies": {
-    "@monaco-editor/react": "^4.2.1",
-    "mongodb": "^4.0.1"
-  }
+	"name": "ark",
+	"version": "0.1.0",
+	"private": true,
+	"homepage": "./",
+	"main": "./build/renderer/main.js",
+	"scripts": {
+		"start": "BROWSER=none ARK_ENTRY_URL=http://localhost:3000 concurrently \"vite\" \"sleep 2 && electron .\"",
+		"build:electron": "tsc --build tsconfig.renderer.json -w",
+		"build:electron:prod": "tsc --build tsconfig.renderer.json",
+		"build:react:prod": "vite build",
+		"serve": "vite preview",
+		"build": "rimraf build && npm run build:react:prod && npm run build:electron:prod",
+		"pack": "electron-builder --dir",
+		"dist:macos": "electron-builder --macos",
+		"dist:linux": "electron-builder --linux",
+		"dist:windows": "electron-builder --windows"
+	},
+	"eslintConfig": {
+		"ignorePatterns": [
+			"electron"
+		],
+		"extends": [
+			"react-app",
+			"react-app/jest"
+		]
+	},
+	"browserslist": {
+		"production": [
+			">0.2%",
+			"not dead",
+			"not op_mini all"
+		],
+		"development": [
+			"last 1 chrome version",
+			"last 1 firefox version",
+			"last 1 safari version"
+		]
+	},
+	"build": {
+		"productName": "Ark",
+		"appId": "dev.wheredevs.Ark",
+		"extends": null,
+		"files": [
+			"build/**/*",
+			"package.json"
+		],
+		"directories": {
+			"buildResources": "public",
+			"output": "release"
+		},
+		"mac": {
+			"target": [
+				"dmg"
+			],
+			"type": "distribution",
+			"hardenedRuntime": true,
+			"gatekeeperAssess": false
+		},
+		"dmg": {
+			"contents": [
+				{
+					"x": 130,
+					"y": 220
+				},
+				{
+					"x": 410,
+					"y": 220,
+					"type": "link",
+					"path": "/Applications"
+				}
+			]
+		},
+		"win": {
+			"target": [
+				"nsis"
+			]
+		},
+		"linux": {
+			"target": [
+				"AppImage"
+			],
+			"category": "Development"
+		},
+		"extraResources": [
+			"./bin/**"
+		],
+		"publish": {
+			"provider": "github",
+			"owner": "wheredevsdev",
+			"repo": "ark"
+		}
+	},
+	"devDependencies": {
+		"@ant-design/icons": "^4.6.2",
+		"@testing-library/jest-dom": "^5.14.1",
+		"@testing-library/react": "^11.2.7",
+		"@testing-library/user-event": "^12.8.3",
+		"@types/jest": "^26.0.24",
+		"@types/node": "^12.20.16",
+		"@types/react": "^17.0.14",
+		"@types/react-dom": "^17.0.9",
+		"@vitejs/plugin-react-refresh": "^1.3.1",
+		"antd": "^4.16.8",
+		"concurrently": "^6.2.0",
+		"electron": "^13.1.7",
+		"electron-builder": "^22.11.7",
+		"less": "^4.1.1",
+		"monaco-editor": "^0.26.1",
+		"re-resizable": "^6.9.0",
+		"react": "^17.0.2",
+		"react-dom": "^17.0.2",
+		"rimraf": "^3.0.2",
+		"typescript": "^4.3.5",
+		"vite": "^2.3.2",
+		"vite-plugin-svgr": "^0.3.0",
+		"web-vitals": "^1.1.2",
+		"@monaco-editor/react": "^4.2.1",
+		"mongodb": "^4.0.1"
+	},
+	"dependencies": {}
 }

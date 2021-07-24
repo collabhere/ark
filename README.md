@@ -1,11 +1,19 @@
 # ark
 
-A MongoDB client
-
-**Note: You require node v14+ to build using electron-builder**
+A MongoDB client.
 
 ## Setup
 
-1. Install dependencies using `npm i`.
-2. Build electron code using `npm run build:electron:prod`. You can build this in watch mode using `npm run build:electron` when developing the electron code.
-3. Run the application using `npm start`.
+* Install dependencies using `npm i`.
+* Create a folder `bin` in root of the repository.
+* Download the `mongosh` binary from [here](https://www.mongodb.com/try/download/shell) for your platform. Use the tarball/zip downloads and get the binary.
+
+## Building a distributable
+
+**Note: You require node v14+ to build using electron-builder**
+
+* Run `npm run build`.
+* The npm scripts `dist:linux`, `dist:windows` and `dist:macos` are available for creating a distributable for respective platforms.
+
+## Developing the react app only
+* Run the application using `npm start`.
