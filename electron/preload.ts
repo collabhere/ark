@@ -1,7 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 function invoke(args: Record<string, any>) {
-    return ipcRenderer.invoke('handleAll', {...args});
+    return ipcRenderer.invoke('run_command', { ...args });
 }
 
 export default contextBridge.exposeInMainWorld(

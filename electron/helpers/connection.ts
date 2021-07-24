@@ -1,5 +1,5 @@
 import { Collection, MongoClient, MongoClientOptions } from 'mongodb';
-import { connectionStore } from './stores/connections';
+import { connectionStore } from '../stores/connection';
 
 interface Configuration {
     name: string;
@@ -22,7 +22,7 @@ export const createConnection = async (
         .setConnection(configuration.name, connection);
 }
 
- const getConnectionUri = ({
+const getConnectionUri = ({
     members,
     database = 'admin',
     username,
@@ -41,9 +41,9 @@ export const dbHandler = async () => {
         if (connection) {
             const getCollections = async () => (await connection.db().collections())
                 .map(coll => coll.collectionName);
-        
+
             const getDbName = async () => Promise.resolve(connection.options.dbName);
-    
+
             const getIndexDetails = async (collection: string) => await connection.db()
                 .collection(collection).indexes();
 
@@ -59,7 +59,7 @@ export const dbHandler = async () => {
         } else {
             return Promise.reject('Connection not found!');
         }
-        
+
     } catch (e) {
         console.log(e);
         return Promise.reject(e.message || e);

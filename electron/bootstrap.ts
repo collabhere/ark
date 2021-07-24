@@ -1,6 +1,6 @@
 import path from "path";
 
-import Window from "./window";
+import Window from "./helpers/window";
 
 export default async function boot() {
     const window = Window.createWindow(
