@@ -2,10 +2,11 @@ import "./explorer.less";
 
 import React from "react";
 
-interface ExplorerProps {}
+interface ExplorerProps {
+	title: string;
+}
 
-export function Explorer(props: ExplorerProps) {
-	const {} = props;
+export function Explorer(props: ExplorerProps): JSX.Element {
 	return (
 		<div className="Explorer">
 			<div>Explorer</div>

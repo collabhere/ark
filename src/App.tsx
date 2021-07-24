@@ -1,8 +1,7 @@
 import React from "react";
-import { Resizable } from "re-resizable";
 import "./App.less";
 
-import { Layout } from "./components/layout/layout";
+import { Layout } from "./components/layout/Layout";
 
 function App() {
 	return (

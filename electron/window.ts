@@ -1,4 +1,4 @@
-import { BrowserWindowConstructorOptions, BrowserWindow } from "electron";
+import { BrowserWindowConstructorOptions, BrowserWindow, Menu, MenuItem } from "electron";
 
 interface CreateWindowOptions {}
 function createWindow(

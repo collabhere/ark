@@ -6,7 +6,7 @@ interface Intellisense {
     database?: string;
 }
 
-export async function registerCompletions(monaco: Monaco, intellisense: Intellisense) {
+export async function registerCompletions(monaco: Monaco, intellisense: Intellisense): Promise<void> {
 
     const {
         collections,
@@ -18,7 +18,7 @@ export async function registerCompletions(monaco: Monaco, intellisense: Intellis
     const res = await fetch("/mongoshell.d.ts");
 
     const libSource = await res.text();
-    const libUri = 'mongoshell.d.ts';
+    const libUri = monaco.Uri.parse('mongoshell.d.ts');
 
     console.log("libsource", libSource);
 
@@ -33,9 +33,11 @@ export async function registerCompletions(monaco: Monaco, intellisense: Intellis
         noEmit: true,
     });
 
-    monaco.languages.typescript.javascriptDefaults.addExtraLib(libSource, libUri);
+    monaco.languages.typescript.javascriptDefaults.addExtraLib(libSource, libUri.toString());
 
-    monaco.editor.createModel(libSource, 'typescript', monaco.Uri.parse(libUri));
+    const model = monaco.editor.getModel((libUri));
+    if (!model) // Don't create the same model twice. Throws an error in console.
+        monaco.editor.createModel(libSource, 'typescript', libUri);
 
     monaco.languages.registerCompletionItemProvider('javascript', {
         triggerCharacters: ["."],
@@ -62,22 +64,22 @@ export async function registerCompletions(monaco: Monaco, intellisense: Intellis
 
             const [command] = currentSegment;
 
-            const DB_SUGGESTIONS: languages.CompletionItem[] = collections.map(coll => ({
-                label: coll,
-                kind: monaco.languages.CompletionItemKind.Class,
-                documentation: "Collection from the database " + database,
-                insertText: coll,
-                range: {
-                    startLineNumber: position.lineNumber,
-                    startColumn: position.column,
-                    endLineNumber: position.lineNumber,
-                    endColumn: position.column
-                }
-            }));
+            // @todo: Get this to return `Collection` interface
+            // const DB_SUGGESTIONS: languages.CompletionItem[] = collections.map(coll => ({
+            //     label: coll,
+            //     kind: monaco.languages.CompletionItemKind.Class,
+            //     insertText: coll,
+            //     range: {
+            //         startLineNumber: position.lineNumber,
+            //         startColumn: position.column,
+            //         endLineNumber: position.lineNumber,
+            //         endColumn: position.column
+            //     }
+            // }));
 
-            if (command.startsWith("db.")) {
-                suggestions.push(...DB_SUGGESTIONS);
-            }
+            // if ((/db\.(?!.)/i.test(command))) {
+            //     suggestions.push(...DB_SUGGESTIONS);
+            // }
 
             return {
                 suggestions: suggestions
