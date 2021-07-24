@@ -9,7 +9,6 @@ function App() {
 
   const electronWindow = useCallback(() => {
     return window.ark.random.print();
-    window.ark.collection.list();
   }, []);
 
   const [print, setPrint] = useState('');
