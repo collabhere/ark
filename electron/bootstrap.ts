@@ -8,7 +8,8 @@ export default async function boot() {
             width: 800,
             height: 600,
             webPreferences: {
-                nodeIntegration: true
+                nodeIntegration: true,
+                preload: path.join(__dirname, 'preload')
             },
         }
     );
