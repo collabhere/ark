@@ -1,13 +1,21 @@
 import { createConnection } from "./connection";
+import { connectionStore } from "./stores/connections";
 
 (async function testConnection () {
-    const connection = await createConnection({
-        database: 'klenty_test_3',
-        members: ['ec2-3-13-197-203.us-east-2.compute.amazonaws.com:27017'],
-        password: 'testdb',
-        username: 'testdb'
+    await createConnection({
+        database: 'testdb',
+        members: ['localhost:27017','localhost:27018'],
+        name: 'NewConnection'
     }, {});
 
+    const connection = connectionStore().getConnection('NewConnection');
+
+    if (!connection) {
+        return Promise.reject('Connection not found!');
+    }
+
     const collections = await connection.db().collections();
+    const replicaSets = await connection.db().admin().replSetGetStatus();
+    
     console.log(collections[0].collectionName);
 }());
