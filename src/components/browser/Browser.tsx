@@ -23,6 +23,7 @@ export const Browser = (): JSX.Element => {
 
 	useEffect(() => {
 		createTab();
+		createTab();
 	}, []);
 
 	const goToFirstTab = useCallback(() => {
@@ -49,16 +50,13 @@ export const Browser = (): JSX.Element => {
 	return (
 		<div className="Browser">
 			<Tabs
+				hideAdd
 				type="editable-card"
 				activeKey={activeKey}
 				className={"BrowserTabs"}
 				defaultActiveKey="1"
 				onEdit={(e, action) => {
 					switch (action) {
-						case "add": {
-							createTab();
-							return;
-						}
 						case "remove": {
 							deleteTab(e);
 							return;
