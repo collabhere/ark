@@ -1,8 +1,8 @@
 declare global {
     interface Window {
         ark: {
-            api: {
-                ping: () => void;
+            [k: string]: {
+                [k: string]: (...args: any) => any;
             }
         }
     }

@@ -10,7 +10,7 @@ export default async function boot() {
             frame: false,
             webPreferences: {
                 nodeIntegration: true,
-                preload: path.join(__dirname, "preload.js"),
+                preload: path.join(__dirname, 'preload')
             },
         }
     );
