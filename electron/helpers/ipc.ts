@@ -1,10 +1,11 @@
 import { ipcMain } from "electron";
 
 import * as CollectionLib from "../library/collection";
+import * as ConnectionLib from "../library/connection";
 
 const Modules: Record<string, any> = {
     'collection': CollectionLib,
-    'index': 'index file path',
+    'connection': ConnectionLib,
 }
 
 function command(lib: string, func: string, args: Record<string, any>) {

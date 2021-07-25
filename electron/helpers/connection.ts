@@ -35,9 +35,9 @@ const getConnectionUri = ({
     return `mongodb://${auth}${members.join(',')}/${database || options.authSource}${optionsString}`;
 };
 
-export const dbHandler = async () => {
+export const dbHandler = async (connectionName: string) => {
     try {
-        const connection = connectionStore().getConnection('NewConnection');
+        const connection = connectionStore().getConnection(connectionName || 'NewConnection');
         if (connection) {
             const getCollections = async () => (await connection.db().collections())
                 .map(coll => coll.collectionName);
@@ -50,12 +50,12 @@ export const dbHandler = async () => {
             const getReplicaSets = async () => await connection.db().admin()
                 .replSetGetStatus();
 
-            return Promise.resolve({
+            return {
                 getCollections,
                 getIndexDetails,
                 getDbName,
                 getReplicaSets
-            });
+            };
         } else {
             return Promise.reject('Connection not found!');
         }

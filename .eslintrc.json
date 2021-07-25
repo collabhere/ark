@@ -22,5 +22,8 @@
     ],
     "env": {
         "browser": true
+    },
+    "rules": {
+        "@typescript-eslint/no-empty-function": "warn"
     }
 }
