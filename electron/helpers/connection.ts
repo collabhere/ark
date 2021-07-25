@@ -1,67 +1,55 @@
-import { Collection, MongoClient, MongoClientOptions } from 'mongodb';
-import { connectionStore } from '../stores/connection';
+import { MongoClient, MongoClientOptions } from "mongodb";
+import { connectionStore } from "../stores/connection";
 
 interface Configuration {
-    name: string;
-    members: Array<String>;
-    username?: string;
-    password?: string;
-    database: string;
+	name: string;
+	members: Array<String>;
+	username?: string;
+	password?: string;
+	database: string;
+	options: MongoClientOptions;
 }
 
-export const createConnection = async (
-    configuration: Configuration,
-    options: MongoClientOptions
+async function createConnection(
+	type: "advanced",
+	configuration: Configuration
+): Promise<string>;
+async function createConnection(
+	type: "uri",
+	configuration: { name: string; uri: string }
+): Promise<string>;
+async function createConnection(
+	type: "uri" | "advanced",
+	configuration: any
+): Promise<string> {
+	try {
+		let connection: MongoClient;
+		if (type === "uri") {
+			connection = await MongoClient.connect(configuration.uri);
+		} else if (type === "advanced") {
+			connection = await MongoClient.connect(
+				getConnectionUri(configuration, configuration.options),
+				configuration.options as MongoClientOptions
+			);
+		}
+
+		return connectionStore().saveConnection(connection);
+	} catch (e) {
+		console.log(e);
+	}
+}
+
+const getConnectionUri = (
+	{ members, database = "admin", username, password }: Configuration,
+	options: MongoClientOptions
 ) => {
-    const connection = await MongoClient.connect(
-        getConnectionUri(configuration, options),
-        options
-    );
+	const optionsString = Object.entries(options).reduce(
+		(prevOption, option) => `${prevOption}?${option[0]}=${option[1]}`,
+		""
+	);
 
-    return connectionStore()
-        .setConnection(configuration.name, connection);
-}
-
-const getConnectionUri = ({
-    members,
-    database = 'admin',
-    username,
-    password
-}: Configuration, options: MongoClientOptions) => {
-    const optionsString = Object.entries(options).reduce((prevOption, option) =>
-        `${prevOption}?${option[0]}=${option[1]}`, '');
-
-    const auth = username && password ? `${username}:${password}@` : '';
-    return `mongodb://${auth}${members.join(',')}/${database || options.authSource}${optionsString}`;
+	const auth = username && password ? `${username}:${password}@` : "";
+	return `mongodb://${auth}${members.join(",")}/${
+		database || options.authSource
+	}${optionsString}`;
 };
-
-export const dbHandler = async (connectionName: string) => {
-    try {
-        const connection = connectionStore().getConnection(connectionName || 'NewConnection');
-        if (connection) {
-            const getCollections = async () => (await connection.db().collections())
-                .map(coll => coll.collectionName);
-
-            const getDbName = async () => Promise.resolve(connection.options.dbName);
-
-            const getIndexDetails = async (collection: string) => await connection.db()
-                .collection(collection).indexes();
-
-            const getReplicaSets = async () => await connection.db().admin()
-                .replSetGetStatus();
-
-            return {
-                getCollections,
-                getIndexDetails,
-                getDbName,
-                getReplicaSets
-            };
-        } else {
-            return Promise.reject('Connection not found!');
-        }
-
-    } catch (e) {
-        console.log(e);
-        return Promise.reject(e.message || e);
-    }
-}
