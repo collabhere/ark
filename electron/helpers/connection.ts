@@ -16,27 +16,23 @@ async function createConnection(
 ): Promise<string>;
 async function createConnection(
 	type: "uri",
-	configuration: { name: string; uri: string }
+	configuration: { name: string; uri: string; tls?: boolean }
 ): Promise<string>;
 async function createConnection(
 	type: "uri" | "advanced",
 	configuration: any
 ): Promise<string> {
-	try {
-		let connection: MongoClient;
-		if (type === "uri") {
-			connection = await MongoClient.connect(configuration.uri);
-		} else if (type === "advanced") {
-			connection = await MongoClient.connect(
-				getConnectionUri(configuration, configuration.options),
-				configuration.options as MongoClientOptions
-			);
-		}
-
-		return connectionStore().saveConnection(connection);
-	} catch (e) {
-		console.log(e);
+	let connection: MongoClient;
+	if (type === "uri") {
+		connection = await MongoClient.connect(configuration.uri);
+	} else {
+		connection = await MongoClient.connect(
+			getConnectionUri(configuration, configuration.options),
+			configuration.options as MongoClientOptions
+		);
 	}
+
+	return connectionStore().saveConnection(connection);
 }
 
 const getConnectionUri = (
