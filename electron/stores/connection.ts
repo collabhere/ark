@@ -4,9 +4,8 @@ import { nanoid } from "nanoid";
 const store = new Map<string, MongoClient>();
 
 export const connectionStore = () => {
-	const saveConnection = (connection: MongoClient) => {
+	const saveConnection = (id: string, connection: MongoClient) => {
 		if (connection) {
-			const id = nanoid();
 			store.set(id, connection);
 			return id;
 		} else {
