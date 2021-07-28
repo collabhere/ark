@@ -1,5 +1,9 @@
 import { MongoClient, MongoClientOptions } from "mongodb";
 import { connectionStore } from "../stores/connection";
+import { resolveSrv, SrvRecord } from "dns";
+import { nanoid } from "nanoid";
+import os from "os";
+import { diskStore } from "../stores/disk";
 
 interface Configuration {
 	name: string;
@@ -10,39 +14,37 @@ interface Configuration {
 	options: MongoClientOptions;
 }
 
-async function createConnection(
-	type: "advanced",
-	configuration: Configuration
-): Promise<string>;
-async function createConnection(
-	type: "uri",
-	configuration: { name: string; uri: string }
-): Promise<string>;
-async function createConnection(
-	type: "uri" | "advanced",
-	configuration: any
-): Promise<string> {
-	try {
-		let connection: MongoClient;
-		if (type === "uri") {
-			connection = await MongoClient.connect(configuration.uri);
-		} else if (type === "advanced") {
-			connection = await MongoClient.connect(
-				getConnectionUri(configuration, configuration.options),
-				configuration.options as MongoClientOptions
-			);
-		}
+const getConnection = async (uri: string, options: MongoClientOptions) => {
+	return await MongoClient.connect(uri, options);
+};
 
-		return connectionStore().saveConnection(connection);
-	} catch (e) {
-		console.log(e);
+export async function createConnection(
+	id: string
+): Promise<MongoClient | undefined> {
+	const store = diskStore();
+
+	if (await store.has("connections", id)) {
+		const config = (await store.get("connections", id)) as Configuration;
+		const connectionUri = getConnectionUri(config);
+
+		const connection = await getConnection(connectionUri, config.options);
+
+		if (connection) {
+			connectionStore().saveConnection(id, connection);
+			return connection;
+		}
+	} else {
+		throw new Error("No connections found!");
 	}
 }
 
-const getConnectionUri = (
-	{ members, database = "admin", username, password }: Configuration,
-	options: MongoClientOptions
-) => {
+const getConnectionUri = ({
+	members,
+	database = "admin",
+	username,
+	password,
+	options,
+}: Configuration) => {
 	const optionsString = Object.entries(options).reduce(
 		(prevOption, option) => `${prevOption}?${option[0]}=${option[1]}`,
 		""
@@ -50,6 +52,81 @@ const getConnectionUri = (
 
 	const auth = username && password ? `${username}:${password}@` : "";
 	return `mongodb://${auth}${members.join(",")}/${
-		database || options.authSource
+		options.authSource || database
 	}${optionsString}`;
+};
+
+export async function saveNewConnection(
+	type: "uri",
+	config: { uri: string; name: string }
+): Promise<void>;
+
+export async function saveNewConnection(
+	type: "config",
+	config: Configuration
+): Promise<void>;
+
+export async function saveNewConnection(
+	type: "config" | "uri",
+	config: any
+): Promise<void> {
+	const store = diskStore();
+	const id = nanoid();
+
+	let members: Array<string>,
+		options: MongoClientOptions = {};
+	if (type === "uri") {
+		const parsedUri = new URL(config.uri);
+		if (parsedUri.protocol.includes("+srv")) {
+			members = (
+				await performLookup(`_mongodb._tcp.${parsedUri.hostname}`)
+			).map((record) => `${record.name}:${record.port || 27017}`);
+
+			options.tls = true;
+			options.tlsCertificateFile = `${os.homedir()}/ark/certs/ark.crt`;
+			options.authSource = "admin";
+		} else {
+			members = [`${parsedUri.host}:${parsedUri.port || 27017}`];
+		}
+
+		const uriOptions = parsedUri.search
+			.slice(1, parsedUri.search.length)
+			.split("&")
+			.reduce<any>((acc, option) => {
+				const [key, value] = option.split("=");
+
+				acc[key] = value;
+				return acc;
+			}, {});
+
+		await store.set("connections", id, {
+			protocol: parsedUri.protocol,
+			name: config.name,
+			members,
+			username: parsedUri.username,
+			password: parsedUri.password,
+			database: parsedUri.pathname.slice(1, parsedUri.pathname.length),
+			options: { ...uriOptions, ...options },
+		});
+	} else {
+		if (options.tls && !options.tlsCertificateFile) {
+			options.tlsCertificateFile = `${os.homedir()}/ark/certs/ark.crt`;
+		}
+
+		await store.set("connections", id, options);
+	}
+}
+
+export const performLookup = (
+	connectionString: string
+): Promise<Array<SrvRecord>> => {
+	return new Promise((resolve, reject) => {
+		resolveSrv(connectionString, (err, addresses) => {
+			if (err) {
+				reject(err);
+			}
+
+			resolve(addresses);
+		});
+	});
 };

@@ -1,9 +1,7 @@
-import { dbHandler } from "../helpers/connection";
-
 interface InitParams {
-    mongoUri: string;
+	mongoUri: string;
 }
 
 export function init(params: InitParams) {
-    // dbHandler()
+	// dbHandler()
 }
