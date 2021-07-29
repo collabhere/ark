@@ -74,7 +74,18 @@ export const Browser = (): JSX.Element => {
 							tab={tab.title}
 							key={tab.id}
 						>
-							<Shell collections={["test_collection_1"]} />
+							<Shell
+								config={{
+									db: "test_db_1",
+									hosts: [
+										"ec2-3-13-197-203.us-east-2.compute.amazonaws.com",
+										"ec2-3-13-197-203.us-east-2.compute.amazonaws.com",
+									],
+									user: "dbuser",
+									collection: "Users",
+								}}
+								collections={["test_collection_1"]}
+							/>
 						</TabPane>
 					))
 				) : (
