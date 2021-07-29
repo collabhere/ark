@@ -13,6 +13,7 @@ import Editor from "@monaco-editor/react";
 import { KeyMod, KeyCode } from "monaco-editor";
 import { registerCompletions } from "./completions";
 import { Resizable } from "re-resizable";
+import { dispatch } from "../../util/events";
 
 const DEFAULT_CODE = `// Mongo shell
 db.getCollection('test').find({});
@@ -80,6 +81,10 @@ export default function Shell(props: ShellProps): JSX.Element {
 				data: [],
 			});
 	}, [onExecutionResult]);
+
+	const newSellTab = useCallback(() => {
+		dispatch("browser:create_tab");
+	}, []);
 
 	return (
 		<div className={"Shell"}>
@@ -149,6 +154,7 @@ export default function Shell(props: ShellProps): JSX.Element {
 					}}
 					onMount={(editor, monaco) => {
 						editor.addCommand(KeyMod.CtrlCmd | KeyCode.Enter, exec);
+						editor.addCommand(KeyMod.CtrlCmd | KeyCode.KEY_N, newSellTab);
 					}}
 					onChange={(value, ev) => {
 						value && setCode(value);
