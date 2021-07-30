@@ -1,16 +1,17 @@
 import { compose } from "./misc";
 
-export const dispatch = (event: string, payload?: any): void => {
-    const e = new CustomEvent(event, { detail: payload });
+export const dispatch = <T = unknown>(event: string, payload?: T): void => {
+    const e = new CustomEvent<T>(event, { detail: payload });
     window.dispatchEvent(e);
 }
 
 export const listenEffect = (
-    listeners: Array<{ event: string; cb: (...args: any[]) => void }>
+    listeners: Array<{ event: string; cb: (event: string, payload: any) => void }>
 ): () => void => {
     const unmounts = listeners.map((listener) => {
-        window.addEventListener(listener.event, listener.cb);
-        return () => window.removeEventListener(listener.event, listener.cb);
+        const l = (event: Event) => listener.cb(listener.event, (event as CustomEvent).detail);
+        window.addEventListener(listener.event, l);
+        return () => window.removeEventListener(listener.event, l);
     });
     return compose(...unmounts);
 };

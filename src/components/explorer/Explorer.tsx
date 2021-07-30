@@ -1,88 +1,29 @@
 import "./explorer.less";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Tree, TreeDataNode } from "antd";
-import {
-	CarryOutOutlined,
-	FormOutlined,
-	CloudServerOutlined,
-} from "@ant-design/icons";
+import { CloudServerOutlined } from "@ant-design/icons";
+import { VscListTree } from "react-icons/vsc";
+import { Resizable } from "re-resizable";
+import { listenEffect } from "../../util/events";
 
-// const treeData = [
-// 	{
-// 		title: "parent 1",
-// 		key: "0-0",
-// 		icon: <CarryOutOutlined />,
-// 		children: [
-// 			{
-// 				title: "parent 1-0",
-// 				key: "0-0-0",
-// 				icon: <CarryOutOutlined />,
-// 				children: [
-// 					{ title: "leaf", key: "0-0-0-0", icon: <CarryOutOutlined /> },
-// 					{
-// 						title: (
-// 							<>
-// 								<div>multiple line title</div>
-// 								<div>multiple line title</div>
-// 							</>
-// 						),
-// 						key: "0-0-0-1",
-// 						icon: <CarryOutOutlined />,
-// 					},
-// 					{ title: "leaf", key: "0-0-0-2", icon: <CarryOutOutlined /> },
-// 				],
-// 			},
-// 			{
-// 				title: "parent 1-2",
-// 				key: "0-0-2",
-// 				icon: <CarryOutOutlined />,
-// 				children: [
-// 					{ title: "leaf", key: "0-0-2-0", icon: <CarryOutOutlined /> },
-// 					{
-// 						title: "leaf",
-// 						key: "0-0-2-1",
-// 						icon: <CarryOutOutlined />,
-// 						switcherIcon: <FormOutlined />,
-// 					},
-// 				],
-// 			},
-// 		],
-// 	},
-// 	{
-// 		title: "parent 2",
-// 		key: "0-1",
-// 		icon: <CarryOutOutlined />,
-// 		children: [
-// 			{
-// 				title: "parent 2-0",
-// 				key: "0-1-0",
-// 				icon: <CarryOutOutlined />,
-// 				children: [
-// 					{ title: "leaf", key: "0-1-0-0", icon: <CarryOutOutlined /> },
-// 					{ title: "leaf", key: "0-1-0-1", icon: <CarryOutOutlined /> },
-// 				],
-// 			},
-// 		],
-// 	},
-// ];
+const createTreeNode = (
+	title: string,
+	icon: React.ReactNode,
+	...children: TreeDataNode[]
+): TreeDataNode => {
+	const node: TreeDataNode = {
+		title,
+		key: title,
+		icon,
+	};
 
-// const createTreeNode = (
-// 	collection: string,
-// 	children?: TreeDataNode[]
-// ): TreeDataNode => {
-// 	const node: TreeDataNode = {
-// 		title: collection,
-// 		key: collection,
-// 		icon: <CloudServerOutlined />,
-// 	};
+	if (children) node.children = children;
 
-// 	if (children) node.children = children;
+	return node;
+};
 
-// 	return node;
-// };
-
-interface ExplorerProps {
+interface SwitchConnectionsArgs {
 	connectionId: string;
 }
 
@@ -93,23 +34,79 @@ interface Database {
 	name: string;
 	collections: Collection[];
 }
-interface Connection {
-	id: string;
-	databases: Database[];
+
+interface ExplorerProps {
+	open: boolean;
 }
 
 export function Explorer(props: ExplorerProps): JSX.Element {
-	const { connectionId } = props;
+	const { open } = props;
 	const [tree, setTree] = useState<TreeDataNode[]>([]);
-	const [connection, setConnection] = useState<Connection>();
+	const [currentConnectionId, setCurrentConnectionId] = useState<string>();
 
-	useEffect(() => {}, [connectionId]);
+	const switchConnections = useCallback((args: SwitchConnectionsArgs) => {
+		const { connectionId } = args;
+		setCurrentConnectionId(connectionId);
+	}, []);
 
-	useEffect(() => {}, [connection]);
+	/* Load base tree */
+	useEffect(() => {
+		// Fetch this from driver using connectionId
+		const databases: Database[] = [
+			{
+				name: "test_db_1",
+				collections: [{ name: "Users" }, { name: "Logs" }],
+			},
+		];
+		const nodes: TreeDataNode[] = databases.reduce<TreeDataNode[]>(
+			(nodes, database) => {
+				nodes.push(
+					createTreeNode(
+						database.name,
+						<CloudServerOutlined />,
+						...database.collections.map((collection) =>
+							createTreeNode(collection.name, <VscListTree />)
+						)
+					)
+				);
+				return nodes;
+			},
+			[]
+		);
+		setTree(nodes);
+	}, [currentConnectionId]);
 
-	return (
-		<div className="Explorer">
-			<Tree defaultExpandedKeys={["0-0-0"]} treeData={tree} />
-		</div>
+	/** Register explorer event listeners */
+	useEffect(
+		() =>
+			listenEffect([
+				{
+					event: "explorer:switch_connections",
+					cb: (e, payload) => switchConnections(payload),
+				},
+			]),
+		[switchConnections]
+	);
+
+	return open ? (
+		<Resizable
+			defaultSize={{
+				width: "20%",
+				height: "100%",
+			}}
+			enable={{
+				right: true,
+			}}
+			maxWidth="40%"
+			minWidth="20%"
+			minHeight="100%"
+		>
+			<div className="Explorer">
+				<div className={"ExplorerHeader"}>Test Server [Company ABC]</div>
+				<Tree treeData={tree} />
+			</div>
+		</Resizable>
+	) : (
+		<></>
 	);
 }

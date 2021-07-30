@@ -9,7 +9,7 @@ import {
 } from "react-icons/vsc";
 import { Menu, Dropdown } from "antd";
 import { DownOutlined } from "@ant-design/icons";
-import Editor from "@monaco-editor/react";
+import { default as Monaco } from "@monaco-editor/react";
 import { KeyMod, KeyCode } from "monaco-editor";
 import { registerCompletions } from "./completions";
 import { Resizable } from "re-resizable";
@@ -58,9 +58,19 @@ const HostList = (props: HostListProps) => {
 	);
 };
 
-interface ShellProps {
+const SHELL_CONFIG_STUB = {
+	db: "test_db_1",
+	hosts: [
+		"ec2-3-13-197-203.us-east-2.compute.amazonaws.com",
+		"ec2-3-13-197-203.us-east-2.compute.amazonaws.com",
+	],
+	user: "dbuser",
+	collection: "Users",
+};
+
+export interface ShellProps {
 	collections: string[];
-	config: {
+	shellConfig: {
 		hosts: string[];
 		db: string;
 		user: string;
@@ -69,7 +79,11 @@ interface ShellProps {
 	onExecutionResult?: (result: ExecutionResult) => void;
 }
 export default function Shell(props: ShellProps): JSX.Element {
-	const { collections, onExecutionResult: onExecutionResult, config } = props;
+	const {
+		collections,
+		onExecutionResult: onExecutionResult,
+		shellConfig: config,
+	} = props;
 
 	const { db, collection, user, hosts } = config;
 
@@ -82,8 +96,10 @@ export default function Shell(props: ShellProps): JSX.Element {
 			});
 	}, [onExecutionResult]);
 
-	const newSellTab = useCallback(() => {
-		dispatch("browser:create_tab");
+	const cloneCurrentTab = useCallback(() => {
+		dispatch("browser:create_tab:editor", {
+			shellConfig: SHELL_CONFIG_STUB,
+		});
 	}, []);
 
 	return (
@@ -123,13 +139,13 @@ export default function Shell(props: ShellProps): JSX.Element {
 					<span>{collection}</span>
 				</div>
 			</div>
-			<div></div>
 			<Resizable
 				minHeight={"10%"}
 				maxHeight={"40%"}
 				defaultSize={{ height: "10%", width: "100%" }}
+				enable={{ bottom: true }}
 			>
-				<Editor
+				<Monaco
 					options={{
 						minimap: {
 							enabled: false,
@@ -154,7 +170,10 @@ export default function Shell(props: ShellProps): JSX.Element {
 					}}
 					onMount={(editor, monaco) => {
 						editor.addCommand(KeyMod.CtrlCmd | KeyCode.Enter, exec);
-						editor.addCommand(KeyMod.CtrlCmd | KeyCode.KEY_N, newSellTab);
+						editor.addCommand(
+							KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KEY_N,
+							cloneCurrentTab
+						);
 					}}
 					onChange={(value, ev) => {
 						value && setCode(value);
