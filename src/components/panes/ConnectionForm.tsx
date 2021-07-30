@@ -7,5 +7,5 @@ export interface ConnectionFormProps {
 }
 
 export function ConnectionForm(): JSX.Element {
-	return <div></div>;
+	return <div>Connection form here!</div>;
 }

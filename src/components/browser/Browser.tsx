@@ -7,7 +7,7 @@ import type { FC, ComponentClass } from "react";
 import { ShellProps } from "../shell/Shell";
 import { listenEffect } from "../../util/events";
 import { Editor, EditorProps } from "../panes/Editor";
-import { ConnectionFormProps } from "../panes/ConnectionForm";
+import { ConnectionForm, ConnectionFormProps } from "../panes/ConnectionForm";
 
 import SHELL_CONFIG_STUB from "../../json-stubs/shell-config.json";
 
@@ -49,6 +49,7 @@ const TAB_PANES: {
 } = {
 	// eslint-disable-next-line react/display-name
 	editor: Editor,
+	connection_form: ConnectionForm,
 };
 
 const EmptyState = () => {
@@ -71,10 +72,30 @@ export const Browser = (): JSX.Element => {
 		if (tabs && tabs.length) setActiveKey(tabs[0].id);
 	}, [tabs]);
 
+	const createConnectionFormTab = useCallback(() => {
+		setTabs((tabs) => {
+			const id = "cf-" + nanoid();
+			const title = "New connection";
+			setActiveKey(() => id);
+			return [
+				...tabs,
+				{
+					type: "connection_form",
+					closable: true,
+					connectionDefaults: {
+						tls: false,
+					},
+					id,
+					title,
+				},
+			];
+		});
+	}, []);
+
 	const createEditorTab = useCallback((args: CreateEditorTabArgs) => {
 		const { shellConfig } = args;
 		setTabs((tabs) => {
-			const id = nanoid();
+			const id = "e-" + nanoid();
 			const title = "Query - " + id;
 			setActiveKey(() => id);
 			return [
@@ -90,7 +111,7 @@ export const Browser = (): JSX.Element => {
 		});
 	}, []);
 
-	const deleteEditorTab = useCallback(
+	const deleteTab = useCallback(
 		(args: DeleteEditorTabArgs) => {
 			const { id } = args;
 			setTabs((tabs) => {
@@ -113,10 +134,14 @@ export const Browser = (): JSX.Element => {
 				},
 				{
 					event: "browser:delete_tab:editor",
-					cb: (e, payload) => deleteEditorTab(payload),
+					cb: (e, payload) => deleteTab(payload),
+				},
+				{
+					event: "browser:create_tab:connection_form",
+					cb: () => createConnectionFormTab(),
 				},
 			]),
-		[createEditorTab, deleteEditorTab]
+		[createEditorTab, deleteTab, createConnectionFormTab]
 	);
 
 	return (
@@ -131,8 +156,7 @@ export const Browser = (): JSX.Element => {
 					if (typeof e === "string")
 						switch (action) {
 							case "remove": {
-								deleteEditorTab({ id: e });
-								return;
+								return deleteTab({ id: e });
 							}
 						}
 				}}
