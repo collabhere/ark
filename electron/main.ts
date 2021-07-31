@@ -1,14 +1,14 @@
 import { app } from "electron";
 
 import Bootstrap from "./bootstrap";
-import { registerProcessListeners } from "./helpers/ipc";
+import { IPCHandler } from "./helpers/ipc";
 
 (async function main() {
 
 	try {
 		app.allowRendererProcessReuse = true;
 
-		registerProcessListeners();
+		IPCHandler();
 
 		await app.whenReady();
 

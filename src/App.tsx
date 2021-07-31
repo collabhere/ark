@@ -6,12 +6,15 @@ import { PageBody } from "./components/layout/PageBody";
 
 import { PageHeader } from "./components/layout/PageHeader";
 import { SideBar } from "./components/sidebar/sidebar";
+import { dispatch } from "./util/events";
 
 function App(): JSX.Element {
 	const [showExplorer, setShowExplorer] = useState(true);
 
 	// App load effect
-	useEffect(() => {}, []);
+	useEffect(() => {
+		dispatch("browser:create_tab:connection_form");
+	}, []);
 
 	return (
 		<div className="App">

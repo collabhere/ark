@@ -1,8 +1,14 @@
-const { contextBridge, ipcRenderer } = require('electron')
+const { contextBridge, ipcRenderer } = require('electron');
 
 function invoke(args: Record<string, any>) {
     return ipcRenderer.invoke('run_command', { ...args });
 }
+
+const invokeJS = (shell: string, code: string) => ipcRenderer.invoke('invoke_js', { code, shell });
+const createShell = (uri: string) => {
+    console.log("Create shell")
+    return ipcRenderer.invoke('create_shell', { shellConfig: { uri } })
+};
 
 export default contextBridge.exposeInMainWorld(
     'ark',
@@ -147,6 +153,10 @@ export default contextBridge.exposeInMainWorld(
                     }
                 });
             }
+        },
+        shell: {
+            create: createShell,
+            eval: invokeJS,
         }
     }
 )

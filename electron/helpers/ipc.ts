@@ -1,7 +1,9 @@
 import { ipcMain } from "electron";
+import { nanoid } from "nanoid";
 
 import * as CollectionLib from "../library/collection";
 import * as ConnectionLib from "../library/connection";
+import { createExecutor, ShellExecutor } from "./shell-executor";
 
 const Modules: Record<string, any> = {
     'collection': CollectionLib,
@@ -26,7 +28,26 @@ interface RunCommand {
     args: Record<string, any>;
 }
 
-export function registerProcessListeners() {
+interface InvokeJS {
+    code: string;
+    shell: string;
+}
+
+interface CreateShell {
+    shellConfig: {
+        uri: string;
+    }
+}
+
+interface StoredShellValue {
+    id: string;
+    executor: ShellExecutor;
+}
+
+export function IPCHandler() {
+
+    const shells = new Map<string, StoredShellValue>()
+
     ipcMain.handle('run_command', async (event, data: RunCommand) => {
         try {
             // console.log(`Event: ${event} | data: ${data}`);
@@ -35,6 +56,37 @@ export function registerProcessListeners() {
             return command(data.library, data.action, data.args);
         } catch (err) {
             console.error("`run_command` error");
+            console.error(err);
+            return { err };
+        }
+    });
+
+    ipcMain.handle('create_shell', async (event, data: CreateShell) => {
+        try {
+            console.log("Create shell", data);
+            const shellExecutor = await createExecutor(data.shellConfig.uri);
+            const shell = {
+                id: nanoid(),
+                executor: shellExecutor
+            };
+            shells.set(shell.id, shell);
+            console.log("Shells: ", shells);
+            return { id: shell.id };
+        } catch (err) {
+            console.error("`create_shell` error");
+            console.error(err);
+            return { err };
+        }
+    });
+
+    ipcMain.handle('invoke_js', async (event, data: InvokeJS) => {
+        try {
+            const shellExecutor = shells.get(data.shell);
+            if (!shellExecutor) throw new Error("Invalid shell");
+            const result = await shellExecutor.executor.eval(data.code);
+            return { result };
+        } catch (err) {
+            console.error("`invoke_js` error");
             console.error(err);
             return { err };
         }

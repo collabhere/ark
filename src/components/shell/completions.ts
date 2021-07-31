@@ -13,16 +13,11 @@ export async function registerCompletions(monaco: Monaco, intellisense: Intellis
         database
     } = intellisense;
 
-    console.log("Fetching completions");
-
     const res = await fetch("/mongoshell.d.ts");
 
     const libSource = await res.text();
     const libUri = monaco.Uri.parse('mongoshell.d.ts');
 
-    console.log("libsource", libSource);
-
-    console.log("Registering completions");
 
     // compiler options
     monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
@@ -56,11 +51,11 @@ export async function registerCompletions(monaco: Monaco, intellisense: Intellis
             const allSegments = code.split("\n").map(line => line.replace(/\t/g, '').split(" "));
             const currentSegment = allSegments[allSegments.length - 1];
 
-            console.log("Position -", position);
-            console.log("Word -", word);
-            console.log("Line -", code);
-            console.log("All segments -", allSegments);
-            console.log("Current segment -", currentSegment);
+            // console.log("Position -", position);
+            // console.log("Word -", word);
+            // console.log("Line -", code);
+            // console.log("All segments -", allSegments);
+            // console.log("Current segment -", currentSegment);
 
             const [command] = currentSegment;
 

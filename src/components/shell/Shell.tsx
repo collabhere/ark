@@ -1,6 +1,6 @@
 import "./shell.less";
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
 	VscDatabase,
 	VscGlobe,
@@ -10,7 +10,8 @@ import {
 import { Menu, Dropdown } from "antd";
 import { DownOutlined } from "@ant-design/icons";
 import { default as Monaco } from "@monaco-editor/react";
-import { KeyMod, KeyCode } from "monaco-editor";
+import type { Monaco as MonacoType } from "@monaco-editor/react";
+import { KeyMod, KeyCode, editor } from "monaco-editor";
 import { registerCompletions } from "./completions";
 import { Resizable } from "re-resizable";
 import { dispatch } from "../../util/events";
@@ -71,6 +72,7 @@ const SHELL_CONFIG_STUB = {
 export interface ShellProps {
 	collections: string[];
 	shellConfig: {
+		uri: string;
 		hosts: string[];
 		db: string;
 		user: string;
@@ -79,28 +81,53 @@ export interface ShellProps {
 	onExecutionResult?: (result: ExecutionResult) => void;
 }
 export default function Shell(props: ShellProps): JSX.Element {
-	const {
-		collections,
-		onExecutionResult: onExecutionResult,
-		shellConfig: config,
-	} = props;
+	const { collections, onExecutionResult, shellConfig: config } = props;
 
 	const { db, collection, user, hosts } = config;
 
 	const [code, setCode] = useState(DEFAULT_CODE);
+	const [monacoEditor, setMonacoEditor] =
+		useState<editor.IStandaloneCodeEditor>();
+	const [shellId, setShellId] = useState<string>();
+
+	console.log(`render: shellId=${shellId}`);
 
 	const exec = useCallback(() => {
-		onExecutionResult &&
-			onExecutionResult({
-				data: [],
+		console.log("exec shell");
+		window.ark.shell
+			.eval(shellId, code)
+			.then(function ({ result, err }) {
+				if (err) return console.error("exec shell error", err);
+				console.log("exec shell result: ", result);
+				onExecutionResult && onExecutionResult(result.response);
+			})
+			.catch(function (err) {
+				console.error("exec shell error: ", err);
 			});
-	}, [onExecutionResult]);
+	}, [code, onExecutionResult, shellId]);
 
 	const cloneCurrentTab = useCallback(() => {
 		dispatch("browser:create_tab:editor", {
 			shellConfig: SHELL_CONFIG_STUB,
 		});
 	}, []);
+
+	useEffect(() => {
+		if (monacoEditor) {
+			monacoEditor.addCommand(KeyMod.CtrlCmd | KeyCode.Enter, exec);
+			monacoEditor.addCommand(
+				KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KEY_N,
+				cloneCurrentTab
+			);
+		}
+	}, [cloneCurrentTab, exec, monacoEditor]);
+
+	useEffect(() => {
+		window.ark.shell.create(config.uri).then(function ({ id }) {
+			console.log("created shell id", id);
+			setShellId(id);
+		});
+	}, [config.uri]);
 
 	return (
 		<div className={"Shell"}>
@@ -139,50 +166,39 @@ export default function Shell(props: ShellProps): JSX.Element {
 					<span>{collection}</span>
 				</div>
 			</div>
-			<Resizable
-				minHeight={"10%"}
-				maxHeight={"40%"}
-				defaultSize={{ height: "10%", width: "100%" }}
-				enable={{ bottom: true }}
-			>
-				<Monaco
-					options={{
-						minimap: {
-							enabled: false,
+			<Monaco
+				options={{
+					minimap: {
+						enabled: false,
+					},
+				}}
+				theme={"ark"}
+				beforeMount={(monaco) => {
+					registerCompletions(monaco, { collections });
+					monaco.editor.defineTheme("ark", {
+						base: "vs-dark",
+						inherit: true,
+						rules: [],
+						colors: {
+							"editor.foreground": "#000000",
+							"editor.background": "#060a21",
+							"editorCursor.foreground": "#8B0000",
+							"editor.lineHighlightBackground": "#0000FF20",
+							"editor.selectionBackground": "#8B0000",
+							"editor.inactiveSelectionBackground": "#88000015",
 						},
-					}}
-					theme={"ark"}
-					beforeMount={(monaco) => {
-						registerCompletions(monaco, { collections });
-						monaco.editor.defineTheme("ark", {
-							base: "vs-dark",
-							inherit: true,
-							rules: [],
-							colors: {
-								"editor.foreground": "#000000",
-								"editor.background": "#060a21",
-								"editorCursor.foreground": "#8B0000",
-								"editor.lineHighlightBackground": "#0000FF20",
-								"editor.selectionBackground": "#8B0000",
-								"editor.inactiveSelectionBackground": "#88000015",
-							},
-						});
-					}}
-					onMount={(editor, monaco) => {
-						editor.addCommand(KeyMod.CtrlCmd | KeyCode.Enter, exec);
-						editor.addCommand(
-							KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KEY_N,
-							cloneCurrentTab
-						);
-					}}
-					onChange={(value, ev) => {
-						value && setCode(value);
-					}}
-					height="100%"
-					defaultValue={code}
-					defaultLanguage="javascript"
-				/>
-			</Resizable>
+					});
+				}}
+				onMount={(editor: editor.IStandaloneCodeEditor, monaco: MonacoType) => {
+					setMonacoEditor(editor);
+				}}
+				onChange={(value, ev) => {
+					value && setCode(value);
+				}}
+				height="100%"
+				defaultValue={code}
+				defaultLanguage="javascript"
+			/>
 		</div>
 	);
 }
