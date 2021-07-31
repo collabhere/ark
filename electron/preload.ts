@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-const invoke = (args) => ipcRenderer.invoke("run_command", { ...args });
+const invoke = (args: any) => ipcRenderer.invoke("run_command", { ...args });
 const invokeJS = (shell: string, code: string) => ipcRenderer.invoke('invoke_js', { code, shell });
 const createShell = (uri: string) => ipcRenderer.invoke('create_shell', { shellConfig: { uri } });
 

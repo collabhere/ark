@@ -1,9 +1,8 @@
-import { app, session } from "electron";
-import path from "path";
-import os, { type } from "os";
+import { app } from "electron";
 
 import Bootstrap from "./bootstrap";
 import { IPCHandler } from "./helpers/ipc";
+import { enableDevTools } from "./utils/dev";
 
 (async function main() {
 	try {
@@ -11,14 +10,10 @@ import { IPCHandler } from "./helpers/ipc";
 
 		IPCHandler();
 
-		const reactDevToolsPath = path.join(
-			os.homedir(),
-			"/.config/google-chrome/Default/Extensions/fmkadmapgofadopljbjfkapdkoienihi/4.14.0_0"
-		);
+		await app.whenReady();
 
-		await app.whenReady().then(async () => {
-			await session.defaultSession.loadExtension(reactDevToolsPath);
-		});
+		if (process.env.ARK_ENABLE_DEV_TOOLS && process.env.ARK_DEV_TOOLS_PATH)
+			enableDevTools(process.env.ARK_DEV_TOOLS_PATH);
 
 		await Bootstrap();
 	} catch (e) {
