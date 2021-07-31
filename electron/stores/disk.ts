@@ -56,5 +56,11 @@ export const diskStore = (dirName: string = "ark") => {
 		});
 	};
 
-	return { get, set, remove, has };
+	const getAll = (module: string) => {
+		return promisify(electronStorage.getAll, {
+			dataPath: `${electronStorage.getDataPath()}/${module}`,
+		});
+	};
+
+	return { get, set, remove, has, getAll };
 };
