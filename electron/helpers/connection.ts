@@ -30,6 +30,7 @@ export async function createConnection(
 		const connection = await getConnection(connectionUri, config.options);
 
 		if (connection) {
+			//Save connection is giving object could not be cloned, need to look into this issue
 			connectionStore().saveConnection(id, connection);
 			return connection;
 		}
@@ -86,7 +87,7 @@ export async function saveNewConnection(
 			options.tlsCertificateFile = `${os.homedir()}/ark/certs/ark.crt`;
 			options.authSource = "admin";
 		} else {
-			members = [`${parsedUri.host}:${parsedUri.port || 27017}`];
+			members = [`${parsedUri.hostname}:${parsedUri.port || 27017}`];
 		}
 
 		const uriOptions = parsedUri.search
@@ -129,4 +130,10 @@ export const performLookup = (
 			resolve(addresses);
 		});
 	});
+};
+
+export const getAllConnections = () => {
+	const store = diskStore();
+	return store.getAll("connections");
+	//console.log(allConnections);
 };

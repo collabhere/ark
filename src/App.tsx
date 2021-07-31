@@ -9,16 +9,30 @@ import { SideBar } from "./components/sidebar/sidebar";
 
 function App(): JSX.Element {
 	const [showExplorer, setShowExplorer] = useState(true);
+	const [connectionId, setConnectionId] = useState<null | string>(null);
 
 	// App load effect
-	useEffect(() => {}, []);
+	useEffect(() => {
+		// window.ark.connection.saveConnection(
+		// 	"uri",
+		// 	"mongodb://test:test@ec2-3-13-197-203.us-east-2.compute.amazonaws.com:27017/klenty_test_2622",
+		// 	"test-2622"
+		// );
+		window.ark.connection.getAllConnections().then((objConnections: any) => {
+			const connectionKeys = Object.keys(objConnections);
+			console.log(`connectionId: ${connectionKeys[0]}`);
+			setConnectionId(connectionKeys[0]);
+		});
+	}, []);
 
 	return (
 		<div className="App">
 			<PageHeader />
 			<PageBody>
 				<SideBar />
-				<Explorer open={showExplorer} />
+				{connectionId && (
+					<Explorer open={showExplorer} connectionId={connectionId} />
+				)}
 				<Browser />
 			</PageBody>
 		</div>

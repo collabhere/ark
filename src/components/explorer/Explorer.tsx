@@ -37,12 +37,14 @@ interface Database {
 
 interface ExplorerProps {
 	open: boolean;
+	connectionId: string;
 }
 
 export function Explorer(props: ExplorerProps): JSX.Element {
-	const { open } = props;
+	const { open, connectionId } = props;
 	const [tree, setTree] = useState<TreeDataNode[]>([]);
 	const [currentConnectionId, setCurrentConnectionId] = useState<string>();
+	const [connection, setConnection] = useState<any>();
 
 	const switchConnections = useCallback((args: SwitchConnectionsArgs) => {
 		const { connectionId } = args;
@@ -52,29 +54,35 @@ export function Explorer(props: ExplorerProps): JSX.Element {
 	/* Load base tree */
 	useEffect(() => {
 		// Fetch this from driver using connectionId
-		const databases: Database[] = [
-			{
-				name: "test_db_1",
-				collections: [{ name: "Users" }, { name: "Logs" }],
-			},
-		];
-		const nodes: TreeDataNode[] = databases.reduce<TreeDataNode[]>(
-			(nodes, database) => {
-				nodes.push(
-					createTreeNode(
-						database.name,
-						<CloudServerOutlined />,
-						...database.collections.map((collection) =>
-							createTreeNode(collection.name, <VscListTree />)
-						)
-					)
-				);
-				return nodes;
-			},
-			[]
-		);
-		setTree(nodes);
-	}, [currentConnectionId]);
+		console.log("connectionId in explorer", connectionId);
+		window.ark.connection.create(connectionId).then((conn: any) => {
+			console.log(`Conn obj for 2622 ${conn}`);
+			setConnection(conn);
+		});
+
+		// const databases: Database[] = [
+		// 	{
+		// 		name: "test_db_1",
+		// 		collections: [{ name: "Users" }, { name: "Logs" }],
+		// 	},
+		// ];
+		// const nodes: TreeDataNode[] = databases.reduce<TreeDataNode[]>(
+		// 	(nodes, database) => {
+		// 		nodes.push(
+		// 			createTreeNode(
+		// 				database.name,
+		// 				<CloudServerOutlined />,
+		// 				...database.collections.map((collection) =>
+		// 					createTreeNode(collection.name, <VscListTree />)
+		// 				)
+		// 			)
+		// 		);
+		// 		return nodes;
+		// 	},
+		// 	[]
+		// );
+		// setTree(nodes);
+	}, [connectionId]);
 
 	/** Register explorer event listeners */
 	useEffect(
