@@ -18,9 +18,8 @@ const getConnection = async (uri: string, options: MongoClientOptions) => {
 	return await MongoClient.connect(uri, options);
 };
 
-export async function createConnection(
-	id: string
-): Promise<MongoClient | undefined> {
+export async function createConnection(id: string): Promise<any> {
+	console.log(id);
 	const store = diskStore();
 
 	if (await store.has("connections", id)) {
@@ -30,9 +29,7 @@ export async function createConnection(
 		const connection = await getConnection(connectionUri, config.options);
 
 		if (connection) {
-			//Save connection is giving object could not be cloned, need to look into this issue
 			connectionStore().saveConnection(id, connection);
-			return connection;
 		}
 	} else {
 		throw new Error("No connections found!");
@@ -101,6 +98,7 @@ export async function saveNewConnection(
 			}, {});
 
 		await store.set("connections", id, {
+			id,
 			protocol: parsedUri.protocol,
 			name: config.name,
 			members,
@@ -135,5 +133,4 @@ export const performLookup = (
 export const getAllConnections = () => {
 	const store = diskStore();
 	return store.getAll("connections");
-	//console.log(allConnections);
 };

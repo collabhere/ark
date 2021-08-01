@@ -3,10 +3,13 @@ import { nanoid } from "nanoid";
 
 const store = new Map<string, MongoClient>();
 
-export const connectionStore = () => {
+export const connectionStore = (
+	subscribe?: (id: string, connection: MongoClient) => void
+) => {
 	const saveConnection = (id: string, connection: MongoClient) => {
 		if (connection) {
 			store.set(id, connection);
+			subscribe(id, connection);
 			return id;
 		} else {
 			throw new Error("Unable to save an empty connection!");

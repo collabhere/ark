@@ -37,11 +37,11 @@ interface Database {
 
 interface ExplorerProps {
 	open: boolean;
-	connectionId: string;
+	connectionIds: Array<string>;
 }
 
 export function Explorer(props: ExplorerProps): JSX.Element {
-	const { open, connectionId } = props;
+	const { open, connectionIds } = props;
 	const [tree, setTree] = useState<TreeDataNode[]>([]);
 	const [currentConnectionId, setCurrentConnectionId] = useState<string>();
 	const [connection, setConnection] = useState<any>();
@@ -52,37 +52,7 @@ export function Explorer(props: ExplorerProps): JSX.Element {
 	}, []);
 
 	/* Load base tree */
-	useEffect(() => {
-		// Fetch this from driver using connectionId
-		console.log("connectionId in explorer", connectionId);
-		window.ark.connection.create(connectionId).then((conn: any) => {
-			console.log(`Conn obj for 2622 ${conn}`);
-			setConnection(conn);
-		});
-
-		// const databases: Database[] = [
-		// 	{
-		// 		name: "test_db_1",
-		// 		collections: [{ name: "Users" }, { name: "Logs" }],
-		// 	},
-		// ];
-		// const nodes: TreeDataNode[] = databases.reduce<TreeDataNode[]>(
-		// 	(nodes, database) => {
-		// 		nodes.push(
-		// 			createTreeNode(
-		// 				database.name,
-		// 				<CloudServerOutlined />,
-		// 				...database.collections.map((collection) =>
-		// 					createTreeNode(collection.name, <VscListTree />)
-		// 				)
-		// 			)
-		// 		);
-		// 		return nodes;
-		// 	},
-		// 	[]
-		// );
-		// setTree(nodes);
-	}, [connectionId]);
+	// useEffect(() => {}, []);
 
 	/** Register explorer event listeners */
 	useEffect(
@@ -110,6 +80,7 @@ export function Explorer(props: ExplorerProps): JSX.Element {
 			minHeight="100%"
 		>
 			<div className="Explorer">
+				{connectionIds && <div>{connectionIds[0]}</div>}
 				<div className={"ExplorerHeader"}>Test Server [Company ABC]</div>
 				<Tree treeData={tree} />
 			</div>
