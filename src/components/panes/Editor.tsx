@@ -28,9 +28,9 @@ export function Editor(props: EditorProps): JSX.Element {
 	return (
 		<div className={"Editor"}>
 			<Resizable
-				minHeight={"10%"}
+				// minHeight={"20%"}
 				maxHeight={"40%"}
-				defaultSize={{ height: "10%", width: "100%" }}
+				defaultSize={{ height: "20%", width: "100%" }}
 				enable={{ bottom: true }}
 			>
 				<Shell

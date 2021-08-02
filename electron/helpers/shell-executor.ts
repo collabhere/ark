@@ -43,19 +43,24 @@ export function createExecutor(mongoURI: string, options?: ShellExecutorOptions)
 
     let REPL_PREFIX_THING = '';
 
-    stdout.once('data', chunk => {
-        REPL_PREFIX_THING = chunk.toString();
-        running = true;
+    proc.on('error', function (err) {
+        console.error("mongosh process err");
+        console.error(err);
     });
+
+    stdout.once('data', chunk => (
+        REPL_PREFIX_THING = chunk.toString(),
+        running = true
+    ));
 
     stdout.on("close", () => {
         running = false;
     });
 
-    const writeToShell = (js: string) => {
-        mongosh.write(`${js}\n`);
-        script = ``;
-    };
+    const writeToShell = (js: string) => (
+        mongosh.write(`${js}\n`),
+        script = ``
+    );
 
     const append = (chunk: string) => script += chunk;
     const end = () => writeToShell(script + "\n");
