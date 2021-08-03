@@ -19,7 +19,6 @@ const getConnection = async (uri: string, options: MongoClientOptions) => {
 };
 
 export async function createConnection(id: string): Promise<any> {
-	console.log(id);
 	const store = diskStore();
 
 	if (await store.has("connections", id)) {
@@ -130,7 +129,6 @@ export const performLookup = (
 	});
 };
 
-export const getAllConnections = () => {
-	const store = diskStore();
-	return store.getAll("connections");
-};
+export const getAllConnections = () => diskStore().getAll("connections");
+export const getConnectionById = (id: string) =>
+	diskStore().get("connections", id);

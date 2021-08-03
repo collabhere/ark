@@ -1,8 +1,10 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer } = require("electron");
 
 const invoke = (args: any) => ipcRenderer.invoke("run_command", { ...args });
-const invokeJS = (shell: string, code: string) => ipcRenderer.invoke('invoke_js', { code, shell });
-const createShell = (uri: string) => ipcRenderer.invoke('create_shell', { shellConfig: { uri } });
+const invokeJS = (shell: string, code: string) =>
+	ipcRenderer.invoke("invoke_js", { code, shell });
+const createShell = (uri: string) =>
+	ipcRenderer.invoke("create_shell", { shellConfig: { uri } });
 
 const shell = {
 	create: createShell,
@@ -28,6 +30,15 @@ export default contextBridge.exposeInMainWorld("ark", {
 					type,
 					uri,
 					name,
+				},
+			});
+		},
+		getConnectionDetails: (id: string) => {
+			return invoke({
+				library: "connection",
+				action: "getConnectionDetails",
+				args: {
+					id,
 				},
 			});
 		},
@@ -202,5 +213,5 @@ export default contextBridge.exposeInMainWorld("ark", {
 			});
 		},
 	},
-	shell
+	shell,
 });

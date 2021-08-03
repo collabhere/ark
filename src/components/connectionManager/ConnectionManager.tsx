@@ -9,7 +9,7 @@ import {
 	VscAdd,
 } from "react-icons/vsc";
 
-export interface ConnectionManagerProps {
+export interface ConnectionDetails {
 	connections: Array<{
 		id: string;
 		name: string;
@@ -27,17 +27,23 @@ export interface ConnectionManagerProps {
 	}>;
 }
 
-export function ConnectionManager({ setConns }: any): JSX.Element {
+export interface ConnectionManagerProps {
+	setConnectionIds: React.Dispatch<React.SetStateAction<Array<string>>>;
+}
+
+export function ConnectionManager({
+	setConnectionIds,
+}: ConnectionManagerProps): JSX.Element {
 	const [connections, setConnections] = useState<
-		ConnectionManagerProps["connections"]
+		ConnectionDetails["connections"]
 	>([]);
 
 	const connect = useCallback(
 		(id: string) => {
 			window.ark.connection.create(id);
-			setConns((conns: any) => [...conns, id]);
+			setConnectionIds((conns: Array<string>) => [...conns, id]);
 		},
-		[setConns]
+		[setConnectionIds]
 	);
 
 	useEffect(() => {

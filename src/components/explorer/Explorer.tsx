@@ -6,6 +6,7 @@ import { CloudServerOutlined } from "@ant-design/icons";
 import { VscListTree } from "react-icons/vsc";
 import { Resizable } from "re-resizable";
 import { listenEffect } from "../../util/events";
+import { ConnectionDetails } from "../connectionManager/ConnectionManager";
 
 const createTreeNode = (
 	title: string,
@@ -44,12 +45,15 @@ export function Explorer(props: ExplorerProps): JSX.Element {
 	const { open, connectionIds } = props;
 	const [tree, setTree] = useState<TreeDataNode[]>([]);
 	const [currentConnectionId, setCurrentConnectionId] = useState<string>();
-	const [connection, setConnection] = useState<any>();
+	const [connections, setConnections] =
+		useState<ConnectionDetails["connections"]>();
 
 	const switchConnections = useCallback((args: SwitchConnectionsArgs) => {
 		const { connectionId } = args;
 		setCurrentConnectionId(connectionId);
 	}, []);
+
+	console.log("State", connections);
 
 	/* Load base tree */
 	// useEffect(() => {}, []);
@@ -66,6 +70,16 @@ export function Explorer(props: ExplorerProps): JSX.Element {
 		[switchConnections]
 	);
 
+	useEffect(() => {
+		Promise.all(
+			connectionIds.map((id) => window.ark.connection.getConnectionDetails(id))
+		).then((connections) => {
+			setConnections(() => connections);
+		});
+
+		return () => setConnections([]);
+	}, [connectionIds]);
+
 	return open ? (
 		<Resizable
 			defaultSize={{
@@ -80,8 +94,12 @@ export function Explorer(props: ExplorerProps): JSX.Element {
 			minHeight="100%"
 		>
 			<div className="Explorer">
-				{connectionIds && <div>{connectionIds[0]}</div>}
 				<div className={"ExplorerHeader"}>Test Server [Company ABC]</div>
+				<div>
+					{connections?.map((conn) => (
+						<div key={conn.id}>{conn.name}</div>
+					))}
+				</div>
 				<Tree treeData={tree} />
 			</div>
 		</Resizable>

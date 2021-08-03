@@ -53,7 +53,7 @@ export type TabComponentProps =
 export interface TabComponentMap {
 	editor: EditorProps;
 	connection_form: ConnectionFormProps;
-	connection_manager: void;
+	connection_manager: ConnectionManagerProps;
 }
 
 const TAB_PANES: {
@@ -69,7 +69,11 @@ const EmptyState = () => {
 	return <div>This is an empty state!</div>;
 };
 
-export const Browser = ({ setConns }: { setConns: any }): JSX.Element => {
+export const Browser = ({
+	setConnectionIds,
+}: {
+	setConnectionIds: React.Dispatch<React.SetStateAction<Array<string>>>;
+}): JSX.Element => {
 	const [tabs, setTabs] = useState<Tab[]>([]);
 	const [activeKey, setActiveKey] = useState<string>();
 
@@ -136,11 +140,11 @@ export const Browser = ({ setConns }: { setConns: any }): JSX.Element => {
 					title,
 					id: "" + id,
 					closable: true,
-					setConns,
+					setConnectionIds,
 				},
 			];
 		});
-	}, [setConns]);
+	}, [setConnectionIds]);
 
 	const deleteTab = useCallback(
 		(args: DeleteEditorTabArgs) => {

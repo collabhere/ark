@@ -2,6 +2,7 @@ import {
 	saveNewConnection,
 	getAllConnections,
 	createConnection,
+	getConnectionById,
 } from "../helpers/connection";
 
 interface InitParams {
@@ -31,6 +32,10 @@ export function saveConnection(params: SaveParams) {
 
 export function getConnections() {
 	return getAllConnections();
+}
+
+export function getConnectionDetails(params: { id: string }) {
+	return getConnectionById(params.id);
 }
 
 interface CreateParams {

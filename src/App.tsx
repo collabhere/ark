@@ -23,7 +23,7 @@ function App(): JSX.Element {
 			<PageBody>
 				<SideBar />
 				<Explorer open={showExplorer} connectionIds={connectionIds} />
-				<Browser setConns={setConnectionIds} />
+				<Browser setConnectionIds={setConnectionIds} />
 			</PageBody>
 		</div>
 	);
