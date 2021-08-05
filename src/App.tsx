@@ -10,7 +10,6 @@ import { dispatch } from "./util/events";
 
 function App(): JSX.Element {
 	const [showExplorer, setShowExplorer] = useState(true);
-	const [connectionIds, setConnectionIds] = useState<Array<string>>([]);
 
 	// App load effect
 	useEffect(() => {
@@ -22,8 +21,8 @@ function App(): JSX.Element {
 			<PageHeader />
 			<PageBody>
 				<SideBar />
-				<Explorer open={showExplorer} connectionIds={connectionIds} />
-				<Browser setConnectionIds={setConnectionIds} />
+				<Explorer open={showExplorer} />
+				<Browser />
 			</PageBody>
 		</div>
 	);

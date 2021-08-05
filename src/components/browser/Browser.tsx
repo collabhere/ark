@@ -59,7 +59,6 @@ export interface TabComponentMap {
 const TAB_PANES: {
 	[k in TabType]?: FC<TabComponentMap[k]> | ComponentClass<TabComponentMap[k]>;
 } = {
-	// eslint-disable-next-line react/display-name
 	editor: Editor,
 	connection_form: ConnectionForm,
 	connection_manager: ConnectionManager,
@@ -69,11 +68,7 @@ const EmptyState = () => {
 	return <div>This is an empty state!</div>;
 };
 
-export const Browser = ({
-	setConnectionIds,
-}: {
-	setConnectionIds: React.Dispatch<React.SetStateAction<Array<string>>>;
-}): JSX.Element => {
+export const Browser = (): JSX.Element => {
 	const [tabs, setTabs] = useState<Tab[]>([]);
 	const [activeKey, setActiveKey] = useState<string>();
 
@@ -140,11 +135,10 @@ export const Browser = ({
 					title,
 					id: "" + id,
 					closable: true,
-					setConnectionIds,
 				},
 			];
 		});
-	}, [setConnectionIds]);
+	}, []);
 
 	const deleteTab = useCallback(
 		(args: DeleteEditorTabArgs) => {

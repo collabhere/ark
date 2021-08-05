@@ -1,5 +1,4 @@
 import { MongoClient } from "mongodb";
-import { nanoid } from "nanoid";
 
 const store = new Map<string, MongoClient>();
 

@@ -38,22 +38,26 @@ interface Database {
 
 interface ExplorerProps {
 	open: boolean;
-	connectionIds: Array<string>;
 }
 
 export function Explorer(props: ExplorerProps): JSX.Element {
-	const { open, connectionIds } = props;
+	const { open } = props;
 	const [tree, setTree] = useState<TreeDataNode[]>([]);
 	const [currentConnectionId, setCurrentConnectionId] = useState<string>();
-	const [connections, setConnections] =
-		useState<ConnectionDetails["connections"]>();
+	const [connections, setConnections] = useState<
+		ConnectionDetails["connections"]
+	>([]);
 
 	const switchConnections = useCallback((args: SwitchConnectionsArgs) => {
 		const { connectionId } = args;
 		setCurrentConnectionId(connectionId);
 	}, []);
 
-	console.log("State", connections);
+	const addNewConnection = useCallback((id: string) => {
+		window.ark.connection.getConnectionDetails(id).then((connection) => {
+			setConnections((connections) => [...connections, connection]);
+		});
+	}, []);
 
 	/* Load base tree */
 	// useEffect(() => {}, []);
@@ -66,19 +70,13 @@ export function Explorer(props: ExplorerProps): JSX.Element {
 					event: "explorer:switch_connections",
 					cb: (e, payload) => switchConnections(payload),
 				},
+				{
+					event: "explorer:add_connections",
+					cb: (e, payload) => addNewConnection(payload),
+				},
 			]),
-		[switchConnections]
+		[addNewConnection, switchConnections]
 	);
-
-	useEffect(() => {
-		Promise.all(
-			connectionIds.map((id) => window.ark.connection.getConnectionDetails(id))
-		).then((connections) => {
-			setConnections(() => connections);
-		});
-
-		return () => setConnections([]);
-	}, [connectionIds]);
 
 	return open ? (
 		<Resizable

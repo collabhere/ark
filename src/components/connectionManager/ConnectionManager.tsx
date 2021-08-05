@@ -8,6 +8,7 @@ import {
 	VscTrash,
 	VscAdd,
 } from "react-icons/vsc";
+import { dispatch } from "../../util/events";
 
 export interface ConnectionDetails {
 	connections: Array<{
@@ -28,23 +29,19 @@ export interface ConnectionDetails {
 }
 
 export interface ConnectionManagerProps {
+	connectionIds: Array<string>;
 	setConnectionIds: React.Dispatch<React.SetStateAction<Array<string>>>;
 }
 
-export function ConnectionManager({
-	setConnectionIds,
-}: ConnectionManagerProps): JSX.Element {
+export function ConnectionManager(): JSX.Element {
 	const [connections, setConnections] = useState<
 		ConnectionDetails["connections"]
 	>([]);
 
-	const connect = useCallback(
-		(id: string) => {
-			window.ark.connection.create(id);
-			setConnectionIds((conns: Array<string>) => [...conns, id]);
-		},
-		[setConnectionIds]
-	);
+	const connect = useCallback((id: string) => {
+		window.ark.connection.create(id);
+		dispatch("explorer:add_connections", id);
+	}, []);
 
 	useEffect(() => {
 		window.ark.connection.getAllConnections().then((connectionDetails) => {
