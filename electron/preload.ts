@@ -65,7 +65,6 @@ export default contextBridge.exposeInMainWorld("ark", {
 			});
 		},
 		disconnect: (id: string) => {
-			console.log("id", id);
 			return invoke({
 				library: "connection",
 				action: "disconnect",
@@ -73,6 +72,15 @@ export default contextBridge.exposeInMainWorld("ark", {
 					id,
 				},
 			});
+		},
+		deleteConnection: (id: string) => {
+			return invoke({
+				library: "connection",
+				action: "deleteConnection",
+				args: {
+					id,
+				}
+			})
 		},
 	},
 	collection: {

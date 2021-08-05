@@ -142,3 +142,6 @@ export const getConnectionById = (id: string) =>
 export const getActiveConnections = () => getActiveConnectionIds();
 
 export const removeActiveConnection = (id: string) => deleteConnection(id);
+
+export const removeConnection = (id: string) =>
+	diskStore().remove("connection", id);

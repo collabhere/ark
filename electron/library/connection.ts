@@ -5,6 +5,7 @@ import {
 	getConnectionById,
 	getActiveConnections,
 	removeActiveConnection,
+	removeConnection,
 } from "../helpers/connection";
 
 interface InitParams {
@@ -19,6 +20,10 @@ interface SaveParams {
 	type: "config" | "uri";
 	uri: string;
 	name: string;
+}
+
+interface ConnectionsParam {
+	id: string;
 }
 
 export function saveConnection(params: SaveParams) {
@@ -40,10 +45,6 @@ export function getConnectionDetails(params: { id: string }) {
 	return getConnectionById(params.id);
 }
 
-interface ConnectionsParam {
-	id: string;
-}
-
 export function create(params: ConnectionsParam) {
 	return createConnection(params.id);
 }
@@ -54,4 +55,8 @@ export function getActiveConnIds() {
 
 export function disconnect(params: ConnectionsParam) {
 	return removeActiveConnection(params.id);
+}
+
+export function deleteConnection(params: ConnectionsParam) {
+	return removeConnection(params.id);
 }

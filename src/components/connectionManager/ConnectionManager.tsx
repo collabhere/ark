@@ -54,6 +54,18 @@ export function ConnectionManager(): JSX.Element {
 		dispatch("explorer:remove_connection", id);
 	}, []);
 
+	const deleteConnection = useCallback(
+		(id: string) => {
+			if (activeConnectionIds.includes(id)) {
+				disconnect(id);
+			}
+
+			window.ark.connection.deleteConnection(id);
+			setConnections((conns) => conns.filter((c) => c.id !== id));
+		},
+		[activeConnectionIds, disconnect]
+	);
+
 	useEffect(() => {
 		window.ark.connection.getActiveConnectionIds().then((ids) => {
 			setActiveConnectionIds(ids);
@@ -138,6 +150,7 @@ export function ConnectionManager(): JSX.Element {
 										shape="circle"
 										icon={<VscTrash />}
 										size={"large"}
+										onClick={() => deleteConnection(conn.id)}
 									/>
 								</div>
 							</div>
