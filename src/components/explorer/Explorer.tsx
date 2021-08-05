@@ -59,6 +59,12 @@ export function Explorer(props: ExplorerProps): JSX.Element {
 		});
 	}, []);
 
+	const removeConnection = useCallback((id: string) => {
+		setConnections((connections) =>
+			connections.filter((conn) => conn.id !== id)
+		);
+	}, []);
+
 	/* Load base tree */
 	// useEffect(() => {}, []);
 
@@ -71,11 +77,15 @@ export function Explorer(props: ExplorerProps): JSX.Element {
 					cb: (e, payload) => switchConnections(payload),
 				},
 				{
-					event: "explorer:add_connections",
+					event: "explorer:add_connection",
 					cb: (e, payload) => addNewConnection(payload),
 				},
+				{
+					event: "explorer:remove_connection",
+					cb: (e, payload) => removeConnection(payload),
+				},
 			]),
-		[addNewConnection, switchConnections]
+		[addNewConnection, removeConnection, switchConnections]
 	);
 
 	return open ? (

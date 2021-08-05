@@ -3,6 +3,8 @@ import {
 	getAllConnections,
 	createConnection,
 	getConnectionById,
+	getActiveConnections,
+	removeActiveConnection,
 } from "../helpers/connection";
 
 interface InitParams {
@@ -38,10 +40,18 @@ export function getConnectionDetails(params: { id: string }) {
 	return getConnectionById(params.id);
 }
 
-interface CreateParams {
+interface ConnectionsParam {
 	id: string;
 }
 
-export function create(params: CreateParams) {
+export function create(params: ConnectionsParam) {
 	return createConnection(params.id);
+}
+
+export function getActiveConnIds() {
+	return Array.from(getActiveConnections());
+}
+
+export function disconnect(params: ConnectionsParam) {
+	return removeActiveConnection(params.id);
 }

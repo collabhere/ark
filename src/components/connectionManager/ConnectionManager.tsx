@@ -34,13 +34,30 @@ export interface ConnectionManagerProps {
 }
 
 export function ConnectionManager(): JSX.Element {
+	const [activeConnectionIds, setActiveConnectionIds] = useState<Array<string>>(
+		[]
+	);
+
 	const [connections, setConnections] = useState<
 		ConnectionDetails["connections"]
 	>([]);
 
 	const connect = useCallback((id: string) => {
 		window.ark.connection.create(id);
-		dispatch("explorer:add_connections", id);
+		setActiveConnectionIds((ids) => [...ids, id]);
+		dispatch("explorer:add_connection", id);
+	}, []);
+
+	const disconnect = useCallback((id: string) => {
+		window.ark.connection.disconnect(id);
+		setActiveConnectionIds((ids) => ids.filter((i) => i !== id));
+		dispatch("explorer:remove_connection", id);
+	}, []);
+
+	useEffect(() => {
+		window.ark.connection.getActiveConnectionIds().then((ids) => {
+			setActiveConnectionIds(ids);
+		});
 	}, []);
 
 	useEffect(() => {
@@ -58,15 +75,29 @@ export function ConnectionManager(): JSX.Element {
 				<div className={"NameContainer"}>{title}</div>
 			</div>
 			<div>
-				<Button
-					type="ghost"
-					shape="round"
-					icon={<VscAdd />}
-					size="large"
-					onClick={() => connect(id)}
-				>
-					Connect
-				</Button>
+				{!activeConnectionIds.includes(id) && (
+					<Button
+						type="ghost"
+						shape="round"
+						icon={<VscAdd />}
+						size="large"
+						onClick={() => connect(id)}
+					>
+						Connect
+					</Button>
+				)}
+
+				{activeConnectionIds.includes(id) && (
+					<Button
+						type="ghost"
+						shape="round"
+						icon={<VscAdd />}
+						size="large"
+						onClick={() => disconnect(id)}
+					>
+						Disconnect
+					</Button>
+				)}
 			</div>
 		</div>
 	);

@@ -58,6 +58,22 @@ export default contextBridge.exposeInMainWorld("ark", {
 				},
 			});
 		},
+		getActiveConnectionIds: () => {
+			return invoke({
+				library: "connection",
+				action: "getActiveConnIds",
+			});
+		},
+		disconnect: (id: string) => {
+			console.log("id", id);
+			return invoke({
+				library: "connection",
+				action: "disconnect",
+				args: {
+					id,
+				},
+			});
+		},
 	},
 	collection: {
 		list: (username: string) => {

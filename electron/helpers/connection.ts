@@ -1,5 +1,10 @@
 import { MongoClient, MongoClientOptions } from "mongodb";
-import { connectionStore } from "../stores/connection";
+import {
+	saveConnection,
+	getActiveConnectionIds,
+	getConnection,
+	deleteConnection,
+} from "../stores/connection";
 import { resolveSrv, SrvRecord } from "dns";
 import { nanoid } from "nanoid";
 import os from "os";
@@ -14,7 +19,7 @@ interface Configuration {
 	options: MongoClientOptions;
 }
 
-const getConnection = async (uri: string, options: MongoClientOptions) => {
+const connect = async (uri: string, options: MongoClientOptions) => {
 	return await MongoClient.connect(uri, options);
 };
 
@@ -25,10 +30,10 @@ export async function createConnection(id: string): Promise<any> {
 		const config = (await store.get("connections", id)) as Configuration;
 		const connectionUri = getConnectionUri(config);
 
-		const connection = await getConnection(connectionUri, config.options);
+		const connection = await connect(connectionUri, config.options);
 
 		if (connection) {
-			connectionStore().saveConnection(id, connection);
+			saveConnection(id, connection);
 		}
 	} else {
 		throw new Error("No connections found!");
@@ -130,5 +135,10 @@ export const performLookup = (
 };
 
 export const getAllConnections = () => diskStore().getAll("connections");
+
 export const getConnectionById = (id: string) =>
 	diskStore().get("connections", id);
+
+export const getActiveConnections = () => getActiveConnectionIds();
+
+export const removeActiveConnection = (id: string) => deleteConnection(id);
