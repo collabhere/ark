@@ -1,8 +1,10 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer } = require("electron");
 
 const invoke = (args: any) => ipcRenderer.invoke("run_command", { ...args });
-const invokeJS = (shell: string, code: string) => ipcRenderer.invoke('invoke_js', { code, shell });
-const createShell = (uri: string) => ipcRenderer.invoke('create_shell', { shellConfig: { uri } });
+const invokeJS = (shell: string, code: string) =>
+	ipcRenderer.invoke("invoke_js", { code, shell });
+const createShell = (uri: string) =>
+	ipcRenderer.invoke("create_shell", { shellConfig: { uri } });
 
 const shell = {
 	create: createShell,
@@ -31,6 +33,15 @@ export default contextBridge.exposeInMainWorld("ark", {
 				},
 			});
 		},
+		getConnectionDetails: (id: string) => {
+			return invoke({
+				library: "connection",
+				action: "getConnectionDetails",
+				args: {
+					id,
+				},
+			});
+		},
 		getAllConnections: () => {
 			return invoke({
 				library: "connection",
@@ -46,6 +57,30 @@ export default contextBridge.exposeInMainWorld("ark", {
 					id,
 				},
 			});
+		},
+		getActiveConnectionIds: () => {
+			return invoke({
+				library: "connection",
+				action: "getActiveConnIds",
+			});
+		},
+		disconnect: (id: string) => {
+			return invoke({
+				library: "connection",
+				action: "disconnect",
+				args: {
+					id,
+				},
+			});
+		},
+		deleteConnection: (id: string) => {
+			return invoke({
+				library: "connection",
+				action: "deleteConnection",
+				args: {
+					id,
+				}
+			})
 		},
 	},
 	collection: {
@@ -202,5 +237,5 @@ export default contextBridge.exposeInMainWorld("ark", {
 			});
 		},
 	},
-	shell
+	shell,
 });

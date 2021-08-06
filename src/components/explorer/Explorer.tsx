@@ -6,6 +6,7 @@ import { CloudServerOutlined } from "@ant-design/icons";
 import { VscListTree } from "react-icons/vsc";
 import { Resizable } from "re-resizable";
 import { listenEffect } from "../../util/events";
+import { ConnectionDetails } from "../connectionManager/ConnectionManager";
 
 const createTreeNode = (
 	title: string,
@@ -37,52 +38,35 @@ interface Database {
 
 interface ExplorerProps {
 	open: boolean;
-	connectionId: string;
 }
 
 export function Explorer(props: ExplorerProps): JSX.Element {
-	const { open, connectionId } = props;
+	const { open } = props;
 	const [tree, setTree] = useState<TreeDataNode[]>([]);
 	const [currentConnectionId, setCurrentConnectionId] = useState<string>();
-	const [connection, setConnection] = useState<any>();
+	const [connections, setConnections] = useState<
+		ConnectionDetails["connections"]
+	>([]);
 
 	const switchConnections = useCallback((args: SwitchConnectionsArgs) => {
 		const { connectionId } = args;
 		setCurrentConnectionId(connectionId);
 	}, []);
 
-	/* Load base tree */
-	useEffect(() => {
-		// Fetch this from driver using connectionId
-		console.log("connectionId in explorer", connectionId);
-		window.ark.connection.create(connectionId).then((conn: any) => {
-			console.log(`Conn obj for 2622 ${conn}`);
-			setConnection(conn);
+	const addNewConnection = useCallback((id: string) => {
+		window.ark.connection.getConnectionDetails(id).then((connection) => {
+			setConnections((connections) => [...connections, connection]);
 		});
+	}, []);
 
-		// const databases: Database[] = [
-		// 	{
-		// 		name: "test_db_1",
-		// 		collections: [{ name: "Users" }, { name: "Logs" }],
-		// 	},
-		// ];
-		// const nodes: TreeDataNode[] = databases.reduce<TreeDataNode[]>(
-		// 	(nodes, database) => {
-		// 		nodes.push(
-		// 			createTreeNode(
-		// 				database.name,
-		// 				<CloudServerOutlined />,
-		// 				...database.collections.map((collection) =>
-		// 					createTreeNode(collection.name, <VscListTree />)
-		// 				)
-		// 			)
-		// 		);
-		// 		return nodes;
-		// 	},
-		// 	[]
-		// );
-		// setTree(nodes);
-	}, [connectionId]);
+	const removeConnection = useCallback((id: string) => {
+		setConnections((connections) =>
+			connections.filter((conn) => conn.id !== id)
+		);
+	}, []);
+
+	/* Load base tree */
+	// useEffect(() => {}, []);
 
 	/** Register explorer event listeners */
 	useEffect(
@@ -92,8 +76,16 @@ export function Explorer(props: ExplorerProps): JSX.Element {
 					event: "explorer:switch_connections",
 					cb: (e, payload) => switchConnections(payload),
 				},
+				{
+					event: "explorer:add_connection",
+					cb: (e, payload) => addNewConnection(payload),
+				},
+				{
+					event: "explorer:remove_connection",
+					cb: (e, payload) => removeConnection(payload),
+				},
 			]),
-		[switchConnections]
+		[addNewConnection, removeConnection, switchConnections]
 	);
 
 	return open ? (
@@ -111,6 +103,11 @@ export function Explorer(props: ExplorerProps): JSX.Element {
 		>
 			<div className="Explorer">
 				<div className={"ExplorerHeader"}>Test Server [Company ABC]</div>
+				<div>
+					{connections?.map((conn) => (
+						<div key={conn.id}>{conn.name}</div>
+					))}
+				</div>
 				<Tree treeData={tree} />
 			</div>
 		</Resizable>

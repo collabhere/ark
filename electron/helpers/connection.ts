@@ -1,5 +1,10 @@
 import { MongoClient, MongoClientOptions } from "mongodb";
-import { connectionStore } from "../stores/connection";
+import {
+	saveConnection,
+	getActiveConnectionIds,
+	getConnection,
+	deleteConnection,
+} from "../stores/connection";
 import { resolveSrv, SrvRecord } from "dns";
 import { nanoid } from "nanoid";
 import os from "os";
@@ -14,25 +19,21 @@ interface Configuration {
 	options: MongoClientOptions;
 }
 
-const getConnection = async (uri: string, options: MongoClientOptions) => {
+const connect = async (uri: string, options: MongoClientOptions) => {
 	return await MongoClient.connect(uri, options);
 };
 
-export async function createConnection(
-	id: string
-): Promise<MongoClient | undefined> {
+export async function createConnection(id: string): Promise<any> {
 	const store = diskStore();
 
 	if (await store.has("connections", id)) {
 		const config = (await store.get("connections", id)) as Configuration;
 		const connectionUri = getConnectionUri(config);
 
-		const connection = await getConnection(connectionUri, config.options);
+		const connection = await connect(connectionUri, config.options);
 
 		if (connection) {
-			//Save connection is giving object could not be cloned, need to look into this issue
-			connectionStore().saveConnection(id, connection);
-			return connection;
+			saveConnection(id, connection);
 		}
 	} else {
 		throw new Error("No connections found!");
@@ -101,6 +102,7 @@ export async function saveNewConnection(
 			}, {});
 
 		await store.set("connections", id, {
+			id,
 			protocol: parsedUri.protocol,
 			name: config.name,
 			members,
@@ -132,8 +134,14 @@ export const performLookup = (
 	});
 };
 
-export const getAllConnections = () => {
-	const store = diskStore();
-	return store.getAll("connections");
-	//console.log(allConnections);
-};
+export const getAllConnections = () => diskStore().getAll("connections");
+
+export const getConnectionById = (id: string) =>
+	diskStore().get("connections", id);
+
+export const getActiveConnections = () => getActiveConnectionIds();
+
+export const removeActiveConnection = (id: string) => deleteConnection(id);
+
+export const removeConnection = (id: string) =>
+	diskStore().remove("connection", id);

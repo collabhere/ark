@@ -1,8 +1,8 @@
-import { connectionStore } from "../stores/connection";
+import { getConnection } from "../stores/connection";
 
 export const collectionHelper = async (connectionId: string) => {
 	try {
-		const connection = connectionStore().getConnection(connectionId);
+		const connection = getConnection(connectionId);
 
 		if (connection) {
 			const getCollections = async () =>
