@@ -11,7 +11,17 @@ const shell = {
 	eval: invokeJS,
 };
 
-export default contextBridge.exposeInMainWorld("ark", {
+const arkContext: Ark.Context = {
+	shell,
+	driver: {
+		run: (library, action, args) => {
+			return invoke({
+				library,
+				action,
+				args
+			});
+		}
+	},
 	connection: {
 		init: async (uri: string) => {
 			return invoke({
@@ -237,5 +247,6 @@ export default contextBridge.exposeInMainWorld("ark", {
 			});
 		},
 	},
-	shell,
-});
+};
+
+export default contextBridge.exposeInMainWorld("ark", arkContext);

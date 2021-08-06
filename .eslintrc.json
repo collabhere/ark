@@ -1,6 +1,7 @@
 {
     "ignorePatterns": [
-        "electron"
+        "electron",
+        "build"
     ],
     "extends": [
         "eslint:recommended",

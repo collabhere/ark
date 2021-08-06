@@ -6,8 +6,8 @@
 	"main": "./build/renderer/main.js",
 	"scripts": {
 		"start": "BROWSER=none ARK_ENTRY_URL=http://localhost:3000 concurrently \"vite\" \"sleep 2 && electron .\"",
-		"build:electron": "tsc --build tsconfig.renderer.json -w",
-		"build:electron:prod": "tsc --build tsconfig.renderer.json",
+		"build:electron": "tsc --build electron/tsconfig.json -w",
+		"build:electron:prod": "tsc --build electron/tsconfig.json",
 		"build:react:prod": "vite build",
 		"serve": "vite preview",
 		"build": "rimraf build && npm run build:react:prod && npm run build:electron:prod",

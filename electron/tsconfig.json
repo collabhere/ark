@@ -1,7 +1,7 @@
 {
 	"compilerOptions": {
 		"target": "es5",
-		"outDir": "./build/renderer",
+		"outDir": "../build/renderer",
 		"skipLibCheck": true,
 		"esModuleInterop": true,
 		"strict": true,
@@ -11,5 +11,8 @@
 		"isolatedModules": true
 		// "noEmit": false
 	},
-	"include": ["electron"]
+	"include": [
+		"./**/*.ts",
+		"../global.d.ts"
+	]
 }
