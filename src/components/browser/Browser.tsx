@@ -10,10 +10,6 @@ import { Editor, EditorProps } from "../panes/Editor";
 import { ConnectionForm, ConnectionFormProps } from "../panes/ConnectionForm";
 
 import SHELL_CONFIG_STUB from "../../json-stubs/shell-config.json";
-import {
-	ConnectionManagerProps,
-	ConnectionManager,
-} from "../connectionManager/ConnectionManager";
 
 const { TabPane } = Tabs;
 
@@ -25,10 +21,6 @@ interface BaseTab {
 interface EditorTab extends BaseTab {
 	type: "editor";
 	shellConfig: ShellProps["shellConfig"];
-}
-
-interface ConnectionManagerTab extends BaseTab {
-	type: "connection_manager";
 }
 
 interface ConnectionFormTab extends BaseTab {
@@ -44,16 +36,12 @@ interface DeleteEditorTabArgs {
 	id: string;
 }
 
-export type TabType = "editor" | "connection_form" | "connection_manager";
-export type Tab = EditorTab | ConnectionFormTab | ConnectionManagerTab;
-export type TabComponentProps =
-	| EditorProps
-	| ConnectionFormProps
-	| ConnectionManagerProps;
+export type TabType = "editor" | "connection_form";
+export type Tab = EditorTab | ConnectionFormTab;
+export type TabComponentProps = EditorProps | ConnectionFormProps;
 export interface TabComponentMap {
 	editor: EditorProps;
 	connection_form: ConnectionFormProps;
-	connection_manager: ConnectionManagerProps;
 }
 
 const TAB_PANES: {
@@ -61,7 +49,6 @@ const TAB_PANES: {
 } = {
 	editor: Editor,
 	connection_form: ConnectionForm,
-	connection_manager: ConnectionManager,
 };
 
 const EmptyState = () => {
@@ -123,23 +110,6 @@ export const Browser = (): JSX.Element => {
 		});
 	}, []);
 
-	const createConenctionManagerTab = useCallback(() => {
-		setTabs((tabs) => {
-			const id = "cm-" + nanoid();
-			const title = "Connections";
-			setActiveKey(() => id);
-			return [
-				...tabs,
-				{
-					type: "connection_manager",
-					title,
-					id: "" + id,
-					closable: true,
-				},
-			];
-		});
-	}, []);
-
 	const deleteTab = useCallback(
 		(args: DeleteEditorTabArgs) => {
 			const { id } = args;
@@ -169,17 +139,8 @@ export const Browser = (): JSX.Element => {
 					event: "browser:create_tab:connection_form",
 					cb: () => createConnectionFormTab(),
 				},
-				{
-					event: "browser:create_tab:connection_manager",
-					cb: () => createConenctionManagerTab(),
-				},
 			]),
-		[
-			createEditorTab,
-			deleteTab,
-			createConnectionFormTab,
-			createConenctionManagerTab,
-		]
+		[createEditorTab, deleteTab, createConnectionFormTab]
 	);
 
 	return (

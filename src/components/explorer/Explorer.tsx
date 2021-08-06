@@ -44,25 +44,10 @@ export function Explorer(props: ExplorerProps): JSX.Element {
 	const { open } = props;
 	const [tree, setTree] = useState<TreeDataNode[]>([]);
 	const [currentConnectionId, setCurrentConnectionId] = useState<string>();
-	const [connections, setConnections] = useState<
-		ConnectionDetails["connections"]
-	>([]);
 
 	const switchConnections = useCallback((args: SwitchConnectionsArgs) => {
 		const { connectionId } = args;
 		setCurrentConnectionId(connectionId);
-	}, []);
-
-	const addNewConnection = useCallback((id: string) => {
-		window.ark.connection.getConnectionDetails(id).then((connection) => {
-			setConnections((connections) => [...connections, connection]);
-		});
-	}, []);
-
-	const removeConnection = useCallback((id: string) => {
-		setConnections((connections) =>
-			connections.filter((conn) => conn.id !== id)
-		);
 	}, []);
 
 	/* Load base tree */
@@ -76,16 +61,8 @@ export function Explorer(props: ExplorerProps): JSX.Element {
 					event: "explorer:switch_connections",
 					cb: (e, payload) => switchConnections(payload),
 				},
-				{
-					event: "explorer:add_connection",
-					cb: (e, payload) => addNewConnection(payload),
-				},
-				{
-					event: "explorer:remove_connection",
-					cb: (e, payload) => removeConnection(payload),
-				},
 			]),
-		[addNewConnection, removeConnection, switchConnections]
+		[switchConnections]
 	);
 
 	return open ? (
@@ -103,11 +80,7 @@ export function Explorer(props: ExplorerProps): JSX.Element {
 		>
 			<div className="Explorer">
 				<div className={"ExplorerHeader"}>Test Server [Company ABC]</div>
-				<div>
-					{connections?.map((conn) => (
-						<div key={conn.id}>{conn.name}</div>
-					))}
-				</div>
+				<div>{currentConnectionId}</div>
 				<Tree treeData={tree} />
 			</div>
 		</Resizable>
