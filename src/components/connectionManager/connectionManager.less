@@ -1,12 +1,23 @@
 @import "../../common/variables.less";
 
-.Manager {
+.ConnectionManager {
+	min-width: 160px;
 	height: 100%;
+	background-color: @primary;
+	display: flex;
+	flex-direction: column;
+	padding-top: 10px;
+	padding-bottom: 10px;
 }
 
-.ConnectionsContainer {
-	width: 70%;
-	margin: auto;
+.Container {
+	width: 90%;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.ConnectionDetails {
+	margin-bottom: 20px;
 }
 
 .CardTitle {
@@ -14,6 +25,22 @@
 	color: #fff;
 }
 
-.NameContainer {
+.CardTitleSection {
+	display: flex;
+	flex-grow: 1;
+	gap: 10px;
+}
+
+.FlexboxWithGap {
+	display: flex;
+	gap: 20px;
+}
+
+.FlexboxWithMargin {
+	display: flex;
+	margin-top: 20px;
+}
+
+.FlexFill {
 	flex-grow: 1;
 }

@@ -1,27 +1,66 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import "./App.less";
 import { Browser } from "./components/browser/Browser";
 import { Explorer } from "./components/explorer/Explorer";
 import { PageBody } from "./components/layout/PageBody";
 
 import { PageHeader } from "./components/layout/PageHeader";
+import { ConnectionManager } from "./components/connectionManager/ConnectionManager";
 import { SideBar } from "./components/sidebar/sidebar";
-import { dispatch } from "./util/events";
+import { dispatch, listenEffect } from "./util/events";
+
+interface Views {
+	explorer: boolean;
+	connectionManager: boolean;
+}
 
 function App(): JSX.Element {
-	const [showExplorer, setShowExplorer] = useState(true);
+	const [currentView, setCurrentView] = useState<Views>({
+		explorer: false,
+		connectionManager: true,
+	});
+
+	const switchViews = useCallback(
+		(view: keyof Views) => {
+			if (!currentView[view]) {
+				const viewDetails = (
+					Object.keys(currentView) as Array<keyof Views>
+				).reduce<Views>(
+					(acc, key) => ((acc[key] = key === view ? true : false), acc),
+					currentView
+				);
+
+				setCurrentView({
+					...viewDetails,
+				});
+			}
+		},
+		[currentView]
+	);
 
 	// App load effect
 	useEffect(() => {
 		dispatch("browser:create_tab:connection_form");
 	}, []);
 
+	useEffect(
+		() =>
+			listenEffect([
+				{
+					event: "home:toggleView",
+					cb: (e, payload) => switchViews(payload),
+				},
+			]),
+		[switchViews]
+	);
+
 	return (
 		<div className="App">
 			<PageHeader />
 			<PageBody>
 				<SideBar />
-				<Explorer open={showExplorer} />
+				<Explorer open={currentView.explorer} />
+				<ConnectionManager open={currentView.connectionManager} />
 				<Browser />
 			</PageBody>
 		</div>
