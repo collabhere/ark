@@ -53,25 +53,24 @@ const getConnectionUri = ({
 	);
 
 	const auth = username && password ? `${username}:${password}@` : "";
-	return `mongodb://${auth}${members.join(",")}/${
-		options.authSource || database
-	}${optionsString}`;
+	return `mongodb://${auth}${members.join(",")}/${options.authSource || database
+		}${optionsString}`;
 };
 
 export async function saveNewConnection(
 	type: "uri",
 	config: { uri: string; name: string }
-): Promise<void>;
+): Promise<string>;
 
 export async function saveNewConnection(
 	type: "config",
 	config: Configuration
-): Promise<void>;
+): Promise<string>;
 
 export async function saveNewConnection(
 	type: "config" | "uri",
 	config: any
-): Promise<void> {
+): Promise<string> {
 	const store = diskStore();
 	const id = nanoid();
 
@@ -111,12 +110,14 @@ export async function saveNewConnection(
 			database: parsedUri.pathname.slice(1, parsedUri.pathname.length),
 			options: { ...uriOptions, ...options },
 		});
+		return id;
 	} else {
 		if (options.tls && !options.tlsCertificateFile) {
 			options.tlsCertificateFile = `${os.homedir()}/ark/certs/ark.crt`;
 		}
 
 		await store.set("connections", id, options);
+		return id;
 	}
 }
 
