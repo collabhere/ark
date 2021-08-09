@@ -1,9 +1,21 @@
-import { spawn } from "child_process";
+import { exec, spawn } from "child_process";
 import defaults from "defaults";
 
 const FIND_COMMAND = /db\..*\.find\(.*?\)/g;
 
 const codeReturnsCursor = (code: string): boolean => FIND_COMMAND.test(code);
+
+interface EvalJSONResult {
+    isJSON: true;
+    response: Ark.AnyObject;
+}
+
+interface EvalStringResult {
+    isJSON: false;
+    response: string;
+}
+
+export type EvalResult = EvalJSONResult | EvalStringResult;
 
 export interface ShellExecutorOptions {
     shellQueryTimeoutMS?: number;
@@ -11,7 +23,7 @@ export interface ShellExecutorOptions {
 
 export interface ShellExecutor {
     running: () => boolean;
-    eval: (code: string, skip?: number, limit?: number) => Promise<any>;
+    eval: (code: string, skip?: number, limit?: number) => Promise<EvalResult>;
     destroy: () => void;
 }
 
@@ -99,7 +111,7 @@ export function createExecutor(mongoURI: string, options?: ShellExecutorOptions)
         stdout.on('data', onData);
     }
 
-    return {
+    const executor: ShellExecutor = {
         running: () => running,
         /**
          * @name eval
@@ -121,7 +133,7 @@ export function createExecutor(mongoURI: string, options?: ShellExecutorOptions)
          *     5
          * );
          */
-        eval: async (code: string, skip?: number, limit?: number) => {
+        eval: async (code: string, skip?: number, limit?: number): Promise<EvalResult> => {
             if (running) {
                 console.log("ShellExecutor eval");
                 return new Promise(resolve => {
@@ -145,4 +157,6 @@ export function createExecutor(mongoURI: string, options?: ShellExecutorOptions)
             proc.kill("SIGINT");
         }
     };
+
+    return executor;
 }

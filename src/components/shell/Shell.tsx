@@ -20,9 +20,8 @@ const DEFAULT_CODE = `// Mongo shell
 db.getCollection('test').find({});
 `;
 interface ExecutionResult {
-	data: any[];
+	data: Ark.AnyObject;
 }
-
 interface CreateMenuItem {
 	item: string;
 	cb: (item: string) => void;
@@ -79,9 +78,15 @@ export interface ShellProps {
 		collection?: string;
 	};
 	onExecutionResult?: (result: ExecutionResult) => void;
+	onShellMessage?: (message: string) => void;
 }
 export default function Shell(props: ShellProps): JSX.Element {
-	const { collections, onExecutionResult, shellConfig: config } = props;
+	const {
+		collections,
+		onExecutionResult,
+		shellConfig: config,
+		onShellMessage,
+	} = props;
 
 	const { db, collection, user, hosts } = config;
 
@@ -90,21 +95,25 @@ export default function Shell(props: ShellProps): JSX.Element {
 		useState<editor.IStandaloneCodeEditor>();
 	const [shellId, setShellId] = useState<string>();
 
-	console.log(`render: shellId=${shellId}`);
+	console.log(`render:`);
+	console.log(`shellId=${shellId}`);
 
 	const exec = useCallback(() => {
 		console.log("exec shell");
-		window.ark.shell
-			.eval(shellId, code)
-			.then(function ({ result, err }) {
-				if (err) return console.error("exec shell error", err);
-				console.log("exec shell result: ", result);
-				onExecutionResult && onExecutionResult(result.response);
-			})
-			.catch(function (err) {
-				console.error("exec shell error: ", err);
-			});
-	}, [code, onExecutionResult, shellId]);
+		shellId &&
+			window.ark.shell
+				.eval(shellId, code)
+				.then(function ({ result, err }) {
+					if (err) return console.error("exec shell error", err);
+					console.log("exec shell result: ", result);
+					if (result.isJSON)
+						onExecutionResult && onExecutionResult({ data: result.response });
+					else onShellMessage && onShellMessage(result.response);
+				})
+				.catch(function (err) {
+					console.error("exec shell error: ", err);
+				});
+	}, [code, onExecutionResult, onShellMessage, shellId]);
 
 	const cloneCurrentTab = useCallback(() => {
 		dispatch("browser:create_tab:editor", {

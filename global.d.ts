@@ -1,7 +1,11 @@
 import * as ConnectionLibrary from "./electron/library/connection";
+import { EvalResult } from "./electron/helpers/shell-executor";
 
 declare global {
     namespace Ark {
+
+        type AnyObject = Record<string, unknown> | Record<string, unknown>[];
+
         interface RunCommand {
             <R = Record<string, unknown>>(library: "connection", action: keyof typeof ConnectionLibrary, args: any): Promise<R>;
         }
@@ -12,7 +16,7 @@ declare global {
 
         interface Shell {
             create: (uri: string) => Promise<{ id: string; }>;
-            eval: <R = Record<string, unknown>>(shellId: string, code: string) => Promise<string | R>;
+            eval: (shellId: string, code: string) => Promise<{ result: EvalResult; err: any; }>;
         }
         interface Context {
             driver: Driver;
