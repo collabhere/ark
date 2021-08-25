@@ -10,6 +10,10 @@ import { Editor, EditorProps } from "../panes/Editor";
 import { ConnectionForm, ConnectionFormProps } from "../panes/ConnectionForm";
 
 import SHELL_CONFIG_STUB from "../../json-stubs/shell-config.json";
+import {
+	ConnectionDetails,
+	ConnectionManagerProps,
+} from "../connectionManager/ConnectionManager";
 
 const { TabPane } = Tabs;
 
@@ -25,7 +29,7 @@ interface EditorTab extends BaseTab {
 
 interface ConnectionFormTab extends BaseTab {
 	type: "connection_form";
-	connectionDefaults: ConnectionFormProps["connectionDefaults"];
+	connectionParams: ConnectionFormProps["connectionParams"];
 }
 
 interface CreateEditorTabArgs {
@@ -71,25 +75,26 @@ export const Browser = (): JSX.Element => {
 		if (tabs && tabs.length) setActiveKey(tabs[0].id);
 	}, [tabs]);
 
-	const createConnectionFormTab = useCallback(() => {
-		setTabs((tabs) => {
-			const id = "cf-" + nanoid();
-			const title = "New connection";
-			setActiveKey(() => id);
-			return [
-				...tabs,
-				{
-					type: "connection_form",
-					closable: true,
-					connectionDefaults: {
-						tls: false,
+	const createConnectionFormTab = useCallback(
+		(connectionDetails?: ConnectionDetails) => {
+			setTabs((tabs) => {
+				const id = "cf-" + nanoid();
+				const title = "New connection";
+				setActiveKey(() => id);
+				return [
+					...tabs,
+					{
+						type: "connection_form",
+						closable: true,
+						connectionParams: connectionDetails,
+						id,
+						title,
 					},
-					id,
-					title,
-				},
-			];
-		});
-	}, []);
+				];
+			});
+		},
+		[]
+	);
 
 	const createEditorTab = useCallback((args: CreateEditorTabArgs) => {
 		const { shellConfig } = args;
@@ -137,7 +142,7 @@ export const Browser = (): JSX.Element => {
 				},
 				{
 					event: "browser:create_tab:connection_form",
-					cb: () => createConnectionFormTab(),
+					cb: (e, payload) => createConnectionFormTab(payload),
 				},
 			]),
 		[createEditorTab, deleteTab, createConnectionFormTab]

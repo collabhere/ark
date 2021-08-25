@@ -8,11 +8,11 @@ export const SideBar = (): JSX.Element => {
 	const [connections, setConnections] = useState<Array<ConnectionDetails>>([]);
 
 	const listConnections = useCallback(() => {
-		dispatch("home:toggleView", "connectionManager");
+		dispatch("home:toggle_view", "connectionManager");
 	}, []);
 
 	const toggleConnectionInExplorer = useCallback((connectionId: string) => {
-		dispatch("home:toggleView", "explorer");
+		dispatch("home:toggle_view", "explorer");
 		dispatch("explorer:switch_connections", { connectionId });
 	}, []);
 

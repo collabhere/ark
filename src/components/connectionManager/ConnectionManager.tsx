@@ -63,6 +63,16 @@ export function ConnectionManager(props: ConnectionManagerProps): JSX.Element {
 		[activeConnectionIds, disconnect]
 	);
 
+	const openEditOrCloneConnection = useCallback(
+		(connectionDetails: ConnectionDetails, mode: "edit" | "clone") => {
+			dispatch("browser:create_tab:connection_form", {
+				...connectionDetails,
+				mode,
+			});
+		},
+		[]
+	);
+
 	useEffect(() => {
 		window.ark.connection.getActiveConnectionIds().then((ids) => {
 			setActiveConnectionIds(ids);
@@ -144,6 +154,7 @@ export function ConnectionManager(props: ConnectionManagerProps): JSX.Element {
 												shape="circle"
 												icon={<VscEdit />}
 												size={"large"}
+												onClick={() => openEditOrCloneConnection(conn, "edit")}
 											/>
 										</div>
 										<div>
@@ -152,6 +163,7 @@ export function ConnectionManager(props: ConnectionManagerProps): JSX.Element {
 												shape="circle"
 												icon={<VscRepoClone />}
 												size={"large"}
+												onClick={() => openEditOrCloneConnection(conn, "clone")}
 											/>
 										</div>
 										<div>

@@ -38,16 +38,11 @@ function App(): JSX.Element {
 		[currentView]
 	);
 
-	// App load effect
-	useEffect(() => {
-		dispatch("browser:create_tab:connection_form");
-	}, []);
-
 	useEffect(
 		() =>
 			listenEffect([
 				{
-					event: "home:toggleView",
+					event: "home:toggle_view",
 					cb: (e, payload) => switchViews(payload),
 				},
 			]),

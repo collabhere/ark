@@ -1,7 +1,107 @@
+@import "../../common/variables.less";
+
 .Editor {
 	height: 100%;
 }
 
 .JSONViewer {
 	height: 50%;
+}
+
+.UriContainer {
+	height: 100vh;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.FieldContainer {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	width: 60%;
+	background: @primary-tint-5;
+	border: 20px solid @primary-tint-6;
+}
+
+.FormWrapper {
+	display: flex;
+	flex-direction: column;
+	width: 75%;
+}
+
+.HeaderWrapper {
+	padding: 20px 20px;
+	font-size: 20px;
+	font-weight: 400;
+	text-align: center;
+}
+
+.Form {
+	display: flex;
+	gap: 5px;
+	padding: 20px 20px;
+	flex-direction: column;
+	width: 100%;
+}
+
+.Label {
+	align-self: flex-start;
+}
+
+.InputField > * {
+	width: 100%;
+}
+
+.Input input {
+	background: #fff;
+}
+
+.ButtonGroup {
+	display: flex;
+	align-self: flex-end;
+}
+
+.ButtonGroupAdvanced {
+	display: flex;
+	justify-content: space-between;
+	padding: 0px 20px 10px;
+	gap: 20px;
+}
+
+.Separator {
+	display: flex;
+	gap: 10px;
+	padding: 20px 20px;
+	justify-content: center;
+	width: 100%;
+}
+
+.HorizontalLine {
+	width: 33%;
+	height: 2px;
+	align-self: center;
+	background-color: #fff;
+}
+
+.AdvancedButton {
+	padding: 20px 20px;
+	font-size: 16px;
+	font-weight: 400;
+	text-align: center;
+}
+
+.AdvancedButton > * {
+	cursor: pointer;
+}
+
+.InlineInput {
+	display: flex;
+	gap: 20px;
+}
+
+.BackContainer {
+	display: flex;
+	align-items: center;
+	cursor: pointer;
 }

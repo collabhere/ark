@@ -53,8 +53,9 @@ const getConnectionUri = ({
 	);
 
 	const auth = username && password ? `${username}:${password}@` : "";
-	return `mongodb://${auth}${members.join(",")}/${options.authSource || database
-		}${optionsString}`;
+	return `mongodb://${auth}${members.join(",")}/${
+		options.authSource || database
+	}${optionsString}`;
 };
 
 export async function saveNewConnection(
@@ -145,4 +146,4 @@ export const getActiveConnections = () => getActiveConnectionIds();
 export const removeActiveConnection = (id: string) => deleteConnection(id);
 
 export const removeConnection = (id: string) =>
-	diskStore().remove("connection", id);
+	diskStore().remove("connections", id);
