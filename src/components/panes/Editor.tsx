@@ -1,11 +1,7 @@
-import React, { useState } from "react";
+import React, { FC, useState } from "react";
 import "./panes.less";
 import Shell, { ShellProps } from "../shell/Shell";
 import { Resizable } from "re-resizable";
-
-export interface EditorProps {
-	shellConfig: ShellProps["shellConfig"];
-}
 
 interface JSONViewerProps {
 	json: any;
@@ -20,7 +16,11 @@ function JSONViewer(props: JSONViewerProps): JSX.Element {
 	);
 }
 
-export function Editor(props: EditorProps): JSX.Element {
+export interface EditorProps {
+	shellConfig: ShellProps["shellConfig"];
+}
+
+export const Editor: FC<EditorProps> = (props) => {
 	const { shellConfig } = props;
 
 	const [currentResult, setCurrentResult] = useState<any>();
@@ -42,4 +42,4 @@ export function Editor(props: EditorProps): JSX.Element {
 			{currentResult && <JSONViewer json={currentResult} />}
 		</div>
 	);
-}
+};

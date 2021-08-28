@@ -13,8 +13,9 @@ import { default as Monaco } from "@monaco-editor/react";
 import type { Monaco as MonacoType } from "@monaco-editor/react";
 import { KeyMod, KeyCode, editor } from "monaco-editor";
 import { registerCompletions } from "./completions";
-import { Resizable } from "re-resizable";
 import { dispatch } from "../../util/events";
+
+import SHELL_CONFIG_STUB from "../../json-stubs/shell-config.json";
 
 const DEFAULT_CODE = `// Mongo shell
 db.getCollection('test').find({});
@@ -58,16 +59,6 @@ const HostList = (props: HostListProps) => {
 	);
 };
 
-const SHELL_CONFIG_STUB = {
-	db: "test_db_1",
-	hosts: [
-		"ec2-3-13-197-203.us-east-2.compute.amazonaws.com",
-		"ec2-3-13-197-203.us-east-2.compute.amazonaws.com",
-	],
-	user: "dbuser",
-	collection: "Users",
-};
-
 export interface ShellProps {
 	collections: string[];
 	shellConfig: {
@@ -88,7 +79,7 @@ export default function Shell(props: ShellProps): JSX.Element {
 		onShellMessage,
 	} = props;
 
-	const { db, collection, user, hosts } = config;
+	const { db, collection, user, hosts, uri } = config || {};
 
 	const [code, setCode] = useState(DEFAULT_CODE);
 	const [monacoEditor, setMonacoEditor] =
@@ -99,21 +90,20 @@ export default function Shell(props: ShellProps): JSX.Element {
 	console.log(`shellId=${shellId}`);
 
 	const exec = useCallback(() => {
-		console.log("exec shell");
+		const _code = code.replace(/(\/\/.*)|(\n)/g, "");
+
 		shellId &&
 			window.ark.shell
-				.eval(shellId, code)
+				.eval(shellId, _code)
 				.then(function ({ result, err }) {
 					if (err) return console.error("exec shell error", err);
 					console.log("exec shell result: ", result);
-					if (result.isJSON)
-						onExecutionResult && onExecutionResult({ data: result.response });
-					else onShellMessage && onShellMessage(result.response);
+					onExecutionResult && onExecutionResult({ data: result.result });
 				})
 				.catch(function (err) {
 					console.error("exec shell error: ", err);
 				});
-	}, [code, onExecutionResult, onShellMessage, shellId]);
+	}, [code, onExecutionResult, shellId]);
 
 	const cloneCurrentTab = useCallback(() => {
 		dispatch("browser:create_tab:editor", {
@@ -132,11 +122,10 @@ export default function Shell(props: ShellProps): JSX.Element {
 	}, [cloneCurrentTab, exec, monacoEditor]);
 
 	useEffect(() => {
-		window.ark.shell.create(config.uri).then(function ({ id }) {
-			console.log("created shell id", id);
+		window.ark.shell.create(uri).then(function ({ id }) {
 			setShellId(id);
 		});
-	}, [config.uri]);
+	}, [uri]);
 
 	return (
 		<div className={"Shell"}>

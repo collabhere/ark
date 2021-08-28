@@ -1,12 +1,11 @@
-import React, { useCallback, useState } from "react";
+import React, { FC, useCallback, useState } from "react";
 
 export interface ConnectionFormProps {
 	connectionDefaults: {
 		tls: boolean | { cert: string };
 	};
 }
-
-export function ConnectionForm(): JSX.Element {
+export const ConnectionForm: FC<ConnectionFormProps> = () => {
 	const [mongoURI, setMongoURI] = useState("");
 
 	const saveMongoURI = useCallback(() => {
@@ -31,4 +30,4 @@ export function ConnectionForm(): JSX.Element {
 			<button onClick={() => saveMongoURI()}>Save</button>
 		</div>
 	);
-}
+};

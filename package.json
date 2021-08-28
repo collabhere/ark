@@ -125,6 +125,9 @@
 		"vite-plugin-svgr": "^0.3.0"
 	},
 	"dependencies": {
+		"@mongosh/async-rewriter2": "^1.0.5",
+		"@mongosh/shell-api": "^1.0.5",
+		"@mongosh/service-provider-server": "^1.0.5",
 		"electron-json-storage": "^4.5.0"
 	}
 }

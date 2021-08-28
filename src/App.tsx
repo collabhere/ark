@@ -39,9 +39,7 @@ function App(): JSX.Element {
 	);
 
 	// App load effect
-	useEffect(() => {
-		dispatch("browser:create_tab:connection_form");
-	}, []);
+	useEffect(() => {}, []);
 
 	useEffect(
 		() =>

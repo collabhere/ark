@@ -1,10 +1,7 @@
 {
 	"uri": "mongodb://localhost:27017",
-	"db": "klenty_test_2622",
-	"hosts": [
-		"ec2-3-13-197-203.us-east-2.compute.amazonaws.com",
-		"ec2-3-13-197-203.us-east-2.compute.amazonaws.com"
-	],
+	"db": "test_database",
+	"hosts": ["localhost"],
 	"user": "test",
 	"password": "test",
 	"collection": "userdetails"

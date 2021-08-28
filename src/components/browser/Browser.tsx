@@ -3,7 +3,6 @@ import "./browser.less";
 import { Tabs } from "antd";
 import { nanoid } from "nanoid";
 import React, { useCallback, useEffect, useState } from "react";
-import type { FC, ComponentClass } from "react";
 import { ShellProps } from "../shell/Shell";
 import { listenEffect } from "../../util/events";
 import { Editor, EditorProps } from "../panes/Editor";
@@ -44,12 +43,10 @@ export interface TabComponentMap {
 	connection_form: ConnectionFormProps;
 }
 
-const TAB_PANES: {
-	[k in TabType]?: FC<TabComponentMap[k]> | ComponentClass<TabComponentMap[k]>;
-} = {
+const TAB_PANES = {
 	editor: Editor,
 	connection_form: ConnectionForm,
-};
+} as const;
 
 const EmptyState = () => {
 	return <div>This is an empty state!</div>;
@@ -163,7 +160,10 @@ export const Browser = (): JSX.Element => {
 			>
 				{tabs && tabs.length ? (
 					tabs.map((tab) => {
-						const Component = TAB_PANES[tab.type];
+						const Component = React.createElement(
+							TAB_PANES[tab.type] as any,
+							tab
+						);
 						return (
 							<TabPane
 								className={"BrowserTabPane"}
@@ -172,7 +172,7 @@ export const Browser = (): JSX.Element => {
 								tab={tab.title}
 								key={tab.id}
 							>
-								{Component && React.createElement(Component as any, tab)}
+								{Component}
 							</TabPane>
 						);
 					})

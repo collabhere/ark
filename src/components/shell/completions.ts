@@ -1,5 +1,6 @@
 import { Monaco } from "@monaco-editor/react";
 import { languages } from "monaco-editor";
+import path from "path";
 
 interface Intellisense {
     collections: string[];
@@ -13,11 +14,9 @@ export async function registerCompletions(monaco: Monaco, intellisense: Intellis
         database
     } = intellisense;
 
-    const res = await fetch("/mongoshell.d.ts");
-
+    const res = await fetch(path.join(__static, 'mongoshell.d.ts'));
     const libSource = await res.text();
-    const libUri = monaco.Uri.parse('mongoshell.d.ts');
-
+    const libUri = monaco.Uri.parse(path.join(__static, 'mongoshell.d.ts'));
 
     // compiler options
     monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
