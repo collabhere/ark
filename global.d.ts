@@ -2,9 +2,6 @@ import * as ConnectionLibrary from "./electron/library/connection";
 import { EvalResult } from "./electron/helpers/mongo-eval";
 
 declare global {
-
-    const __static: string;
-
     namespace Ark {
 
         type AnyObject = Record<string, unknown> | Record<string, unknown>[];

@@ -249,4 +249,6 @@ const arkContext: Ark.Context = {
 	},
 };
 
-export default contextBridge.exposeInMainWorld("ark", arkContext);
+contextBridge.exposeInMainWorld("ark", arkContext);
+
+export default {};

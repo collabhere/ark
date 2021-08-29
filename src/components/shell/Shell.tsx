@@ -12,7 +12,7 @@ import { DownOutlined } from "@ant-design/icons";
 import { default as Monaco } from "@monaco-editor/react";
 import type { Monaco as MonacoType } from "@monaco-editor/react";
 import { KeyMod, KeyCode, editor } from "monaco-editor";
-import { registerCompletions } from "./completions";
+import { mountMonaco } from "./monaco";
 import { dispatch } from "../../util/events";
 
 import SHELL_CONFIG_STUB from "../../json-stubs/shell-config.json";
@@ -172,7 +172,7 @@ export default function Shell(props: ShellProps): JSX.Element {
 				}}
 				theme={"ark"}
 				beforeMount={(monaco) => {
-					registerCompletions(monaco, { collections });
+					mountMonaco(monaco, { collections });
 					monaco.editor.defineTheme("ark", {
 						base: "vs-dark",
 						inherit: true,
@@ -195,7 +195,7 @@ export default function Shell(props: ShellProps): JSX.Element {
 				}}
 				height="100%"
 				defaultValue={code}
-				defaultLanguage="javascript"
+				defaultLanguage="typescript"
 			/>
 		</div>
 	);

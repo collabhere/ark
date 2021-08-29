@@ -10,7 +10,7 @@
 			"vite-plugin-svgr/client"
 		],
 		"target": "es2020",
-		"module": "commonjs",
+		"module": "ESNext",
 		"strict": true,
 		"sourceMap": true,
 		"declaration": true,

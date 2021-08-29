@@ -1,39 +1,36 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 import { Monaco } from "@monaco-editor/react";
 import { languages } from "monaco-editor";
-import path from "path";
+import { addMongoShellCompletions } from "./mongo-shell-completion";
+
 
 interface Intellisense {
     collections: string[];
     database?: string;
 }
 
-export async function registerCompletions(monaco: Monaco, intellisense: Intellisense): Promise<void> {
+export async function mountMonaco(monaco: Monaco, intellisense: Intellisense): Promise<void> {
 
     const {
-        collections,
-        database
+        collections: COLLECTIONS,
+        database: DATABASE
     } = intellisense;
 
-    const res = await fetch(path.join(__static, 'mongoshell.d.ts'));
-    const libSource = await res.text();
-    const libUri = monaco.Uri.parse(path.join(__static, 'mongoshell.d.ts'));
-
-    // compiler options
-    monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
+    // Compiler options
+    monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
         target: monaco.languages.typescript.ScriptTarget.ES2016,
         allowNonTsExtensions: true,
         moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
         module: monaco.languages.typescript.ModuleKind.CommonJS,
         noEmit: true,
+        typeRoots: ["node_modules/@types", "node_modules/@mongosh"]
     });
 
-    monaco.languages.typescript.javascriptDefaults.addExtraLib(libSource, libUri.toString());
+    // Add all of @mongosh/shell-api's definitions along with a custom global.d.ts with editor globals.
+    addMongoShellCompletions(monaco);
 
-    const model = monaco.editor.getModel((libUri));
-    if (!model) // Don't create the same model twice. Throws an error in console.
-        monaco.editor.createModel(libSource, 'typescript', libUri);
-
-    monaco.languages.registerCompletionItemProvider('javascript', {
+    // Completions
+    monaco.languages.registerCompletionItemProvider('typescript', {
         triggerCharacters: ["."],
         provideCompletionItems: (model, position, context) => {
             const suggestions: languages.CompletionItem[] = [];
@@ -79,5 +76,6 @@ export async function registerCompletions(monaco: Monaco, intellisense: Intellis
                 suggestions: suggestions
             }
         }
-    })
+    });
+
 }
