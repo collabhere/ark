@@ -71,7 +71,11 @@ const TS_PROMISE_GENERIC_RGX = /(Promise<(?=.*))|(>(?=;))/gim;
 function modifyMongoShellLibCode(code: string): string {
     return code
         // We do not need any promises in the definition files
-        .replace(TS_PROMISE_GENERIC_RGX, '');
+        .replace(TS_PROMISE_GENERIC_RGX, '')
+        // Since cursor methods are written in a sync
+        // fashion, i.e. db.collection.find().map(...),
+        // we want the types to allow for chaining array methods with cursor methods.
+        .replace(/(?<=\s)Cursor(?=;)/gim, '(Cursor & Array<Document>)');
 }
 
 export function addMongoShellCompletions(monaco: Monaco): void {
