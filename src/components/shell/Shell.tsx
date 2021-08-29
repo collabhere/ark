@@ -96,14 +96,17 @@ export default function Shell(props: ShellProps): JSX.Element {
 			window.ark.shell
 				.eval(shellId, _code)
 				.then(function ({ result, err }) {
-					if (err) return console.error("exec shell error", err);
+					if (err) {
+						onShellMessage && onShellMessage(err.message);
+						return console.error("exec shell error", err);
+					}
 					console.log("exec shell result: ", result);
 					onExecutionResult && onExecutionResult({ data: result.result });
 				})
 				.catch(function (err) {
 					console.error("exec shell error: ", err);
 				});
-	}, [code, onExecutionResult, shellId]);
+	}, [code, onExecutionResult, onShellMessage, shellId]);
 
 	const cloneCurrentTab = useCallback(() => {
 		dispatch("browser:create_tab:editor", {
