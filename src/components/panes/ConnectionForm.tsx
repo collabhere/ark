@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { Input, Button } from "antd";
+import React, { useCallback, useState } from "react";
+import { Input, Button, Checkbox, Menu, Dropdown, Upload } from "antd";
 import "./panes.less";
 import { MongoClientOptions } from "mongodb";
 import { ConnectionDetails } from "../connectionManager/ConnectionManager";
+import { nanoid } from "nanoid";
 
 export interface ConnectionFormProps {
 	connectionParams?: ConnectionDetails & { mode?: "edit" | "clone" };
@@ -16,10 +17,32 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 			? "advanced"
 			: "basic"
 	);
+
+	const [form, setForm] = useState<
+		"connection" | "authentication" | "ssh" | "tls" | "misc"
+	>("connection");
+
+	const [useSSH, toggleSSH] = useState<boolean>(false);
+	const [useTLS, toggleTLS] = useState<boolean>(
+		props.connectionParams?.options.tls || true
+	);
+	// const [useSSH, toggleSSH] = useState<boolean>(false);
+
 	const [mongoURI, setMongoURI] = useState("");
-	const [connectionData, setConnectionData] = useState<
-		ConnectionDetails | undefined
-	>(props.connectionParams);
+	const [connectionData, setConnectionData] = useState<ConnectionDetails>(
+		props.connectionParams || {
+			id: nanoid(),
+			name: "",
+			members: [],
+			database: "",
+			type: "directConnection",
+			username: "",
+			password: "",
+			options: {
+				tls: true,
+			},
+		}
+	);
 
 	const saveMongoURI = useCallback(() => {
 		window.ark.driver
@@ -32,6 +55,31 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 				console.log("Saved connection id: ", connectionId);
 			});
 	}, [mongoURI]);
+
+	const handleTypeSelection = (e) => {
+		setConnectionData((data) => {
+			return {
+				...data,
+				type: e.key,
+			};
+		});
+	};
+
+	const uploadProps = {
+		onChange(info) {
+			console.log(info);
+			if (info.file.status !== "uploading") {
+				console.log(info.file, info.fileList);
+			}
+		},
+	};
+
+	const menu = (
+		<Menu onClick={handleTypeSelection}>
+			<Menu.Item key="directConnection">Direct Connection</Menu.Item>
+			<Menu.Item key="replicaSet">Replica Set</Menu.Item>
+		</Menu>
+	);
 
 	return (
 		<div className="UriContainer">
@@ -76,51 +124,247 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 				{type === "advanced" && (
 					<div className="ConnectionFormWrapper">
 						<div className="HeaderWrapper">
-							<span>Connection</span>
+							<div
+								className="AdvancedFormHeader"
+								onClick={() => setForm("connection")}
+							>
+								<span>Connection</span>
+							</div>
+							<div
+								className="AdvancedFormHeader"
+								onClick={() => setForm("authentication")}
+							>
+								<span>Authentication</span>
+							</div>
+							<div
+								className="AdvancedFormHeader"
+								onClick={() => setForm("ssh")}
+							>
+								<span>SSH</span>
+							</div>
+							<div
+								className="AdvancedFormHeader"
+								onClick={() => setForm("tls")}
+							>
+								<span>TLS</span>
+							</div>
+							<div
+								className="AdvancedFormHeader"
+								onClick={() => setForm("misc")}
+							>
+								<span>Misc</span>
+							</div>
 						</div>
-						<div className="Form">
-							<div>
-								<div className="Label">
-									<span style={{ margin: "auto" }}>Type</span>
-								</div>
-								<div className="InputField">
-									<Input className="Input" value={connectionData?.name} />
-								</div>
-							</div>
-							<div>
-								<div className="Label">
-									<span style={{ margin: "auto" }}>Name</span>
-								</div>
-								<div className="InputField">
-									<Input className="Input" value={connectionData?.name} />
-								</div>
-							</div>
-
-							<div className="InlineInput">
-								<div style={{ flexGrow: 1 }}>
+						{form === "connection" && (
+							<div className="Form">
+								<div>
 									<div className="Label">
-										<span style={{ margin: "auto" }}>Host</span>
+										<span style={{ margin: "auto" }}>Type</span>
+									</div>
+									<div className="InputField">
+										<Dropdown.Button onClick={() => {}} overlay={menu}>
+											{connectionData?.type === "replicaSet"
+												? "Replica Set"
+												: "Direct connection"}
+										</Dropdown.Button>
+									</div>
+								</div>
+								<div>
+									<div className="Label">
+										<span style={{ margin: "auto" }}>Name</span>
+									</div>
+									<div className="InputField">
+										<Input className="Input" value={connectionData?.name} />
+									</div>
+								</div>
+
+								<div className="InlineInput">
+									<div style={{ flexGrow: 1 }}>
+										<div className="Label">
+											<span style={{ margin: "auto" }}>Host</span>
+										</div>
+										<div className="InputField">
+											<Input
+												className="Input"
+												value={connectionData?.members[0].split(":")[0]}
+											/>
+										</div>
+									</div>
+									<div>
+										<div className="Label">
+											<span style={{ margin: "auto" }}>Port</span>
+										</div>
+										<div className="InputField">
+											<Input
+												className="Input"
+												value={connectionData?.members[0].split(":")[1]}
+											/>
+										</div>
+									</div>
+								</div>
+							</div>
+						)}
+						{form === "authentication" && (
+							<div className="Form">
+								<div>
+									<div className="Label">
+										<span style={{ margin: "auto" }}>Database</span>
+									</div>
+									<div className="InputField">
+										<Input className="Input" value={connectionData?.database} />
+									</div>
+								</div>
+								<div>
+									<div className="Label">
+										<span style={{ margin: "auto" }}>Username</span>
+									</div>
+									<div className="InputField">
+										<Input className="Input" value={connectionData?.username} />
+									</div>
+								</div>
+
+								<div className="InlineInput">
+									<div style={{ flexGrow: 1 }}>
+										<div className="Label">
+											<span style={{ margin: "auto" }}>Password</span>
+										</div>
+										<div className="InputField">
+											<Input
+												className="Input"
+												type="password"
+												value={connectionData?.password}
+											/>
+										</div>
+									</div>
+								</div>
+							</div>
+						)}
+						{form === "ssh" && (
+							<div className="Form">
+								<div className="InlineInput">
+									<div className="Label">
+										<span style={{ margin: "auto" }}>Use SSH Tunnel</span>
+									</div>
+									<Checkbox
+										value={useSSH}
+										onChange={() => toggleSSH((useSSH) => !useSSH)}
+									/>
+								</div>
+								<div className="InlineInput">
+									<div style={{ flexGrow: 1 }}>
+										<div className="Label">
+											<span style={{ margin: "auto" }}>Host</span>
+										</div>
+										<div className="InputField">
+											<Input
+												className="Input"
+												value={connectionData?.ssh?.host}
+												disabled={!useSSH}
+											/>
+										</div>
+									</div>
+									<div>
+										<div className="Label">
+											<span style={{ margin: "auto" }}>Port</span>
+										</div>
+										<div className="InputField">
+											<Input
+												className="Input"
+												value={connectionData?.ssh?.port}
+												disabled={!useSSH}
+											/>
+										</div>
+									</div>
+								</div>
+								<div>
+									<div className="Label">
+										<span style={{ margin: "auto" }}>Username</span>
 									</div>
 									<div className="InputField">
 										<Input
 											className="Input"
-											value={connectionData?.members[0].split(":")[0]}
+											value={connectionData?.ssh?.username}
+											disabled={!useSSH}
 										/>
 									</div>
 								</div>
 								<div>
 									<div className="Label">
-										<span style={{ margin: "auto" }}>Port</span>
+										<span style={{ margin: "auto" }}>Auth Method</span>
 									</div>
 									<div className="InputField">
 										<Input
 											className="Input"
-											value={connectionData?.members[0].split(":")[1]}
+											value={connectionData?.ssh?.method}
+											disabled={!useSSH}
+										/>
+									</div>
+								</div>
+								<div>
+									<div className="Label">
+										<span style={{ margin: "auto" }}>Private Key</span>
+									</div>
+									<div className="InputField">
+										<Input
+											className="Input"
+											value={connectionData?.ssh?.privateKey}
+											disabled={!useSSH}
+										/>
+									</div>
+								</div>
+								<div>
+									<div className="Label">
+										<span style={{ margin: "auto" }}>Passphrase</span>
+									</div>
+									<div className="InputField">
+										<Input
+											className="Input"
+											value={connectionData?.ssh?.method}
+											disabled={!useSSH}
 										/>
 									</div>
 								</div>
 							</div>
-						</div>
+						)}
+						{form === "tls" && (
+							<div className="Form Gap">
+								<div className="InlineInput">
+									<div className="Label">
+										<span style={{ margin: "auto" }}>Use TLS protocol</span>
+									</div>
+									<Checkbox
+										value={useTLS}
+										onChange={() => toggleTLS((useTLS) => !useTLS)}
+									/>
+								</div>
+								<div className="InlineInput">
+									<div className="Label">
+										<span style={{ margin: "auto" }}>CA Certificate</span>
+									</div>
+									<div className="InputField">
+										<Upload {...props}>
+											<Button>Upload File</Button>
+										</Upload>
+									</div>
+								</div>
+							</div>
+						)}
+						{form === "misc" && (
+							<div className="Form">
+								<div>
+									<div className="Label">
+										<span style={{ margin: "auto" }}>Default Database</span>
+									</div>
+									<div className="InputField">
+										<Input
+											className="Input"
+											value={connectionData?.username}
+											disabled={!useTLS}
+										/>
+									</div>
+								</div>
+							</div>
+						)}
 						<div className="ButtonGroupAdvanced">
 							<div className="BackContainer" onClick={() => setType("basic")}>
 								<span>Back</span>

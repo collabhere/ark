@@ -10,20 +10,25 @@ import {
 } from "react-icons/vsc";
 import { dispatch } from "../../util/events";
 import { Resizable } from "re-resizable";
+import { MongoClientOptions } from "mongodb";
 
 export interface ConnectionDetails {
 	id: string;
+	type: "directConnection" | "replicaSet";
 	name: string;
 	members: Array<string>;
 	database: string;
 	username: string;
 	password: string;
-	options: {
-		authSource?: string;
-		retryWrites?: "true" | "false";
-		tls?: boolean;
-		tlsCertificateFile?: string;
-		w?: string;
+	options: MongoClientOptions;
+	ssh?: {
+		host: string;
+		port: string;
+		username: string;
+		method: "privateKey" | "password";
+		privateKey: string;
+		passphrase?: string;
+		askEachTime: boolean;
 	};
 }
 
