@@ -40,7 +40,6 @@ interface ConnectionManagerProps {}
 
 export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 	const [isOpen, setIsOpen] = useState(false);
-	const [activeConnectionIds] = useState<string[]>([]);
 	const [connections, setConnections] = useState<ManagedConnection[]>([]);
 
 	const connect = useCallback((id: string) => {
@@ -98,6 +97,10 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 		[]
 	);
 
+	const openCreateConnection = useCallback(() => {
+		dispatch("browser:create_tab:connection_form");
+	}, []);
+
 	useEffect(
 		() =>
 			listenEffect([
@@ -120,14 +123,14 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 		return () => setConnections([]);
 	}, []);
 
-	const CardTitle = (title: string, id: string) => (
+	const CardTitle = (title: string, id: string, active?: boolean) => (
 		<div className="CardTitle">
 			<div className="CardTitleSection">
 				<VscDatabase size="20" />
 				<div className="FlexFill">{title}</div>
 			</div>
 			<div>
-				{!activeConnectionIds.includes(id) && (
+				{!active && (
 					<Button
 						type="ghost"
 						shape="round"
@@ -139,7 +142,7 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 					</Button>
 				)}
 
-				{activeConnectionIds.includes(id) && (
+				{active && (
 					<Button
 						type="ghost"
 						shape="round"
@@ -168,11 +171,30 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 			minHeight="100%"
 		>
 			<div className="ConnectionManager">
+				<div className="Container">
+					<div className="FlexboxWithMargin">
+						<div className="FlexFill">
+							<span className="Header">Connection Manager</span>
+						</div>
+						<div>
+							<Button
+								type="ghost"
+								shape="round"
+								icon={<VscAdd />}
+								size="large"
+								onClick={() => openCreateConnection()}
+							>
+								Create
+							</Button>
+						</div>
+					</div>
+				</div>
+
 				{connections && (
 					<div className="Container">
 						{connections.map((conn) => (
 							<div key={conn.id} className="ConnectionDetails">
-								<Card title={CardTitle(conn.name, conn.id)}>
+								<Card title={CardTitle(conn.name, conn.id, conn.active)}>
 									<div className="FlexboxWithGap">
 										<div className="FlexFill">{conn.members[0]}</div>
 										<div className="FlexFill">
