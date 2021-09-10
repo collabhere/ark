@@ -1,5 +1,5 @@
 import "./connectionManager.less";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { FC, useCallback, useEffect, useState } from "react";
 import { Button, Card } from "antd";
 import {
 	VscDatabase,
@@ -8,66 +8,79 @@ import {
 	VscTrash,
 	VscAdd,
 } from "react-icons/vsc";
-import { dispatch } from "../../util/events";
+import { dispatch, listenEffect } from "../../util/events";
 import { Resizable } from "re-resizable";
 
-export interface ConnectionDetails {
-	id: string;
-	name: string;
-	members: Array<string>;
-	database: string;
-	username: string;
-	password: string;
-	options: {
-		authSource?: string;
-		retryWrites?: "true" | "false";
-		tls?: boolean;
-		tlsCertificateFile?: string;
-		w?: string;
-	};
+interface ManagedConnection extends Ark.StoredConnection {
+	active?: boolean;
 }
 
-export interface ConnectionManagerProps {
-	open: boolean;
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+interface ConnectionManagerProps {}
 
-export function ConnectionManager(props: ConnectionManagerProps): JSX.Element {
-	const { open } = props;
-	const [activeConnectionIds, setActiveConnectionIds] = useState<Array<string>>(
-		[]
-	);
-
-	const [connections, setConnections] = useState<Array<ConnectionDetails>>([]);
+export const ConnectionManager: FC<ConnectionManagerProps> = () => {
+	const [isOpen, setIsOpen] = useState(false);
+	const [activeConnectionIds] = useState<string[]>([]);
+	const [connections, setConnections] = useState<ManagedConnection[]>([]);
 
 	const connect = useCallback((id: string) => {
-		window.ark.connection.create(id);
-		setActiveConnectionIds((ids) => [...ids, id]);
-		dispatch("sidebar:add_connection", id);
+		window.ark.driver.run("connection", "connect", { id }).then(() =>
+			window.ark.driver
+				.run("connection", "getConnectionDetails", { id })
+				.then((connection) => {
+					const managed: ManagedConnection = { ...connection, active: true };
+					setConnections((connections) => [...connections, managed]);
+					dispatch("sidebar:add_item", {
+						id: connection.id,
+						name: connection.name,
+					});
+				})
+		);
 	}, []);
 
 	const disconnect = useCallback((id: string) => {
-		window.ark.connection.disconnect(id);
-		setActiveConnectionIds((ids) => ids.filter((i) => i !== id));
-		dispatch("sidebar:remove_connection", id);
+		window.ark.driver.run("connection", "disconnect", { id }).then(() => {
+			setConnections((connections) => {
+				const idx = connections.findIndex((c) => c.id === id);
+				connections[idx].active = false;
+				return [...connections];
+			});
+			dispatch("sidebar:remove_item", id);
+		});
 	}, []);
 
 	const deleteConnection = useCallback(
 		(id: string) => {
-			if (activeConnectionIds.includes(id)) {
-				disconnect(id);
-			}
+			const connection = connections.find((c) => c.id === id);
+			if (connection) {
+				if (connection.active) {
+					disconnect(id);
+				}
 
-			window.ark.connection.deleteConnection(id);
-			setConnections((conns) => conns.filter((c) => c.id !== id));
+				window.ark.connection.deleteConnection(connection.id).then(() => {});
+				setConnections((connections) => {
+					const connectionIdx = connections.findIndex((c) => c.id === id);
+					connections.splice(connectionIdx, 1);
+					return [...connections];
+				});
+			}
 		},
-		[activeConnectionIds, disconnect]
+		[connections, disconnect]
 	);
 
-	useEffect(() => {
-		window.ark.connection.getActiveConnectionIds().then((ids) => {
-			setActiveConnectionIds(ids);
-		});
-	}, []);
+	useEffect(
+		() =>
+			listenEffect([
+				{
+					event: "connection_manager:toggle",
+					cb: () => {
+						dispatch("explorer:hide");
+						setIsOpen((toggle) => !toggle);
+					},
+				},
+			]),
+		[]
+	);
 
 	useEffect(() => {
 		window.ark.connection.getAllConnections().then((connectionDetails) => {
@@ -111,7 +124,7 @@ export function ConnectionManager(props: ConnectionManagerProps): JSX.Element {
 		</div>
 	);
 
-	return open ? (
+	return isOpen ? (
 		<Resizable
 			defaultSize={{
 				width: "40%",
@@ -174,4 +187,4 @@ export function ConnectionManager(props: ConnectionManagerProps): JSX.Element {
 	) : (
 		<></>
 	);
-}
+};

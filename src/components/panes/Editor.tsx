@@ -1,6 +1,6 @@
 import React, { FC, useState } from "react";
 import "./panes.less";
-import Shell, { ShellProps } from "../shell/Shell";
+import { Shell, ShellProps } from "../shell/Shell";
 import { Resizable } from "re-resizable";
 import AnsiToHtml from "ansi-to-html";
 const ansiToHtmlConverter = new AnsiToHtml();

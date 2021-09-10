@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
-const invoke = (args: any) => ipcRenderer.invoke("run_command", { ...args });
+const invoke = (args: any) => ipcRenderer.invoke("run_command", args);
 const invokeJS = (shell: string, code: string) =>
 	ipcRenderer.invoke("invoke_js", { code, shell });
 const createShell = (uri: string) =>
@@ -23,35 +23,6 @@ const arkContext: Ark.Context = {
 		}
 	},
 	connection: {
-		init: async (uri: string) => {
-			return invoke({
-				library: "connection",
-				action: "init",
-				args: {
-					mongoUri: uri,
-				},
-			});
-		},
-		saveConnection: (type: string, uri: string, name: string) => {
-			return invoke({
-				library: "connection",
-				action: "saveConnection",
-				args: {
-					type,
-					uri,
-					name,
-				},
-			});
-		},
-		getConnectionDetails: (id: string) => {
-			return invoke({
-				library: "connection",
-				action: "getConnectionDetails",
-				args: {
-					id,
-				},
-			});
-		},
 		getAllConnections: () => {
 			return invoke({
 				library: "connection",

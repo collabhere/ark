@@ -51,7 +51,8 @@ export function IPCHandler() {
 		try {
 			// run_command will be called for all the lib functions,
 			// we'll call an external function that'll call the specific lib function
-			return command(data.library, data.action, data.args);
+			const result = await command(data.library, data.action, data.args);
+			return result;
 		} catch (err) {
 			console.error("`run_command` error");
 			console.error(err);

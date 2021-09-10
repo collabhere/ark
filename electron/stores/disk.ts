@@ -1,13 +1,11 @@
 import electronStorage from "electron-json-storage";
 import os from "os";
+import { ARK_FOLDER_NAME } from "../constants";
 
-export const diskStore = (dirName: string = "ark") => {
-	const defaultPath = os.homedir();
-	electronStorage.setDataPath(`${defaultPath}/${dirName}`);
-
-	const promisify = (func: any, ...args: any) => {
-		return new Promise((resolve, reject) => {
-			func.bind(electronStorage)(...args, (err: any, data: any) => {
+const promisifyCallback =
+	(thisArg: any, func: any, ...args: any) =>
+		new Promise((resolve, reject) => {
+			func.call(thisArg, ...args, (err: any, data: any) => {
 				if (err) {
 					reject(err);
 				} else {
@@ -15,7 +13,27 @@ export const diskStore = (dirName: string = "ark") => {
 				}
 			});
 		});
-	};
+
+interface DiskStoreMethods {
+	/**
+	 * @example
+	 *  get('connections', 'testConnection');
+	 *  => Should return { value: 'test'};
+	 */
+	get(module: "connections", key: string): Promise<Ark.StoredConnection>;
+	getAll(module: "connections"): Promise<Ark.StoredConnection[]>;
+	set(module: string, key: string, value: Ark.AnyObject): Promise<void>;
+	remove(module: string, key: string): Promise<void>;
+	has(module: string, key: string): Promise<boolean>;
+}
+interface DiskStore {
+	(dirName?: string): DiskStoreMethods;
+}
+
+export const diskStore: DiskStore = (dirName: string = ARK_FOLDER_NAME) => {
+	const defaultPath = os.homedir();
+
+	electronStorage.setDataPath(`${defaultPath}/${dirName}`);
 
 	/**
 	 * Usage example:
@@ -23,20 +41,16 @@ export const diskStore = (dirName: string = "ark") => {
 	 *  => Should create a testConnection.json file in ~/ark/connections dir;
 	 */
 	const set = (module: string, key: string, value: Record<string, any>) => {
-		return promisify(electronStorage.set, key, value, {
+		return promisifyCallback(electronStorage, electronStorage.set, key, value, {
 			dataPath: `${electronStorage.getDataPath()}/${module}`,
-		});
+		}) as Promise<void>;
 	};
 
-	/**
-	 * Usage example:
-	 *  get('connections', 'testConnection');
-	 *  => Should return { value: 'test'};
-	 */
-	const get = (module: string, key: string) => {
-		return promisify(electronStorage.get, key, {
+
+	const get = (module: string, key: string): Promise<any> => {
+		return promisifyCallback(electronStorage, electronStorage.get, key, {
 			dataPath: `${electronStorage.getDataPath()}/${module}`,
-		});
+		}) as Promise<Ark.StoredConnection>;
 	};
 
 	/**
@@ -45,21 +59,21 @@ export const diskStore = (dirName: string = "ark") => {
 	 *  => Should remove testConnection.json file from ~/ark/connections dir;
 	 */
 	const remove = (module: string, key: string) => {
-		return promisify(electronStorage.remove, key, {
+		return promisifyCallback(electronStorage, electronStorage.remove, key, {
 			dataPath: `${electronStorage.getDataPath()}/${module}`,
-		});
+		}) as Promise<void>;
 	};
 
 	const has = (module: string, key: string) => {
-		return promisify(electronStorage.has, key, {
+		return promisifyCallback(electronStorage, electronStorage.has, key, {
 			dataPath: `${electronStorage.getDataPath()}/${module}`,
-		});
+		}) as Promise<boolean>;
 	};
 
 	const getAll = (module: string) => {
-		return promisify(electronStorage.getAll, {
+		return promisifyCallback(electronStorage, electronStorage.getAll, {
 			dataPath: `${electronStorage.getDataPath()}/${module}`,
-		});
+		}) as Promise<Ark.StoredConnection[]>;
 	};
 
 	return { get, set, remove, has, getAll };

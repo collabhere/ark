@@ -1,6 +1,6 @@
 import "./shell.less";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { FC, useCallback, useEffect, useState } from "react";
 import {
 	VscDatabase,
 	VscGlobe,
@@ -71,7 +71,7 @@ export interface ShellProps {
 	onExecutionResult?: (result: ExecutionResult) => void;
 	onShellMessage?: (message: string) => void;
 }
-export default function Shell(props: ShellProps): JSX.Element {
+export const Shell: FC<ShellProps> = (props) => {
 	const {
 		collections,
 		onExecutionResult,
@@ -110,9 +110,9 @@ export default function Shell(props: ShellProps): JSX.Element {
 
 	const cloneCurrentTab = useCallback(() => {
 		dispatch("browser:create_tab:editor", {
-			shellConfig: SHELL_CONFIG_STUB,
+			shellConfig: config,
 		});
-	}, []);
+	}, [config]);
 
 	useEffect(() => {
 		if (monacoEditor) {
@@ -202,4 +202,4 @@ export default function Shell(props: ShellProps): JSX.Element {
 			/>
 		</div>
 	);
-}
+};

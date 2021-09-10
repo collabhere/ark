@@ -8,8 +8,6 @@ import { listenEffect } from "../../util/events";
 import { Editor, EditorProps } from "../panes/Editor";
 import { ConnectionForm, ConnectionFormProps } from "../panes/ConnectionForm";
 
-import SHELL_CONFIG_STUB from "../../json-stubs/shell-config.json";
-
 const { TabPane } = Tabs;
 
 interface BaseTab {
@@ -57,12 +55,7 @@ export const Browser = (): JSX.Element => {
 	const [activeKey, setActiveKey] = useState<string>();
 
 	/* onload useEffect */
-	useEffect(() => {
-		createEditorTab({
-			shellConfig: SHELL_CONFIG_STUB,
-		});
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	useEffect(() => {}, []);
 
 	const goToFirstTab = useCallback(() => {
 		if (tabs && tabs.length) setActiveKey(tabs[0].id);

@@ -1,6 +1,6 @@
-import { BrowserWindowConstructorOptions, BrowserWindow, Menu, MenuItem } from "electron";
+import { BrowserWindowConstructorOptions, BrowserWindow } from "electron";
 
-interface CreateWindowOptions {}
+interface CreateWindowOptions { }
 function createWindow(
 	windowOptions?: BrowserWindowConstructorOptions,
 	options?: CreateWindowOptions
