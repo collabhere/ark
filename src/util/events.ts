@@ -1,6 +1,7 @@
 import { compose } from "./misc";
 
 export const dispatch = <T = unknown>(event: string, payload?: T): void => {
+    console.log(`[event] name=${event} payload=${JSON.stringify(payload)}`)
     const e = new CustomEvent<T>(event, { detail: payload });
     window.dispatchEvent(e);
 }

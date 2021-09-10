@@ -1,29 +1,58 @@
-import React, { useState } from "react";
+import React, { FC, useState } from "react";
 import "./panes.less";
-import Shell, { ShellProps } from "../shell/Shell";
+import { Shell, ShellProps } from "../shell/Shell";
 import { Resizable } from "re-resizable";
+import AnsiToHtml from "ansi-to-html";
+const ansiToHtmlConverter = new AnsiToHtml();
+
+export interface TextViewerProps {
+	text: string | React.ReactNode;
+}
+const TextViewer: FC<TextViewerProps> = (props) => {
+	const { text } = props;
+	return typeof text == "string" ? (
+		<div dangerouslySetInnerHTML={{ __html: text }}></div>
+	) : (
+		<div>{text}</div>
+	);
+};
+
+interface JSONViewerProps {
+	json: Ark.AnyObject;
+}
+
+const JSONViewer: FC<JSONViewerProps> = (props) => {
+	const { json } = props;
+	return <pre>{JSON.stringify(json, null, 2)}</pre>;
+};
+
+type ResultViewerProps =
+	| { type: "json"; json: Ark.AnyObject }
+	| { type: "text"; text: string | React.ReactNode }
+	| { type: "tree"; tree: Ark.AnyObject };
+
+export const ResultViewer: FC<ResultViewerProps> = (props) => {
+	return (
+		<div className="ResultViewerContainer">
+			{props.type === "json" ? (
+				<JSONViewer json={props.json} />
+			) : props.type === "text" ? (
+				<TextViewer text={props.text} />
+			) : (
+				<></>
+			)}
+		</div>
+	);
+};
 
 export interface EditorProps {
 	shellConfig: ShellProps["shellConfig"];
 }
 
-interface JSONViewerProps {
-	json: any;
-}
-
-function JSONViewer(props: JSONViewerProps): JSX.Element {
-	const { json } = props;
-	return (
-		<div className="JSONViewer">
-			<pre>{JSON.stringify(json, null, 2)}</pre>
-		</div>
-	);
-}
-
-export function Editor(props: EditorProps): JSX.Element {
+export const Editor: FC<EditorProps> = (props) => {
 	const { shellConfig } = props;
 
-	const [currentResult, setCurrentResult] = useState<any>();
+	const [currentResult, setCurrentResult] = useState<ResultViewerProps>();
 
 	return (
 		<div className={"Editor"}>
@@ -36,10 +65,23 @@ export function Editor(props: EditorProps): JSX.Element {
 				<Shell
 					shellConfig={shellConfig}
 					collections={["test_collection_1"]}
-					onExecutionResult={(result) => setCurrentResult(result)}
+					onExecutionResult={(result) => {
+						setCurrentResult({
+							type: "json",
+							json: result.data,
+						});
+					}}
+					onShellMessage={(message) => {
+						console.log("Shell message");
+						console.log(message);
+						const messageLines = message.split("\n").filter(Boolean);
+						const [msg, code] = messageLines;
+						const html = code ? ansiToHtmlConverter.toHtml(code) : "";
+						// setTextResult(msg + "<br/>" + html);
+					}}
 				/>
 			</Resizable>
-			{currentResult && <JSONViewer json={currentResult} />}
+			{currentResult && <ResultViewer {...currentResult} />}
 		</div>
 	);
-}
+};

@@ -1,12 +1,11 @@
 import "./explorer.less";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { FC, useCallback, useEffect, useState } from "react";
 import { Tree, TreeDataNode } from "antd";
 import { CloudServerOutlined } from "@ant-design/icons";
 import { VscListTree } from "react-icons/vsc";
 import { Resizable } from "re-resizable";
 import { listenEffect } from "../../util/events";
-import { ConnectionDetails } from "../connectionManager/ConnectionManager";
 
 const createTreeNode = (
 	title: string,
@@ -36,17 +35,17 @@ interface Database {
 	collections: Collection[];
 }
 
-interface ExplorerProps {
-	open: boolean;
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+interface ExplorerProps {}
 
-export function Explorer(props: ExplorerProps): JSX.Element {
-	const { open } = props;
+export const Explorer: FC<ExplorerProps> = () => {
+	const [isOpen, setIsOpen] = useState(false);
 	const [tree, setTree] = useState<TreeDataNode[]>([]);
 	const [currentConnectionId, setCurrentConnectionId] = useState<string>();
 
 	const switchConnections = useCallback((args: SwitchConnectionsArgs) => {
 		const { connectionId } = args;
+		setIsOpen(true);
 		setCurrentConnectionId(connectionId);
 	}, []);
 
@@ -58,6 +57,10 @@ export function Explorer(props: ExplorerProps): JSX.Element {
 		() =>
 			listenEffect([
 				{
+					event: "explorer:hide",
+					cb: () => setIsOpen(false),
+				},
+				{
 					event: "explorer:switch_connections",
 					cb: (e, payload) => switchConnections(payload),
 				},
@@ -65,7 +68,7 @@ export function Explorer(props: ExplorerProps): JSX.Element {
 		[switchConnections]
 	);
 
-	return open ? (
+	return isOpen ? (
 		<Resizable
 			defaultSize={{
 				width: "20%",
@@ -87,4 +90,4 @@ export function Explorer(props: ExplorerProps): JSX.Element {
 	) : (
 		<></>
 	);
-}
+};

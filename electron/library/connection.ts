@@ -1,20 +1,6 @@
-import {
-	saveNewConnection,
-	getAllConnections,
-	createConnection,
-	getConnectionById,
-	getActiveConnections,
-	removeActiveConnection,
-	removeConnection,
-} from "../helpers/connection";
+import { ConnectionHelper } from "../helpers/connection-helper";
 
-interface InitParams {
-	mongoUri: string;
-}
-
-export function init(params: InitParams) {
-	// dbHandler()
-}
+const connections = ConnectionHelper();
 
 interface SaveParams {
 	type: "config" | "uri";
@@ -27,36 +13,28 @@ interface ConnectionsParam {
 }
 
 export function saveConnection(params: SaveParams) {
-	console.log("create connection getting called", params);
-	return saveNewConnection(params.type as "uri", {
+	return connections.save(params.type as "uri", {
 		uri: params.uri,
 		name: params.name,
-	}).then((id) => {
-		console.log("printing id", id);
-		return id;
 	});
 }
 
 export function getConnections() {
-	return getAllConnections();
+	return connections.list();
 }
 
 export function getConnectionDetails(params: { id: string }) {
-	return getConnectionById(params.id);
+	return connections.get(params.id);
 }
 
 export function create(params: ConnectionsParam) {
-	return createConnection(params.id);
-}
-
-export function getActiveConnIds() {
-	return Array.from(getActiveConnections());
+	return connections.connect(params.id);
 }
 
 export function disconnect(params: ConnectionsParam) {
-	return removeActiveConnection(params.id);
+	return connections.disconnect(params.id);
 }
 
 export function deleteConnection(params: ConnectionsParam) {
-	return removeConnection(params.id);
+	return connections.delete(params.id);
 }

@@ -1,6 +1,6 @@
 import "./shell.less";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { FC, useCallback, useEffect, useState } from "react";
 import {
 	VscDatabase,
 	VscGlobe,
@@ -12,17 +12,17 @@ import { DownOutlined } from "@ant-design/icons";
 import { default as Monaco } from "@monaco-editor/react";
 import type { Monaco as MonacoType } from "@monaco-editor/react";
 import { KeyMod, KeyCode, editor } from "monaco-editor";
-import { registerCompletions } from "./completions";
-import { Resizable } from "re-resizable";
+import { mountMonaco } from "./monaco";
 import { dispatch } from "../../util/events";
+
+import SHELL_CONFIG_STUB from "../../json-stubs/shell-config.json";
 
 const DEFAULT_CODE = `// Mongo shell
 db.getCollection('test').find({});
 `;
 interface ExecutionResult {
-	data: any[];
+	data: Ark.AnyObject;
 }
-
 interface CreateMenuItem {
 	item: string;
 	cb: (item: string) => void;
@@ -59,16 +59,6 @@ const HostList = (props: HostListProps) => {
 	);
 };
 
-const SHELL_CONFIG_STUB = {
-	db: "test_db_1",
-	hosts: [
-		"ec2-3-13-197-203.us-east-2.compute.amazonaws.com",
-		"ec2-3-13-197-203.us-east-2.compute.amazonaws.com",
-	],
-	user: "dbuser",
-	collection: "Users",
-};
-
 export interface ShellProps {
 	collections: string[];
 	shellConfig: {
@@ -79,38 +69,50 @@ export interface ShellProps {
 		collection?: string;
 	};
 	onExecutionResult?: (result: ExecutionResult) => void;
+	onShellMessage?: (message: string) => void;
 }
-export default function Shell(props: ShellProps): JSX.Element {
-	const { collections, onExecutionResult, shellConfig: config } = props;
+export const Shell: FC<ShellProps> = (props) => {
+	const {
+		collections,
+		onExecutionResult,
+		shellConfig: config,
+		onShellMessage,
+	} = props;
 
-	const { db, collection, user, hosts } = config;
+	const { db, collection, user, hosts, uri } = config || {};
 
 	const [code, setCode] = useState(DEFAULT_CODE);
 	const [monacoEditor, setMonacoEditor] =
 		useState<editor.IStandaloneCodeEditor>();
 	const [shellId, setShellId] = useState<string>();
 
-	console.log(`render: shellId=${shellId}`);
+	console.log(`render:`);
+	console.log(`shellId=${shellId}`);
 
 	const exec = useCallback(() => {
-		console.log("exec shell");
-		window.ark.shell
-			.eval(shellId, code)
-			.then(function ({ result, err }) {
-				if (err) return console.error("exec shell error", err);
-				console.log("exec shell result: ", result);
-				onExecutionResult && onExecutionResult(result.response);
-			})
-			.catch(function (err) {
-				console.error("exec shell error: ", err);
-			});
-	}, [code, onExecutionResult, shellId]);
+		const _code = code.replace(/(\/\/.*)|(\n)/g, "");
+
+		shellId &&
+			window.ark.shell
+				.eval(shellId, _code)
+				.then(function ({ result, err }) {
+					if (err) {
+						onShellMessage && onShellMessage(err.message);
+						return console.error("exec shell error", err);
+					}
+					console.log("exec shell result: ", result);
+					onExecutionResult && onExecutionResult({ data: result.result });
+				})
+				.catch(function (err) {
+					console.error("exec shell error: ", err);
+				});
+	}, [code, onExecutionResult, onShellMessage, shellId]);
 
 	const cloneCurrentTab = useCallback(() => {
 		dispatch("browser:create_tab:editor", {
-			shellConfig: SHELL_CONFIG_STUB,
+			shellConfig: config,
 		});
-	}, []);
+	}, [config]);
 
 	useEffect(() => {
 		if (monacoEditor) {
@@ -123,11 +125,10 @@ export default function Shell(props: ShellProps): JSX.Element {
 	}, [cloneCurrentTab, exec, monacoEditor]);
 
 	useEffect(() => {
-		window.ark.shell.create(config.uri).then(function ({ id }) {
-			console.log("created shell id", id);
+		window.ark.shell.create(uri).then(function ({ id }) {
 			setShellId(id);
 		});
-	}, [config.uri]);
+	}, [uri]);
 
 	return (
 		<div className={"Shell"}>
@@ -174,7 +175,7 @@ export default function Shell(props: ShellProps): JSX.Element {
 				}}
 				theme={"ark"}
 				beforeMount={(monaco) => {
-					registerCompletions(monaco, { collections });
+					mountMonaco(monaco, { collections });
 					monaco.editor.defineTheme("ark", {
 						base: "vs-dark",
 						inherit: true,
@@ -197,8 +198,8 @@ export default function Shell(props: ShellProps): JSX.Element {
 				}}
 				height="100%"
 				defaultValue={code}
-				defaultLanguage="javascript"
+				defaultLanguage="typescript"
 			/>
 		</div>
 	);
-}
+};

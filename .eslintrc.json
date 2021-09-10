@@ -25,6 +25,7 @@
         "browser": true
     },
     "rules": {
-        "@typescript-eslint/no-empty-function": "warn"
+        "@typescript-eslint/no-empty-function": "warn",
+        "react/prop-types": "off"
     }
 }

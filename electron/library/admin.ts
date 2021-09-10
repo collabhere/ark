@@ -1,4 +1,4 @@
-import { getConnection } from "../stores/connection";
+import { getConnection } from "../stores/memory";
 
 export const adminHelper = async (connectionId: string) => {
 	try {

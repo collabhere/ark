@@ -3,17 +3,13 @@ import "./browser.less";
 import { Tabs } from "antd";
 import { nanoid } from "nanoid";
 import React, { useCallback, useEffect, useState } from "react";
-import type { FC, ComponentClass } from "react";
 import { ShellProps } from "../shell/Shell";
 import { listenEffect } from "../../util/events";
 import { Editor, EditorProps } from "../panes/Editor";
 import { ConnectionForm, ConnectionFormProps } from "../panes/ConnectionForm";
 
 import SHELL_CONFIG_STUB from "../../json-stubs/shell-config.json";
-import {
-	ConnectionDetails,
-	ConnectionManagerProps,
-} from "../connectionManager/ConnectionManager";
+import { ConnectionDetails } from "../connectionManager/ConnectionManager";
 
 const { TabPane } = Tabs;
 
@@ -48,12 +44,10 @@ export interface TabComponentMap {
 	connection_form: ConnectionFormProps;
 }
 
-const TAB_PANES: {
-	[k in TabType]?: FC<TabComponentMap[k]> | ComponentClass<TabComponentMap[k]>;
-} = {
+const TAB_PANES = {
 	editor: Editor,
 	connection_form: ConnectionForm,
-};
+} as const;
 
 const EmptyState = () => {
 	return <div>This is an empty state!</div>;
@@ -64,12 +58,7 @@ export const Browser = (): JSX.Element => {
 	const [activeKey, setActiveKey] = useState<string>();
 
 	/* onload useEffect */
-	useEffect(() => {
-		createEditorTab({
-			shellConfig: SHELL_CONFIG_STUB,
-		});
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	useEffect(() => {}, []);
 
 	const goToFirstTab = useCallback(() => {
 		if (tabs && tabs.length) setActiveKey(tabs[0].id);
@@ -168,7 +157,10 @@ export const Browser = (): JSX.Element => {
 			>
 				{tabs && tabs.length ? (
 					tabs.map((tab) => {
-						const Component = TAB_PANES[tab.type];
+						const Component = React.createElement(
+							TAB_PANES[tab.type] as any,
+							tab
+						);
 						return (
 							<TabPane
 								className={"BrowserTabPane"}
@@ -177,7 +169,7 @@ export const Browser = (): JSX.Element => {
 								tab={tab.title}
 								key={tab.id}
 							>
-								{Component && React.createElement(Component as any, tab)}
+								{Component}
 							</TabPane>
 						);
 					})
