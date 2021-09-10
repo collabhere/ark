@@ -10,27 +10,7 @@ import {
 } from "react-icons/vsc";
 import { dispatch, listenEffect } from "../../util/events";
 import { Resizable } from "re-resizable";
-import { MongoClientOptions } from "mongodb";
 
-export interface ConnectionDetails {
-	id: string;
-	type: "directConnection" | "replicaSet";
-	name: string;
-	members: Array<string>;
-	database: string;
-	username: string;
-	password: string;
-	options: MongoClientOptions;
-	ssh?: {
-		host: string;
-		port: string;
-		username: string;
-		method: "privateKey" | "password";
-		privateKey: string;
-		passphrase?: string;
-		askEachTime: boolean;
-	};
-}
 interface ManagedConnection extends Ark.StoredConnection {
 	active?: boolean;
 }

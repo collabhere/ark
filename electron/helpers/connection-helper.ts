@@ -1,4 +1,4 @@
-import { MongoClient, MongoClientOptions, } from "mongodb";
+import { MongoClient, MongoClientOptions } from "mongodb";
 import { resolveSrv, SrvRecord } from "dns";
 import { nanoid } from "nanoid";
 import { URL } from "url";
@@ -11,20 +11,11 @@ interface URIConfiguration {
 	name: string;
 }
 
-interface AdvancedConfiguration {
-	name: string;
-	members: Array<String>;
-	username?: string;
-	password?: string;
-	database: string;
-	options: MongoClientOptions;
-}
-
 interface ConnectionHelperMethods {
 	list(): Promise<Ark.StoredConnection[]>;
 	get(id: string): Promise<Ark.StoredConnection>;
 	save(type: "uri", config: URIConfiguration): Promise<string>;
-	save(type: "config", config: AdvancedConfiguration): Promise<string>;
+	save(type: "config", config: Ark.StoredConnection): Promise<string>;
 	connect(uri: string): Promise<MongoClient>;
 	disconnect(id: string): Promise<void>;
 	delete(id: string): Promise<void>;
@@ -43,9 +34,8 @@ export const ConnectionHelper: CollectionHelper = () => {
 			return connections as Ark.StoredConnection[];
 		},
 		get: async (id) => {
-			const config = await disk.get('connections', id);
+			const config = await disk.get("connections", id);
 			return config;
-
 		},
 		connect: async (id) => {
 			if (await disk.has("connections", id)) {
@@ -112,16 +102,21 @@ export const ConnectionHelper: CollectionHelper = () => {
 				});
 				return id;
 			} else {
-				if (options.tls && !options.tlsCertificateFile) {
-					options.tlsCertificateFile = `${ARK_FOLDER_PATH}/certs/ark.crt`;
+				if (config.options.tls && !config.options.tlsCertificateFile) {
+					config.options.tlsCertificateFile = `${ARK_FOLDER_PATH}/certs/ark.crt`;
 				}
 
-				await disk.set("connections", id, options as any);
+				await disk.set("connections", id, {
+					...config,
+					id,
+				});
 
 				return id;
 			}
 		},
-		delete: async () => { },
+		delete: async (id: string) => {
+			await disk.remove("connections", id);
+		},
 	};
 };
 
@@ -131,24 +126,26 @@ const getConnectionUri = ({
 	username,
 	password,
 	options,
-}: AdvancedConfiguration) => {
+}: Ark.StoredConnection) => {
 	const optionsString = Object.entries(options).reduce(
 		(prevOption, option) => `${prevOption}?${option[0]}=${option[1]}`,
 		""
 	);
 
 	const auth = username && password ? `${username}:${password}@` : "";
-	return `mongodb://${auth}${members.join(",")}/${options.authSource || database
-		}${optionsString}`;
+	return `mongodb://${auth}${members.join(",")}/${
+		options.authSource || database
+	}${optionsString}`;
 };
 
-const lookupSRV = (
-	connectionString: string
-): Promise<SrvRecord[]> => {
+const lookupSRV = (connectionString: string): Promise<SrvRecord[]> => {
 	return resolveSrv.__promisify__(connectionString);
 };
 
-function isURITypeConfig(type: "uri" | "config", config: URIConfiguration | AdvancedConfiguration): config is URIConfiguration {
+function isURITypeConfig(
+	type: "uri" | "config",
+	config: URIConfiguration | Ark.StoredConnection
+): config is URIConfiguration {
 	if (type === "uri") return true;
 	return false;
 }

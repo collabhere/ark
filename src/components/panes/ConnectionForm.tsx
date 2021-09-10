@@ -1,12 +1,10 @@
 import React, { useCallback, useState } from "react";
 import { Input, Button, Checkbox, Menu, Dropdown, Upload } from "antd";
 import "./panes.less";
-import { MongoClientOptions } from "mongodb";
-import { ConnectionDetails } from "../connectionManager/ConnectionManager";
 import { nanoid } from "nanoid";
-
+const { TextArea } = Input;
 export interface ConnectionFormProps {
-	connectionParams?: ConnectionDetails & { mode?: "edit" | "clone" };
+	connectionParams?: Ark.StoredConnection & { mode?: "edit" | "clone" };
 }
 
 export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
@@ -29,9 +27,9 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 	// const [useSSH, toggleSSH] = useState<boolean>(false);
 
 	const [mongoURI, setMongoURI] = useState("");
-	const [connectionData, setConnectionData] = useState<ConnectionDetails>(
+	const [connectionData, setConnectionData] = useState<Ark.StoredConnection>(
 		props.connectionParams || {
-			id: nanoid(),
+			id: "",
 			name: "",
 			members: [],
 			database: "",
@@ -46,7 +44,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 
 	const saveMongoURI = useCallback(() => {
 		window.ark.driver
-			.run("connection", "saveConnection", {
+			.run("connection", "saveConnectionFromUri", {
 				type: "uri",
 				uri: mongoURI,
 				name: "Test Connection " + new Date().valueOf(),
@@ -56,14 +54,30 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 			});
 	}, [mongoURI]);
 
-	const handleTypeSelection = (e) => {
-		setConnectionData((data) => {
-			return {
-				...data,
-				type: e.key,
-			};
-		});
-	};
+	const saveAdvancedConnection = useCallback(() => {
+		window.ark.driver
+			.run("connection", "saveConnectionFromConfig", {
+				type: "config",
+				config: {
+					...connectionData,
+					name:
+						connectionData.name || "Test Connection " + new Date().valueOf(),
+				},
+			})
+			.then((connectionId) => {
+				console.log("Saved connection id: ", connectionId);
+			});
+	}, [connectionData]);
+
+	const editConnection = useCallback(function <T extends Ark.StoredConnection>(
+		key: keyof T,
+		value: T[keyof T]
+	) {
+		if (key && value) {
+			setConnectionData((conn) => ({ ...conn, [key]: value }));
+		}
+	},
+	[]);
 
 	const uploadProps = {
 		onChange(info) {
@@ -75,7 +89,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 	};
 
 	const menu = (
-		<Menu onClick={handleTypeSelection}>
+		<Menu onClick={(e) => editConnection("type", e.key)}>
 			<Menu.Item key="directConnection">Direct Connection</Menu.Item>
 			<Menu.Item key="replicaSet">Replica Set</Menu.Item>
 		</Menu>
@@ -162,7 +176,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 										<span style={{ margin: "auto" }}>Type</span>
 									</div>
 									<div className="InputField">
-										<Dropdown.Button onClick={() => {}} overlay={menu}>
+										<Dropdown.Button overlay={menu}>
 											{connectionData?.type === "replicaSet"
 												? "Replica Set"
 												: "Direct connection"}
@@ -174,34 +188,63 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 										<span style={{ margin: "auto" }}>Name</span>
 									</div>
 									<div className="InputField">
-										<Input className="Input" value={connectionData?.name} />
+										<Input
+											className="Input"
+											value={connectionData?.name}
+											onChange={(e) => editConnection("name", e.target.value)}
+										/>
 									</div>
 								</div>
 
-								<div className="InlineInput">
-									<div style={{ flexGrow: 1 }}>
-										<div className="Label">
-											<span style={{ margin: "auto" }}>Host</span>
+								{connectionData.type === "directConnection" && (
+									<div className="InlineInput">
+										<div style={{ flexGrow: 1 }}>
+											<div className="Label">
+												<span style={{ margin: "auto" }}>Host</span>
+											</div>
+											<div className="InputField">
+												<Input
+													className="Input"
+													value={
+														connectionData?.members[0] &&
+														connectionData?.members[0].split(":")[0]
+													}
+												/>
+											</div>
 										</div>
-										<div className="InputField">
-											<Input
-												className="Input"
-												value={connectionData?.members[0].split(":")[0]}
-											/>
+										<div>
+											<div className="Label">
+												<span style={{ margin: "auto" }}>Port</span>
+											</div>
+											<div className="InputField">
+												<Input
+													className="Input"
+													value={
+														connectionData?.members[0] &&
+														connectionData?.members[0].split(":")[1]
+													}
+												/>
+											</div>
 										</div>
 									</div>
+								)}
+
+								{connectionData.type === "replicaSet" && (
 									<div>
 										<div className="Label">
-											<span style={{ margin: "auto" }}>Port</span>
+											<span style={{ margin: "auto" }}>Members</span>
 										</div>
 										<div className="InputField">
-											<Input
+											<TextArea
 												className="Input"
-												value={connectionData?.members[0].split(":")[1]}
+												value={connectionData?.members}
+												onChange={(e) =>
+													editConnection("members", e.target.value.split(","))
+												}
 											/>
 										</div>
 									</div>
-								</div>
+								)}
 							</div>
 						)}
 						{form === "authentication" && (
@@ -376,7 +419,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 									</Button>
 								</div>
 								<div>
-									<Button onClick={() => saveMongoURI()}>Save</Button>
+									<Button onClick={() => saveAdvancedConnection()}>Save</Button>
 								</div>
 							</div>
 						</div>

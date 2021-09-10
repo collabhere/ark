@@ -9,7 +9,6 @@ import { Editor, EditorProps } from "../panes/Editor";
 import { ConnectionForm, ConnectionFormProps } from "../panes/ConnectionForm";
 
 import SHELL_CONFIG_STUB from "../../json-stubs/shell-config.json";
-import { ConnectionDetails } from "../connectionManager/ConnectionManager";
 
 const { TabPane } = Tabs;
 
@@ -65,7 +64,7 @@ export const Browser = (): JSX.Element => {
 	}, [tabs]);
 
 	const createConnectionFormTab = useCallback(
-		(connectionDetails?: ConnectionDetails) => {
+		(connectionDetails?: Ark.StoredConnection) => {
 			setTabs((tabs) => {
 				const id = "cf-" + nanoid();
 				const title = "New connection";
