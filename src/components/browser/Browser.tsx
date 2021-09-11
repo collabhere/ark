@@ -64,7 +64,10 @@ export const Browser = (): JSX.Element => {
 	}, [tabs]);
 
 	const createConnectionFormTab = useCallback(
-		(connectionDetails?: Ark.StoredConnection) => {
+		(connectionParams?: {
+			connectionDetails: Ark.StoredConnection;
+			mode?: "edit" | "clone";
+		}) => {
 			setTabs((tabs) => {
 				const id = "cf-" + nanoid();
 				const title = "New connection";
@@ -74,7 +77,8 @@ export const Browser = (): JSX.Element => {
 					{
 						type: "connection_form",
 						closable: true,
-						connectionParams: connectionDetails,
+						connectionParams: connectionParams?.connectionDetails,
+						mode: connectionParams?.mode,
 						id,
 						title,
 					},

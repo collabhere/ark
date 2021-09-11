@@ -23,12 +23,15 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 	const [connections, setConnections] = useState<ManagedConnection[]>([]);
 
 	const connect = useCallback((id: string) => {
-		window.ark.driver.run("connection", "connect", { id }).then(() =>
+		window.ark.driver.run("connection", "create", { id }).then(() =>
 			window.ark.driver
 				.run("connection", "getConnectionDetails", { id })
 				.then((connection) => {
 					const managed: ManagedConnection = { ...connection, active: true };
-					setConnections((connections) => [...connections, managed]);
+					setConnections((connections) => [
+						...connections.filter((conn) => conn.id !== managed.id),
+						managed,
+					]);
 					dispatch("sidebar:add_item", {
 						id: connection.id,
 						name: connection.name,
@@ -70,7 +73,7 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 	const openEditOrCloneConnection = useCallback(
 		(connectionDetails: ManagedConnection, mode: "edit" | "clone") => {
 			dispatch("browser:create_tab:connection_form", {
-				...connectionDetails,
+				connectionDetails,
 				mode,
 			});
 		},
@@ -89,6 +92,21 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 					cb: () => {
 						dispatch("explorer:hide");
 						setIsOpen((toggle) => !toggle);
+					},
+				},
+				{
+					event: "connection_manager:add_connection",
+					cb: (e, payload) => {
+						window.ark.driver
+							.run("connection", "getConnectionDetails", {
+								id: payload.connectionId,
+							})
+							.then((connection) => {
+								setConnections((connections) => [
+									...connections.filter((conn) => conn.id !== connection.id),
+									connection,
+								]);
+							});
 					},
 				},
 			]),

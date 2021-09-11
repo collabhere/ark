@@ -32,7 +32,7 @@ declare global {
 		interface RunCommand {
 			(
 				library: "connection",
-				action: "connect",
+				action: "create",
 				args: { id: string }
 			): Promise<void>;
 			(

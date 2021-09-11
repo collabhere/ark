@@ -1,4 +1,4 @@
 export const compose =
-    (...fns: any[]) =>
-        (): void =>
-            fns.reduce((g, f) => f(g), {});
+	(...fns: any[]) =>
+	(): void =>
+		fns.reduce((g, f) => f(g), {});
