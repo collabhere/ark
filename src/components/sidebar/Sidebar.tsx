@@ -10,15 +10,20 @@ export const Sidebar: FC = () => {
 
 	const listConnections = useCallback(() => {
 		dispatch("connection_manager:toggle");
+		dispatch("explorer:hide");
 	}, []);
 
 	const switchConnections = useCallback((connectionId: string) => {
 		dispatch("explorer:switch_connections", { connectionId });
 	}, []);
 
-	const addItem = useCallback((item: SidebarItem) => {
-		setItems((items) => [...items, item]);
-	}, []);
+	const addItem = useCallback(
+		(item: SidebarItem) => {
+			setItems((items) => [...items, item]);
+			switchConnections(item.id);
+		},
+		[switchConnections]
+	);
 
 	const removeItem = useCallback((id: string) => {
 		setItems((items) => items.filter((conn) => conn.id !== id));

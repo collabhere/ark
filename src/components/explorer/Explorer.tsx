@@ -2,10 +2,8 @@ import "./explorer.less";
 
 import React, { FC, useCallback, useEffect, useState } from "react";
 import { Tree, TreeDataNode } from "antd";
-import { CloudServerOutlined } from "@ant-design/icons";
-import { VscListTree } from "react-icons/vsc";
 import { Resizable } from "re-resizable";
-import { listenEffect } from "../../util/events";
+import { dispatch, listenEffect } from "../../util/events";
 
 const createTreeNode = (
 	title: string,
@@ -47,6 +45,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 		const { connectionId } = args;
 		setIsOpen(true);
 		setCurrentConnectionId(connectionId);
+		dispatch("connection_manager:hide");
 	}, []);
 
 	// useEffect(() => {

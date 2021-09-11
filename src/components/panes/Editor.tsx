@@ -5,6 +5,15 @@ import { Resizable } from "re-resizable";
 import AnsiToHtml from "ansi-to-html";
 const ansiToHtmlConverter = new AnsiToHtml();
 
+export interface TreeViewerProps {
+	json: Ark.AnyObject;
+}
+
+const TreeViewer: FC<TreeViewerProps> = (props) => {
+	const { json } = props;
+	return <div></div>;
+};
+
 export interface TextViewerProps {
 	text: string | React.ReactNode;
 }
@@ -23,7 +32,21 @@ interface JSONViewerProps {
 
 const JSONViewer: FC<JSONViewerProps> = (props) => {
 	const { json } = props;
-	return <pre>{JSON.stringify(json, null, 2)}</pre>;
+	return (
+		<>
+			{Array.isArray(json) ? (
+				json.map((doc, i) => (
+					<div key={i}>
+						<div>{"// " + (i + 1)}</div>
+						<div>{JSON.stringify(doc, null, 4)}</div>
+						<br />
+					</div>
+				))
+			) : (
+				<div>{JSON.stringify(json, null, 4)}</div>
+			)}
+		</>
+	);
 };
 
 type ResultViewerProps =
@@ -35,11 +58,13 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 	return (
 		<div className="ResultViewerContainer">
 			{props.type === "json" ? (
-				<JSONViewer json={props.json} />
+				<JSONViewer json={props[props.type]} />
 			) : props.type === "text" ? (
-				<TextViewer text={props.text} />
+				<TextViewer text={props[props.type]} />
+			) : props.type === "tree" ? (
+				<TreeViewer json={props[props.type]} />
 			) : (
-				<></>
+				<div>{"Incorrect view type!"}</div>
 			)}
 		</div>
 	);

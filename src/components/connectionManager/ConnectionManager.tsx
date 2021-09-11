@@ -85,9 +85,14 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 		() =>
 			listenEffect([
 				{
+					event: "connection_manager:hide",
+					cb: () => {
+						setIsOpen(false);
+					},
+				},
+				{
 					event: "connection_manager:toggle",
 					cb: () => {
-						dispatch("explorer:hide");
 						setIsOpen((toggle) => !toggle);
 					},
 				},
