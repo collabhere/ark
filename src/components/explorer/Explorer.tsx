@@ -88,19 +88,25 @@ export const Explorer: FC<ExplorerProps> = () => {
 				.list(currentConnectionId)
 				.then((collections: string[]) => {
 					console.log(collections);
-					const nodes: TreeDataNode[] = collections.map((collection, index) => {
-						return {
-							key: index,
-							title: collection,
-							children: [
-								{
-									title: "Index",
-									key: "random",
-								},
-							],
-						};
-					});
-					setTree(nodes);
+					if (collections && collections.length > 0) {
+						const nodes: TreeDataNode[] = collections.map(
+							(collection, index) => {
+								return {
+									key: index,
+									title: collection,
+									children: [
+										{
+											title: "Index",
+											key: "random",
+										},
+									],
+								};
+							}
+						);
+						setTree(nodes);
+					} else {
+						console.log("[LIST_COLLECTIONS_ERRORED]");
+					}
 				});
 		}
 	}, [currentConnectionId]);
