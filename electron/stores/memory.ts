@@ -15,7 +15,7 @@ export const save = (id: string, connection: MongoClient) => {
 	}
 };
 
-export const getConnection = (id: string): MongoClient | undefined => {
+export const get = (id: string): MongoClient | undefined => {
 	if (store.has(id)) {
 		return (store.get(id) as MemEntry).connection;
 	} else {
@@ -23,31 +23,37 @@ export const getConnection = (id: string): MongoClient | undefined => {
 	}
 };
 
-export const memoryStore = () => {
-	const store = new Map<string, MemEntry>();
+export const drop = (id: string) => {
+	if (store.has(id)) {
+		return store.delete(id);
+	}
+};
 
-	const save = (id: string, connection: MongoClient) => {
-		if (connection) {
-			store.set(id, { connection });
-			return id;
-		} else {
-			throw new Error("Unable to save an empty connection!");
-		}
-	};
+// export const memoryStore = () => {
+// 	const store = new Map<string, MemEntry>();
 
-	const get = (id: string): MemEntry => {
-		if (store.has(id)) {
-			return (store.get(id) as MemEntry)
-		} else {
-			throw new Error(`No mem entry found for id: ${id}!`);
-		}
-	};
+// 	const save = (id: string, connection: MongoClient) => {
+// 		if (connection) {
+// 			store.set(id, { connection });
+// 			return id;
+// 		} else {
+// 			throw new Error("Unable to save an empty connection!");
+// 		}
+// 	};
 
-	const drop = (id: string) => {
-		if (store.has(id)) {
-			return store.delete(id);
-		}
-	};
+// 	const get = (id: string): MemEntry => {
+// 		if (store.has(id)) {
+// 			return store.get(id) as MemEntry;
+// 		} else {
+// 			throw new Error(`No mem entry found for id: ${id}!`);
+// 		}
+// 	};
 
-	return { save, get, drop };
-}
+// 	const drop = (id: string) => {
+// 		if (store.has(id)) {
+// 			return store.delete(id);
+// 		}
+// 	};
+
+// 	return { save, get, drop };
+// };

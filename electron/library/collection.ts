@@ -1,4 +1,4 @@
-import { getConnection } from "../stores/memory";
+import { get } from "../stores/memory";
 
 // interface collectionHelper {
 // 	listCollections?: () => Promise<string[]>;
@@ -89,10 +89,10 @@ interface listCollectionParams {
 }
 
 export async function listCollections(data: listCollectionParams) {
-	console.log(data.connectionId);
+	console.log("list collections connection id: ", data.connectionId);
 	const connectionId = data.connectionId;
 	try {
-		const connection = getConnection(connectionId);
+		const connection = get(connectionId);
 
 		if (connection) {
 			return (await connection.db().collections()).map(

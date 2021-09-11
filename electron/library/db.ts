@@ -1,8 +1,8 @@
-import { getConnection } from "../stores/memory";
+import { get } from "../stores/memory";
 
 export const dbHelper = async (connectionId: string) => {
 	try {
-		const connection = getConnection(connectionId);
+		const connection = get(connectionId);
 
 		if (connection) {
 			const getDbName = async () => Promise.resolve(connection.options.dbName);
