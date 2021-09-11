@@ -1,8 +1,8 @@
-import { getConnection } from "../stores/memory";
+import { get } from "../stores/memory";
 
 export const indexHelper = async (connectionId: string) => {
 	try {
-		const connection = getConnection(connectionId);
+		const connection = get(connectionId);
 
 		if (connection) {
 			const getIndexDetails = async (collection: string) =>

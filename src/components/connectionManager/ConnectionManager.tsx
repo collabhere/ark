@@ -23,7 +23,7 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 	const [connections, setConnections] = useState<ManagedConnection[]>([]);
 
 	const connect = useCallback((id: string) => {
-		window.ark.driver.run("connection", "connect", { id }).then(() =>
+		window.ark.driver.run("connection", "create", { id }).then(() =>
 			window.ark.driver
 				.run("connection", "getConnectionDetails", { id })
 				.then((connection) => {

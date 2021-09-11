@@ -3,7 +3,7 @@ import { resolveSrv, SrvRecord } from "dns";
 import { nanoid } from "nanoid";
 import { URL } from "url";
 import { diskStore } from "../stores/disk";
-import { memoryStore } from "../stores/memory";
+import { save, get, drop } from "../stores/memory";
 import { ARK_FOLDER_PATH } from "../constants";
 
 interface URIConfiguration {
@@ -16,7 +16,7 @@ interface ConnectionHelperMethods {
 	get(id: string): Promise<Ark.StoredConnection>;
 	save(type: "uri", config: URIConfiguration): Promise<string>;
 	save(type: "config", config: Ark.StoredConnection): Promise<string>;
-	connect(uri: string): Promise<MongoClient>;
+	connect(uri: string): void;
 	disconnect(id: string): Promise<void>;
 	delete(id: string): Promise<void>;
 }
@@ -27,7 +27,6 @@ interface CollectionHelper {
 
 export const ConnectionHelper: CollectionHelper = () => {
 	const disk = diskStore();
-	const memory = memoryStore();
 	return {
 		list: async () => {
 			const connections = await disk.getAll("connections");
@@ -44,19 +43,18 @@ export const ConnectionHelper: CollectionHelper = () => {
 				const client = new MongoClient(connectionUri, config.options);
 				const connection = await client.connect();
 				if (connection) {
-					memory.save(id, connection);
+					save(id, connection);
 				}
-				return client;
+				//return client;
 			} else {
 				throw new Error("Connection not found!");
 			}
 		},
 		disconnect: async (id) => {
-			const item = memory.get(id);
-			if (item) {
-				const client = item.connection;
+			const client = get(id);
+			if (client) {
 				await client.close();
-				memory.drop(id);
+				drop(id);
 			} else {
 				throw new Error("Connection not found!");
 			}
