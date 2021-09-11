@@ -1,19 +1,16 @@
 import React, { useCallback, useState } from "react";
 import { Input, Button, Checkbox, Menu, Dropdown, Upload } from "antd";
 import "./panes.less";
-import { nanoid } from "nanoid";
+import { dispatch } from "../../util/events";
 const { TextArea } = Input;
 export interface ConnectionFormProps {
-	connectionParams?: Ark.StoredConnection & { mode?: "edit" | "clone" };
+	connectionParams?: Ark.StoredConnection;
+	mode?: "edit" | "clone";
 }
 
 export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 	const [type, setType] = useState<"basic" | "advanced">(
-		props.connectionParams &&
-			(props.connectionParams.mode === "edit" ||
-				props.connectionParams.mode === "clone")
-			? "advanced"
-			: "basic"
+		props.mode === "edit" || props.mode === "clone" ? "advanced" : "basic"
 	);
 
 	const [form, setForm] = useState<
@@ -21,26 +18,43 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 	>("connection");
 
 	const [useSSH, toggleSSH] = useState<boolean>(false);
-	const [useTLS, toggleTLS] = useState<boolean>(
-		props.connectionParams?.options.tls || true
+	const [host, setHost] = useState<string>(
+		props.connectionParams?.members
+			? props.connectionParams?.members[0].split(":")[0]
+			: ""
 	);
+
+	const [port, setPort] = useState<string>(
+		props.connectionParams?.members
+			? props.connectionParams?.members[0].split(":")[1]
+			: ""
+	);
+
 	// const [useSSH, toggleSSH] = useState<boolean>(false);
+	const connectionDetails = props.connectionParams
+		? {
+				...props.connectionParams,
+				id:
+					props.connectionParams && props.mode === "clone"
+						? ""
+						: props.connectionParams.id,
+		  }
+		: {
+				id: "",
+				name: "",
+				members: [],
+				database: "",
+				type: "directConnection" as const,
+				username: "",
+				password: "",
+				options: {
+					tls: false,
+				},
+		  };
 
 	const [mongoURI, setMongoURI] = useState("");
-	const [connectionData, setConnectionData] = useState<Ark.StoredConnection>(
-		props.connectionParams || {
-			id: "",
-			name: "",
-			members: [],
-			database: "",
-			type: "directConnection",
-			username: "",
-			password: "",
-			options: {
-				tls: true,
-			},
-		}
-	);
+	const [connectionData, setConnectionData] =
+		useState<Ark.StoredConnection>(connectionDetails);
 
 	const saveMongoURI = useCallback(() => {
 		window.ark.driver
@@ -50,6 +64,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 				name: "Test Connection " + new Date().valueOf(),
 			})
 			.then((connectionId) => {
+				dispatch("connection_manager:add_connection", { connectionId });
 				console.log("Saved connection id: ", connectionId);
 			});
 	}, [mongoURI]);
@@ -60,14 +75,19 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 				type: "config",
 				config: {
 					...connectionData,
+					members:
+						connectionData.type === "directConnection"
+							? [`${host}:${port}`]
+							: connectionData.members,
 					name:
 						connectionData.name || "Test Connection " + new Date().valueOf(),
 				},
 			})
 			.then((connectionId) => {
+				dispatch("connection_manager:add_connection", { connectionId });
 				console.log("Saved connection id: ", connectionId);
 			});
-	}, [connectionData]);
+	}, [connectionData, host, port]);
 
 	const editConnection = useCallback(function <T extends Ark.StoredConnection>(
 		key: keyof T,
@@ -205,10 +225,8 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 											<div className="InputField">
 												<Input
 													className="Input"
-													value={
-														connectionData?.members[0] &&
-														connectionData?.members[0].split(":")[0]
-													}
+													value={host}
+													onChange={(e) => setHost(e.target.value)}
 												/>
 											</div>
 										</div>
@@ -219,10 +237,8 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 											<div className="InputField">
 												<Input
 													className="Input"
-													value={
-														connectionData?.members[0] &&
-														connectionData?.members[0].split(":")[1]
-													}
+													value={port}
+													onChange={(e) => setPort(e.target.value)}
 												/>
 											</div>
 										</div>
@@ -254,7 +270,13 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 										<span style={{ margin: "auto" }}>Database</span>
 									</div>
 									<div className="InputField">
-										<Input className="Input" value={connectionData?.database} />
+										<Input
+											className="Input"
+											value={connectionData?.database}
+											onChange={(e) =>
+												editConnection("database", e.target.value)
+											}
+										/>
 									</div>
 								</div>
 								<div>
@@ -262,7 +284,13 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 										<span style={{ margin: "auto" }}>Username</span>
 									</div>
 									<div className="InputField">
-										<Input className="Input" value={connectionData?.username} />
+										<Input
+											className="Input"
+											value={connectionData?.username}
+											onChange={(e) =>
+												editConnection("username", e.target.value)
+											}
+										/>
 									</div>
 								</div>
 
@@ -276,6 +304,9 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 												className="Input"
 												type="password"
 												value={connectionData?.password}
+												onChange={(e) =>
+													editConnection("password", e.target.value)
+												}
 											/>
 										</div>
 									</div>
@@ -376,8 +407,13 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 										<span style={{ margin: "auto" }}>Use TLS protocol</span>
 									</div>
 									<Checkbox
-										value={useTLS}
-										onChange={() => toggleTLS((useTLS) => !useTLS)}
+										checked={connectionData.options.tls}
+										onChange={(e) =>
+											editConnection("options", {
+												...connectionData.options,
+												tls: e.target.checked,
+											})
+										}
 									/>
 								</div>
 								<div className="InlineInput">
@@ -399,11 +435,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 										<span style={{ margin: "auto" }}>Default Database</span>
 									</div>
 									<div className="InputField">
-										<Input
-											className="Input"
-											value={connectionData?.username}
-											disabled={!useTLS}
-										/>
+										<Input className="Input" value={connectionData?.username} />
 									</div>
 								</div>
 							</div>

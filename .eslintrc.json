@@ -1,31 +1,25 @@
 {
-    "ignorePatterns": [
-        "electron",
-        "build"
-    ],
-    "extends": [
-        "eslint:recommended",
-        "plugin:react/recommended",
-        "plugin:react-hooks/recommended",
-        "plugin:@typescript-eslint/eslint-recommended",
-        "plugin:@typescript-eslint/recommended"
-    ],
-    "parser": "@typescript-eslint/parser",
-    "parserOptions": {
-        "ecmaFeatures": {
-            "jsx": true
-        }
-    },
-    "plugins": [
-        "prettier",
-        "react",
-        "@typescript-eslint"
-    ],
-    "env": {
-        "browser": true
-    },
-    "rules": {
-        "@typescript-eslint/no-empty-function": "warn",
-        "react/prop-types": "off"
-    }
+	"ignorePatterns": ["electron", "build"],
+	"extends": [
+		"eslint:recommended",
+		"plugin:react/recommended",
+		"plugin:react-hooks/recommended",
+		"plugin:@typescript-eslint/eslint-recommended",
+		"plugin:@typescript-eslint/recommended"
+	],
+	"parser": "@typescript-eslint/parser",
+	"parserOptions": {
+		"ecmaFeatures": {
+			"jsx": true
+		}
+	},
+	"plugins": ["prettier", "react", "@typescript-eslint"],
+	"env": {
+		"browser": true
+	},
+	"rules": {
+		"@typescript-eslint/no-empty-function": "warn",
+		"react/prop-types": "off",
+		"no-mixed-spaces-and-tabs": ["warn", "smart-tabs"]
+	}
 }

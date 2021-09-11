@@ -16,7 +16,7 @@ interface ConnectionHelperMethods {
 	get(id: string): Promise<Ark.StoredConnection>;
 	save(type: "uri", config: URIConfiguration): Promise<string>;
 	save(type: "config", config: Ark.StoredConnection): Promise<string>;
-	connect(uri: string): void;
+	connect(uri: string): Promise<void>;
 	disconnect(id: string): Promise<void>;
 	delete(id: string): Promise<void>;
 }
@@ -45,7 +45,6 @@ export const ConnectionHelper: CollectionHelper = () => {
 				if (connection) {
 					save(id, connection);
 				}
-				//return client;
 			} else {
 				throw new Error("Connection not found!");
 			}
@@ -60,11 +59,11 @@ export const ConnectionHelper: CollectionHelper = () => {
 			}
 		},
 		save: async (type, config) => {
-			const id = nanoid();
 			const options: MongoClientOptions = {};
 			let members: Array<string>;
 
 			if (isURITypeConfig(type, config)) {
+				const id = nanoid();
 				const parsedUri = new URL(config.uri);
 				if (parsedUri.protocol.includes("+srv")) {
 					members = (
@@ -100,14 +99,27 @@ export const ConnectionHelper: CollectionHelper = () => {
 				});
 				return id;
 			} else {
-				if (config.options.tls && !config.options.tlsCertificateFile) {
-					config.options.tlsCertificateFile = `${ARK_FOLDER_PATH}/certs/ark.crt`;
-				}
+				const id = config.id || nanoid();
 
-				await disk.set("connections", id, {
-					...config,
-					id,
-				});
+				if (!config.options.tls) {
+					const {
+						tls: _,
+						tlsCertificateFile: __,
+						...formattedOptions
+					} = options;
+
+					await disk.set("connections", id, {
+						...config,
+						options: { ...formattedOptions },
+						id,
+					});
+				} else if (config.options.tls && !config.options.tlsCertificateFile) {
+					config.options.tlsCertificateFile = `${ARK_FOLDER_PATH}/certs/ark.crt`;
+					await disk.set("connections", id, {
+						...config,
+						id,
+					});
+				}
 
 				return id;
 			}
@@ -131,9 +143,8 @@ const getConnectionUri = ({
 	);
 
 	const auth = username && password ? `${username}:${password}@` : "";
-	return `mongodb://${auth}${members.join(",")}/${
-		options.authSource || database
-	}${optionsString}`;
+	return `mongodb://${auth}${members.join(",")}/${options.authSource || database
+		}${optionsString}`;
 };
 
 const lookupSRV = (connectionString: string): Promise<SrvRecord[]> => {
