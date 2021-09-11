@@ -49,8 +49,61 @@ export const Explorer: FC<ExplorerProps> = () => {
 		setCurrentConnectionId(connectionId);
 	}, []);
 
+	// useEffect(() => {
+	// 	// Fetch this from driver using connectionId
+	// 	console.log("connectionId in explorer", connectionId);
+	// 	window.ark.connection.create(connectionId).then((conn: any) => {
+	// 		console.log(`Conn obj for 2622 ${conn}`);
+	// 		setConnection(conn);
+	// 	});
+
+	// 	// const databases: Database[] = [
+	// 	// 	{
+	// 	// 		name: "test_db_1",
+	// 	// 		collections: [{ name: "Users" }, { name: "Logs" }],
+	// 	// 	},
+	// 	// ];
+	// 	// const nodes: TreeDataNode[] = databases.reduce<TreeDataNode[]>(
+	// 	// 	(nodes, database) => {
+	// 	// 		nodes.push(
+	// 	// 			createTreeNode(
+	// 	// 				database.name,
+	// 	// 				<CloudServerOutlined />,
+	// 	// 				...database.collections.map((collection) =>
+	// 	// 					createTreeNode(collection.name, <VscListTree />)
+	// 	// 				)
+	// 	// 			)
+	// 	// 		);
+	// 	// 		return nodes;
+	// 	// 	},
+	// 	// 	[]
+	// 	// );
+	// 	// setTree(nodes);
+	// }, [connectionId]);
+
 	/* Load base tree */
-	// useEffect(() => {}, []);
+	useEffect(() => {
+		if (currentConnectionId) {
+			window.ark.collection
+				.list(currentConnectionId)
+				.then((collections: string[]) => {
+					console.log(collections);
+					const nodes: TreeDataNode[] = collections.map((collection, index) => {
+						return {
+							key: index,
+							title: collection,
+							children: [
+								{
+									title: "Index",
+									key: "random",
+								},
+							],
+						};
+					});
+					setTree(nodes);
+				});
+		}
+	}, [currentConnectionId]);
 
 	/** Register explorer event listeners */
 	useEffect(
@@ -84,7 +137,11 @@ export const Explorer: FC<ExplorerProps> = () => {
 			<div className="Explorer">
 				<div className={"ExplorerHeader"}>Test Server [Company ABC]</div>
 				<div>{currentConnectionId}</div>
-				<Tree treeData={tree} />
+				{tree && tree.length > 0 ? (
+					<Tree treeData={tree} />
+				) : (
+					<p>No data to show</p>
+				)}
 			</div>
 		</Resizable>
 	) : (

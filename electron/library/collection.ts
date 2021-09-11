@@ -1,33 +1,108 @@
 import { getConnection } from "../stores/memory";
 
-export const collectionHelper = async (connectionId: string) => {
+// interface collectionHelper {
+// 	listCollections?: () => Promise<string[]>;
+// 	renameCollection?: (
+// 		collectionName: string,
+// 		newName: string
+// 	) => Promise<string>;
+// 	dropCollection?: (name: string) => Promise<boolean>;
+// 	error?: Promise<never>;
+// }
+
+// export const collectionHelper = (connectionId: string): collectionHelper => {
+// 	try {
+// 		const connection = getConnection(connectionId);
+
+// 		if (connection) {
+// 			const listCollections = async () =>
+// 				(await connection.db().collections()).map(
+// 					(coll) => coll.collectionName
+// 				);
+
+// 			const renameCollection = async (
+// 				collectionName: string,
+// 				newName: string
+// 			) => await connection.db().renameCollection(collectionName, newName);
+
+// 			const dropCollection = async (name: string) =>
+// 				await connection.db().dropCollection(name);
+
+// 			return {
+// 				listCollections,
+// 				renameCollection,
+// 				dropCollection,
+// 			};
+// 		} else {
+// 			return Promise.reject("Connection not found!");
+// 		}
+// 	} catch (e) {
+// 		console.log(e);
+// 		return Promise.reject(e.message || e);
+// 	}
+// };
+
+// export function CollectionHelper(connectionId: string): collectionHelper {
+// 	try {
+// 		const connection = getConnection(connectionId);
+
+// 		if (connection) {
+// 			const listCollections = async () =>
+// 				(await connection.db().collections()).map(
+// 					(coll) => coll.collectionName
+// 				);
+
+// 			const renameCollection = async (
+// 				collectionName: string,
+// 				newName: string
+// 			) =>
+// 				await connection
+// 					.db()
+// 					.renameCollection(collectionName, newName)
+// 					.then(() => "");
+
+// 			const dropCollection = async (name: string) =>
+// 				await connection.db().dropCollection(name);
+
+// 			return {
+// 				listCollections,
+// 				renameCollection,
+// 				dropCollection,
+// 			};
+// 		} else {
+// 			console.log("Connection not found!");
+// 			return {
+// 				error: Promise.reject("Connection not found!"),
+// 			};
+// 		}
+// 	} catch (e) {
+// 		console.log(e);
+// 		return {
+// 			error: Promise.reject(e.message || e),
+// 		};
+// 		//return Promise.reject(e.message || e);
+// 	}
+// }
+
+interface listCollectionParams {
+	connectionId: string;
+}
+
+export async function listCollections(data: listCollectionParams) {
+	console.log(data.connectionId);
+	const connectionId = data.connectionId;
 	try {
 		const connection = getConnection(connectionId);
 
 		if (connection) {
-			const getCollections = async () =>
-				(await connection.db().collections()).map(
-					(coll) => coll.collectionName
-				);
-
-			const renameCollection = async (
-				collectionName: string,
-				newName: string
-			) => await connection.db().renameCollection(collectionName, newName);
-
-			const dropCollection = async (name: string) =>
-				await connection.db().dropCollection(name);
-
-			return Promise.resolve({
-				getCollections,
-				renameCollection,
-				dropCollection,
-			});
+			return (await connection.db().collections()).map(
+				(coll) => coll.collectionName
+			);
 		} else {
-			return Promise.reject("Connection not found!");
+			return Promise.reject("Connection not found");
 		}
-	} catch (e) {
-		console.log(e);
-		return Promise.reject(e.message || e);
+	} catch (err) {
+		console.log(err);
+		return Promise.reject(err);
 	}
-};
+}

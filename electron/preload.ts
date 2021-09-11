@@ -18,9 +18,9 @@ const arkContext: Ark.Context = {
 			return invoke({
 				library,
 				action,
-				args
+				args,
 			});
-		}
+		},
 	},
 	connection: {
 		getAllConnections: () => {
@@ -60,17 +60,17 @@ const arkContext: Ark.Context = {
 				action: "deleteConnection",
 				args: {
 					id,
-				}
-			})
+				},
+			});
 		},
 	},
 	collection: {
-		list: (username: string) => {
+		list: (connectionId: string) => {
 			return invoke({
 				library: "collection",
 				action: "listCollections",
 				args: {
-					username,
+					connectionId,
 				},
 			});
 		},

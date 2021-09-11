@@ -51,6 +51,9 @@ export function IPCHandler() {
 		try {
 			// run_command will be called for all the lib functions,
 			// we'll call an external function that'll call the specific lib function
+			console.log(
+				`calling run command for ${data.library} and action ${data.action}`
+			);
 			const result = await command(data.library, data.action, data.args);
 			return result;
 		} catch (err) {
@@ -63,8 +66,8 @@ export function IPCHandler() {
 	ipcMain.handle("create_shell", async (event, data: CreateShell) => {
 		try {
 			const shellExecutor = await createEvaluator({
-				database: '',
-				uri: data.shellConfig.uri
+				database: "",
+				uri: data.shellConfig.uri,
 			});
 			const shell = {
 				id: nanoid(),
