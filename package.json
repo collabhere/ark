@@ -120,6 +120,8 @@
 		"@types/react-dom": "^17.0.9",
 		"ansi-to-html": "^0.7.1",
 		"antd": "^4.16.8",
+		"bluebird": "^3.7.2",
+		"bson": "^4.5.2",
 		"concurrently": "^6.2.0",
 		"defaults": "^1.0.3",
 		"electron-json-storage": "^4.5.0",

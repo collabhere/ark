@@ -1,5 +1,5 @@
-import * as ConnectionLibrary from "./electron/library/connection";
-import { EvalResult } from "./electron/helpers/mongo-eval";
+import { EvalResult } from "./electron/core/evaluator";
+import { Connection, Database } from "./electron/core/driver";
 import { MongoClientOptions } from "@mongosh/service-provider-server";
 
 declare global {
@@ -29,50 +29,32 @@ declare global {
 
 		type AnyObject = Record<string, unknown> | Record<string, unknown>[];
 
-		interface RunCommand {
-			(
-				library: "connection",
-				action: "create",
-				args: { id: string }
-			): Promise<void>;
-			(
-				library: "connection",
-				action: "disconnect",
-				args: { id: string }
-			): Promise<void>;
-			(
-				library: "connection",
-				action: "getConnectionDetails",
-				args: { id: string }
-			): Promise<Ark.StoredConnection>;
-			(
-				library: "connection",
-				action: "saveConnectionFromUri",
-				args: { type: "uri"; uri: string; name: string }
-			): Promise<string>;
-			(
-				library: "connection",
-				action: "saveConnectionFromConfig",
-				args: { type: "config"; config: Ark.StoredConnection }
-			): Promise<string>;
-			(
-				library: "connection",
-				action: "delete",
-				args: { id: string }
-			): Promise<void>;
-			// <R = Record<string, unknown>>(library: "connection", action: keyof typeof ConnectionLibrary, args: any): Promise<R>;
-		}
-
 		interface Driver {
-			run: RunCommand;
+			run<T extends keyof Database>(
+				library: "database",
+				action: T,
+				arg: Parameters<Database[T]>[0]
+			): ReturnType<Database[T]>;
+			run<T extends keyof Connection>(
+				library: "connection",
+				action: T,
+				arg: Parameters<Connection[T]>[0]
+			): ReturnType<Connection[T]>;
 		}
 
+		interface ShellProps {
+			uri: string;
+			members: string[];
+			database: string;
+			username: string;
+			collection?: string;
+		}
 		interface Shell {
-			create: (uri: string) => Promise<{ id: string }>;
+			create: (ShellProps: ShellProps, contextDB: string) => Promise<{ id: string }>;
 			eval: (
 				shellId: string,
 				code: string
-			) => Promise<{ result: EvalResult; err: any }>;
+			) => Promise<EvalResult>;
 		}
 		interface Context {
 			driver: Driver;

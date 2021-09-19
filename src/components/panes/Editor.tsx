@@ -70,12 +70,10 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 	);
 };
 
-export interface EditorProps {
-	shellConfig: ShellProps["shellConfig"];
-}
+export type EditorProps = Pick<ShellProps, "shellConfig" | "contextDB">;
 
 export const Editor: FC<EditorProps> = (props) => {
-	const { shellConfig } = props;
+	const { shellConfig, contextDB } = props;
 
 	const [currentResult, setCurrentResult] = useState<ResultViewerProps>();
 
@@ -89,8 +87,10 @@ export const Editor: FC<EditorProps> = (props) => {
 			>
 				<Shell
 					shellConfig={shellConfig}
+					contextDB={contextDB}
 					collections={["test_collection_1"]}
 					onExecutionResult={(result) => {
+						console.log("Execution result", result);
 						setCurrentResult({
 							type: "json",
 							json: result.data,

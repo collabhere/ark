@@ -58,20 +58,21 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 
 	const saveMongoURI = useCallback(() => {
 		window.ark.driver
-			.run("connection", "saveConnectionFromUri", {
+			.run("connection", "save", {
 				type: "uri",
-				uri: mongoURI,
-				name: "Test Connection " + new Date().valueOf(),
+				config: {
+					uri: mongoURI,
+					name: "Test Connection " + new Date().valueOf(),
+				},
 			})
 			.then((connectionId) => {
 				dispatch("connection_manager:add_connection", { connectionId });
-				console.log("Saved connection id: ", connectionId);
 			});
 	}, [mongoURI]);
 
 	const saveAdvancedConnection = useCallback(() => {
 		window.ark.driver
-			.run("connection", "saveConnectionFromConfig", {
+			.run("connection", "save", {
 				type: "config",
 				config: {
 					...connectionData,
@@ -85,7 +86,6 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 			})
 			.then((connectionId) => {
 				dispatch("connection_manager:add_connection", { connectionId });
-				console.log("Saved connection id: ", connectionId);
 			});
 	}, [connectionData, host, port]);
 
@@ -93,20 +93,14 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 		key: keyof T,
 		value: T[keyof T]
 	) {
+		if (key && typeof value === "string") {
+			setConnectionData((conn) => ({ ...conn, [key]: value }));
+		}
 		if (key && value) {
 			setConnectionData((conn) => ({ ...conn, [key]: value }));
 		}
 	},
 	[]);
-
-	const uploadProps = {
-		onChange(info) {
-			console.log(info);
-			if (info.file.status !== "uploading") {
-				console.log(info.file, info.fileList);
-			}
-		},
-	};
 
 	const menu = (
 		<Menu onClick={(e) => editConnection("type", e.key)}>

@@ -23,20 +23,18 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 	const [connections, setConnections] = useState<ManagedConnection[]>([]);
 
 	const connect = useCallback((id: string) => {
-		window.ark.driver.run("connection", "create", { id }).then(() =>
-			window.ark.driver
-				.run("connection", "getConnectionDetails", { id })
-				.then((connection) => {
-					const managed: ManagedConnection = { ...connection, active: true };
-					setConnections((connections) => [
-						...connections.filter((conn) => conn.id !== managed.id),
-						managed,
-					]);
-					dispatch("sidebar:add_item", {
-						id: connection.id,
-						name: connection.name,
-					});
-				})
+		window.ark.driver.run("connection", "connect", { id }).then(() =>
+			window.ark.driver.run("connection", "load", { id }).then((connection) => {
+				const managed: ManagedConnection = { ...connection, active: true };
+				setConnections((connections) => [
+					...connections.filter((conn) => conn.id !== managed.id),
+					managed,
+				]);
+				dispatch("sidebar:add_item", {
+					id: connection.id,
+					name: connection.name,
+				});
+			})
 		);
 	}, []);
 
@@ -59,12 +57,15 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 					disconnect(id);
 				}
 
-				window.ark.connection.deleteConnection(connection.id).then(() => {});
-				setConnections((connections) => {
-					const connectionIdx = connections.findIndex((c) => c.id === id);
-					connections.splice(connectionIdx, 1);
-					return [...connections];
-				});
+				window.ark.driver
+					.run("connection", "delete", { id: connection.id })
+					.then(() => {
+						setConnections((connections) => {
+							const connectionIdx = connections.findIndex((c) => c.id === id);
+							connections.splice(connectionIdx, 1);
+							return [...connections];
+						});
+					});
 			}
 		},
 		[connections, disconnect]
@@ -82,6 +83,16 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 
 	const openCreateConnection = useCallback(() => {
 		dispatch("browser:create_tab:connection_form");
+	}, []);
+
+	/** On-load effect */
+	useEffect(() => {
+		window.ark.driver
+			.run("connection", "list", undefined)
+			.then((connections) => {
+				setConnections(Object.values(connections));
+			});
+		return () => setConnections([]);
 	}, []);
 
 	useEffect(
@@ -103,7 +114,7 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 					event: "connection_manager:add_connection",
 					cb: (e, payload) => {
 						window.ark.driver
-							.run("connection", "getConnectionDetails", {
+							.run("connection", "load", {
 								id: payload.connectionId,
 							})
 							.then((connection) => {
@@ -117,14 +128,6 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 			]),
 		[]
 	);
-
-	useEffect(() => {
-		window.ark.connection.getAllConnections().then((connectionDetails) => {
-			setConnections(Object.values(connectionDetails));
-		});
-
-		return () => setConnections([]);
-	}, []);
 
 	const CardTitle = (title: string, id: string, active?: boolean) => (
 		<div className="CardTitle">

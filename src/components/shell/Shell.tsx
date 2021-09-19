@@ -7,18 +7,16 @@ import {
 	VscAccount,
 	VscListTree,
 } from "react-icons/vsc";
+import { deserialize } from "bson";
 import { Menu, Dropdown } from "antd";
 import { DownOutlined } from "@ant-design/icons";
 import { default as Monaco } from "@monaco-editor/react";
-import type { Monaco as MonacoType } from "@monaco-editor/react";
 import { KeyMod, KeyCode, editor } from "monaco-editor";
 import { mountMonaco } from "./monaco";
 import { dispatch } from "../../util/events";
 
-import SHELL_CONFIG_STUB from "../../json-stubs/shell-config.json";
-
-const DEFAULT_CODE = `// Mongo shell
-db.getCollection('test').find({});
+const createDefaultCodeSnippet = (collection: string) => `// Mongo shell
+db.getCollection('${collection}').find({});
 `;
 interface ExecutionResult {
 	data: Ark.AnyObject;
@@ -61,13 +59,8 @@ const HostList = (props: HostListProps) => {
 
 export interface ShellProps {
 	collections: string[];
-	shellConfig: {
-		uri: string;
-		hosts: string[];
-		db: string;
-		user: string;
-		collection?: string;
-	};
+	shellConfig: Ark.ShellProps;
+	contextDB: string;
 	onExecutionResult?: (result: ExecutionResult) => void;
 	onShellMessage?: (message: string) => void;
 }
@@ -75,23 +68,24 @@ export const Shell: FC<ShellProps> = (props) => {
 	const {
 		collections,
 		onExecutionResult,
-		shellConfig: config,
+		shellConfig,
+		contextDB,
 		onShellMessage,
 	} = props;
 
-	const { db, collection, user, hosts, uri } = config || {};
+	const { collection, username: user, members } = shellConfig || {};
 
-	const [code, setCode] = useState(DEFAULT_CODE);
+	const [code, setCode] = useState(() =>
+		collection
+			? createDefaultCodeSnippet(collection)
+			: createDefaultCodeSnippet("test")
+	);
 	const [monacoEditor, setMonacoEditor] =
 		useState<editor.IStandaloneCodeEditor>();
 	const [shellId, setShellId] = useState<string>();
 
-	console.log(`render:`);
-	console.log(`shellId=${shellId}`);
-
 	const exec = useCallback(() => {
 		const _code = code.replace(/(\/\/.*)|(\n)/g, "");
-
 		shellId &&
 			window.ark.shell
 				.eval(shellId, _code)
@@ -100,8 +94,12 @@ export const Shell: FC<ShellProps> = (props) => {
 						onShellMessage && onShellMessage(err.message);
 						return console.error("exec shell error", err);
 					}
-					console.log("exec shell result: ", result);
-					onExecutionResult && onExecutionResult({ data: result.result });
+					onExecutionResult &&
+						onExecutionResult({
+							data: Object.values(
+								deserialize(result ? result : Buffer.from([]))
+							),
+						});
 				})
 				.catch(function (err) {
 					console.error("exec shell error: ", err);
@@ -110,9 +108,10 @@ export const Shell: FC<ShellProps> = (props) => {
 
 	const cloneCurrentTab = useCallback(() => {
 		dispatch("browser:create_tab:editor", {
-			shellConfig: config,
+			shellConfig: shellConfig,
+			contextDB,
 		});
-	}, [config]);
+	}, [shellConfig, contextDB]);
 
 	useEffect(() => {
 		if (monacoEditor) {
@@ -125,10 +124,11 @@ export const Shell: FC<ShellProps> = (props) => {
 	}, [cloneCurrentTab, exec, monacoEditor]);
 
 	useEffect(() => {
-		window.ark.shell.create(uri).then(function ({ id }) {
-			setShellId(id);
-		});
-	}, [uri]);
+		contextDB &&
+			window.ark.shell.create(shellConfig, contextDB).then(function ({ id }) {
+				setShellId(id);
+			});
+	}, [shellConfig, contextDB]);
 
 	return (
 		<div className={"Shell"}>
@@ -137,11 +137,11 @@ export const Shell: FC<ShellProps> = (props) => {
 					<span>
 						<VscGlobe />
 					</span>
-					{hosts.length === 1 ? (
-						<span>{hosts[0]}</span>
+					{members.length === 1 ? (
+						<span>{members[0]}</span>
 					) : (
 						<HostList
-							hosts={hosts}
+							hosts={members}
 							onHostChange={(host) => {
 								console.log("Host change to:", host);
 							}}
@@ -152,7 +152,7 @@ export const Shell: FC<ShellProps> = (props) => {
 					<span>
 						<VscDatabase />
 					</span>
-					<span>{db}</span>
+					<span>{contextDB}</span>
 				</div>
 				<div className={"ShellHeaderItem"}>
 					<span>
@@ -190,7 +190,7 @@ export const Shell: FC<ShellProps> = (props) => {
 						},
 					});
 				}}
-				onMount={(editor: editor.IStandaloneCodeEditor, monaco: MonacoType) => {
+				onMount={(editor: editor.IStandaloneCodeEditor) => {
 					setMonacoEditor(editor);
 				}}
 				onChange={(value, ev) => {

@@ -8,8 +8,6 @@ import { listenEffect } from "../../util/events";
 import { Editor, EditorProps } from "../panes/Editor";
 import { ConnectionForm, ConnectionFormProps } from "../panes/ConnectionForm";
 
-import SHELL_CONFIG_STUB from "../../json-stubs/shell-config.json";
-
 const { TabPane } = Tabs;
 
 interface BaseTab {
@@ -29,6 +27,7 @@ interface ConnectionFormTab extends BaseTab {
 
 interface CreateEditorTabArgs {
 	shellConfig: ShellProps["shellConfig"];
+	contextDB: string;
 }
 
 interface DeleteEditorTabArgs {
@@ -89,7 +88,7 @@ export const Browser = (): JSX.Element => {
 	);
 
 	const createEditorTab = useCallback((args: CreateEditorTabArgs) => {
-		const { shellConfig } = args;
+		const { shellConfig, contextDB } = args;
 		setTabs((tabs) => {
 			const id = "e-" + nanoid();
 			const title = "Query - " + id;
@@ -102,6 +101,7 @@ export const Browser = (): JSX.Element => {
 					id: "" + id,
 					closable: true,
 					shellConfig,
+					contextDB,
 				},
 			];
 		});
@@ -142,24 +142,24 @@ export const Browser = (): JSX.Element => {
 
 	return (
 		<div className="Browser">
-			<Tabs
-				hideAdd
-				type="editable-card"
-				activeKey={activeKey}
-				className={"BrowserTabs"}
-				defaultActiveKey="1"
-				onEdit={(e, action) => {
-					if (typeof e === "string")
-						switch (action) {
-							case "remove": {
-								return deleteTab({ id: e });
+			{tabs && tabs.length ? (
+				<Tabs
+					hideAdd
+					type="editable-card"
+					activeKey={activeKey}
+					className={"BrowserTabs"}
+					defaultActiveKey="1"
+					onEdit={(e, action) => {
+						if (typeof e === "string")
+							switch (action) {
+								case "remove": {
+									return deleteTab({ id: e });
+								}
 							}
-						}
-				}}
-				onChange={(activeKey) => setActiveKey(activeKey)}
-			>
-				{tabs && tabs.length ? (
-					tabs.map((tab) => {
+					}}
+					onChange={(activeKey) => setActiveKey(activeKey)}
+				>
+					{tabs.map((tab) => {
 						const Component = React.createElement(
 							TAB_PANES[tab.type] as any,
 							tab
@@ -175,11 +175,11 @@ export const Browser = (): JSX.Element => {
 								{Component}
 							</TabPane>
 						);
-					})
-				) : (
-					<EmptyState />
-				)}
-			</Tabs>
+					})}
+				</Tabs>
+			) : (
+				<EmptyState />
+			)}
 		</div>
 	);
 };

@@ -15,11 +15,12 @@ import { EventEmitter } from 'stream';
 import { _evaluate } from "./_eval";
 
 export interface EvalResult {
-    result: Ark.AnyObject;
+    result?: Buffer;
+    err?: Error;
 }
 
 export interface Evaluator {
-    evaluate(code: string): Promise<{ result: Ark.AnyObject }>;
+    evaluate(code: string, database: string): Promise<{ result: Ark.AnyObject; }>;
     disconnect(): Promise<void>;
 }
 
@@ -30,14 +31,13 @@ interface CreateEvaluatorOptions {
 
 export async function createEvaluator(options: CreateEvaluatorOptions): Promise<Evaluator> {
     const {
-        database,
         uri
     } = options;
 
     const provider = await createServiceProvider(uri);
 
-    const evaluator = {
-        evaluate: (code: string) => {
+    const evaluator: Evaluator = {
+        evaluate: (code, database) => {
             return evaluate(code, provider, { database });
         },
         disconnect: async () => {
@@ -67,7 +67,7 @@ async function evaluate(
     options: MongoEvalOptions
 ) {
     const {
-        database: initialDatabase,
+        database,
         page
     } = options;
 
@@ -75,7 +75,7 @@ async function evaluate(
 
     const mongo = new Mongo(internalState, undefined, undefined, undefined, serviceProvider);
 
-    const db = new Database(mongo, initialDatabase);
+    const db = new Database(mongo, database);
 
     const rs = new ReplicaSet(db);
 

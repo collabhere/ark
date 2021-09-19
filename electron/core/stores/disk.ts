@@ -1,18 +1,8 @@
 import electronStorage from "electron-json-storage";
-import os from "os";
-import { ARK_FOLDER_NAME } from "../constants";
+import { ARK_FOLDER_PATH } from "../../utils/constants";
+import { promisifyCallback } from "../../utils/misc";
 
-const promisifyCallback =
-	(thisArg: any, func: any, ...args: any) =>
-		new Promise((resolve, reject) => {
-			func.call(thisArg, ...args, (err: any, data: any) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve(data);
-				}
-			});
-		});
+electronStorage.setDataPath(ARK_FOLDER_PATH);
 
 interface DiskStoreMethods {
 	/**
@@ -30,11 +20,7 @@ interface DiskStore {
 	(dirName?: string): DiskStoreMethods;
 }
 
-export const diskStore: DiskStore = (dirName: string = ARK_FOLDER_NAME) => {
-	const defaultPath = os.homedir();
-
-	electronStorage.setDataPath(`${defaultPath}/${dirName}`);
-
+export const diskStore: DiskStore = () => {
 	/**
 	 * Usage example:
 	 *  set('connections', 'testConnection', { value: 'test'});
@@ -45,7 +31,6 @@ export const diskStore: DiskStore = (dirName: string = ARK_FOLDER_NAME) => {
 			dataPath: `${electronStorage.getDataPath()}/${module}`,
 		}) as Promise<void>;
 	};
-
 
 	const get = (module: string, key: string): Promise<any> => {
 		return promisifyCallback(electronStorage, electronStorage.get, key, {
@@ -78,3 +63,5 @@ export const diskStore: DiskStore = (dirName: string = ARK_FOLDER_NAME) => {
 
 	return { get, set, remove, has, getAll };
 };
+
+export default diskStore();
