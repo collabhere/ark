@@ -1,8 +1,17 @@
 import React, { FC, useState } from "react";
 import "./panes.less";
-import { Shell, ShellProps } from "../shell/Shell";
+import { MONACO_COMMANDS, Shell, ShellProps } from "../shell/Shell";
 import { Resizable } from "re-resizable";
 import AnsiToHtml from "ansi-to-html";
+import { Menu, Dropdown } from "antd";
+import { DownOutlined } from "@ant-design/icons";
+import {
+	VscGlobe,
+	VscDatabase,
+	VscAccount,
+	VscListTree,
+} from "react-icons/vsc";
+import { dispatch } from "../../util/events";
 const ansiToHtmlConverter = new AnsiToHtml();
 
 export interface TreeViewerProps {
@@ -70,10 +79,15 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 	);
 };
 
-export type EditorProps = Pick<ShellProps, "shellConfig" | "contextDB">;
+export interface EditorProps {
+	shellConfig: Ark.ShellProps;
+	contextDB: string;
+}
 
 export const Editor: FC<EditorProps> = (props) => {
 	const { shellConfig, contextDB } = props;
+
+	const { collection, username: user, members } = shellConfig || {};
 
 	const [currentResult, setCurrentResult] = useState<ResultViewerProps>();
 
@@ -85,10 +99,48 @@ export const Editor: FC<EditorProps> = (props) => {
 				defaultSize={{ height: "20%", width: "100%" }}
 				enable={{ bottom: true }}
 			>
+				<div className={"EditorHeader"}>
+					<div className={"EditorHeaderItem"}>
+						<span>
+							<VscGlobe />
+						</span>
+						{members.length === 1 ? (
+							<span>{members[0]}</span>
+						) : (
+							<HostList
+								hosts={members}
+								onHostChange={(host) => {
+									console.log("Host change to:", host);
+								}}
+							/>
+						)}
+					</div>
+					<div className={"EditorHeaderItem"}>
+						<span>
+							<VscDatabase />
+						</span>
+						<span>{contextDB}</span>
+					</div>
+					<div className={"EditorHeaderItem"}>
+						<span>
+							<VscAccount />
+						</span>
+						<span>{user}</span>
+					</div>
+					<div className={"EditorHeaderItem"}>
+						<span>
+							<VscListTree />
+						</span>
+						<span>{collection}</span>
+					</div>
+				</div>
 				<Shell
-					shellConfig={shellConfig}
+					config={{
+						collection,
+						uri: shellConfig.uri,
+					}}
 					contextDB={contextDB}
-					collections={["test_collection_1"]}
+					allCollections={["test_collection_1"]}
 					onExecutionResult={(result) => {
 						console.log("Execution result", result);
 						setCurrentResult({
@@ -104,9 +156,56 @@ export const Editor: FC<EditorProps> = (props) => {
 						const html = code ? ansiToHtmlConverter.toHtml(code) : "";
 						// setTextResult(msg + "<br/>" + html);
 					}}
+					onMonacoCommand={(command) => {
+						switch (command) {
+							case MONACO_COMMANDS.CLONE_SHELL: {
+								dispatch("browser:create_tab:editor", {
+									shellConfig,
+									contextDB,
+								});
+								return;
+							}
+						}
+					}}
 				/>
 			</Resizable>
 			{currentResult && <ResultViewer {...currentResult} />}
 		</div>
+	);
+};
+
+interface CreateMenuItem {
+	item: string;
+	cb: (item: string) => void;
+}
+const createMenu = (items: CreateMenuItem[]) => (
+	<Menu>
+		{items.map((menuItem, i) => (
+			<Menu.Item key={i} onClick={() => menuItem.cb(menuItem.item)}>
+				<a>{menuItem.item}</a>
+			</Menu.Item>
+		))}
+	</Menu>
+);
+
+interface HostListProps {
+	hosts: string[];
+	onHostChange: (host: string) => void;
+}
+const HostList = (props: HostListProps) => {
+	const { hosts, onHostChange } = props;
+
+	return (
+		<Dropdown
+			overlay={createMenu(
+				hosts.map((host) => ({ item: host, cb: onHostChange }))
+			)}
+			trigger={["click"]}
+		>
+			<a style={{ display: "flex" }} onClick={(e) => e.preventDefault()}>
+				{hosts[0]}
+				<DownOutlined />
+			</a>
+		</Dropdown>
 	);
 };

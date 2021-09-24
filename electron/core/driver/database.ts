@@ -1,14 +1,15 @@
 
 import { CollectionInfo } from "mongodb";
-import memory from "../stores/memory";
-
 export interface Database {
-    listCollections(arg: { id: string; database?: string; }): Promise<CollectionInfo[]>;
+    listCollections(dep: Ark.DriverDependency, arg: { id: string; database?: string; }): Promise<CollectionInfo[]>;
 }
 
 export const Database: Database = {
-    listCollections: async ({ id, database }) => {
-        const entry = memory.get(id);
+    listCollections: async (
+        { memoryStore },
+        { id, database }
+    ) => {
+        const entry = memoryStore.get(id);
         if (entry) {
             const client = entry.connection;
             const db = client.db(database);

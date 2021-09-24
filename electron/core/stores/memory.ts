@@ -1,14 +1,16 @@
-import type { ListDatabasesResult, MongoClient } from "mongodb";
-
-interface MemEntry {
-	connection: MongoClient;
-	databases: ListDatabasesResult;
+export interface MemoryStore<T> {
+	save(id: string, entry: Partial<T>): string;
+	get(id: string): T;
+	has(id: string): boolean;
+	drop(id: string): boolean;
 }
 
-export const memoryStore = () => {
-	const store = new Map<string, Partial<MemEntry>>();
+export const createMemoryStore = <T extends Record<string, any>>(): MemoryStore<T> => {
+	const store = new Map<string, Partial<T>>();
 
-	const save = (id: string, entry: Partial<MemEntry>) => {
+	const has = (k: string) => store.has(k);
+
+	const save = (id: string, entry: Partial<T>) => {
 		if (entry) {
 			const old = store.get(id);
 			if (old) store.set(id, { ...old, ...entry });
@@ -19,9 +21,9 @@ export const memoryStore = () => {
 		}
 	};
 
-	const get = (id: string): MemEntry => {
+	const get = (id: string): T => {
 		if (store.has(id)) {
-			return store.get(id) as MemEntry;
+			return store.get(id) as T;
 		} else {
 			throw new Error(`No mem entry found for id: ${id}!`);
 		}
@@ -30,10 +32,10 @@ export const memoryStore = () => {
 	const drop = (id: string) => {
 		if (store.has(id)) {
 			return store.delete(id);
+		} else {
+			return false;
 		}
 	};
 
-	return { save, get, drop };
+	return { save, get, drop, has };
 };
-
-export default memoryStore();

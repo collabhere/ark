@@ -26,7 +26,6 @@ export interface Evaluator {
 
 interface CreateEvaluatorOptions {
     uri: string;
-    database: string;
 }
 
 export async function createEvaluator(options: CreateEvaluatorOptions): Promise<Evaluator> {

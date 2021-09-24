@@ -14,12 +14,12 @@ const invoke = (command: string, args: any) =>
 const arkContext: Ark.Context = {
 	shell: {
 		create: (shellConfig, contextDB) =>
-			invoke("create_shell", { shellConfig, contextDB }),
+			invoke("shell_create", { shellConfig, contextDB }),
 		eval: (shell: string, code: string) =>
-			invoke("invoke_js", { code, shell }),
+			invoke("shell_eval", { code, shell }),
 	},
 	driver: {
-		run: (library: string, action: string, args: any) => invoke('run_command', {
+		run: (library: string, action: string, args: any) => invoke('driver_run', {
 			library,
 			action,
 			args,

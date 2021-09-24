@@ -3,7 +3,6 @@ import "./browser.less";
 import { Tabs } from "antd";
 import { nanoid } from "nanoid";
 import React, { useCallback, useEffect, useState } from "react";
-import { ShellProps } from "../shell/Shell";
 import { listenEffect } from "../../util/events";
 import { Editor, EditorProps } from "../panes/Editor";
 import { ConnectionForm, ConnectionFormProps } from "../panes/ConnectionForm";
@@ -15,18 +14,14 @@ interface BaseTab {
 	id: string;
 	closable: boolean;
 }
-interface EditorTab extends BaseTab {
-	type: "editor";
-	shellConfig: ShellProps["shellConfig"];
-}
 
-interface ConnectionFormTab extends BaseTab {
-	type: "connection_form";
-	connectionParams: ConnectionFormProps["connectionParams"];
-}
+type EditorTab = { type: "editor" } & EditorProps & BaseTab;
+
+type ConnectionFormTab = { type: "connection_form" } & ConnectionFormProps &
+	BaseTab;
 
 interface CreateEditorTabArgs {
-	shellConfig: ShellProps["shellConfig"];
+	shellConfig: Ark.ShellProps;
 	contextDB: string;
 }
 
@@ -67,10 +62,9 @@ export const Browser = (): JSX.Element => {
 			connectionDetails: Ark.StoredConnection;
 			mode?: "edit" | "clone";
 		}) => {
+			const id = "cf-" + nanoid();
 			setTabs((tabs) => {
-				const id = "cf-" + nanoid();
 				const title = "New connection";
-				setActiveKey(() => id);
 				return [
 					...tabs,
 					{
@@ -83,16 +77,15 @@ export const Browser = (): JSX.Element => {
 					},
 				];
 			});
+			setActiveKey(() => id);
 		},
 		[]
 	);
 
 	const createEditorTab = useCallback((args: CreateEditorTabArgs) => {
-		const { shellConfig, contextDB } = args;
+		const id = "e-" + nanoid();
 		setTabs((tabs) => {
-			const id = "e-" + nanoid();
 			const title = "Query - " + id;
-			setActiveKey(() => id);
 			return [
 				...tabs,
 				{
@@ -100,11 +93,11 @@ export const Browser = (): JSX.Element => {
 					title,
 					id: "" + id,
 					closable: true,
-					shellConfig,
-					contextDB,
+					...args,
 				},
 			];
 		});
+		setActiveKey(() => id);
 	}, []);
 
 	const deleteTab = useCallback(

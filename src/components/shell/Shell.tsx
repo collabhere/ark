@@ -1,79 +1,45 @@
 import "./shell.less";
 
 import React, { FC, useCallback, useEffect, useState } from "react";
-import {
-	VscDatabase,
-	VscGlobe,
-	VscAccount,
-	VscListTree,
-} from "react-icons/vsc";
 import { deserialize } from "bson";
-import { Menu, Dropdown } from "antd";
-import { DownOutlined } from "@ant-design/icons";
 import { default as Monaco } from "@monaco-editor/react";
 import { KeyMod, KeyCode, editor } from "monaco-editor";
 import { mountMonaco } from "./monaco";
-import { dispatch } from "../../util/events";
 
 const createDefaultCodeSnippet = (collection: string) => `// Mongo shell
 db.getCollection('${collection}').find({});
 `;
+
+export enum MONACO_COMMANDS {
+	CLONE_SHELL,
+}
+
 interface ExecutionResult {
 	data: Ark.AnyObject;
 }
-interface CreateMenuItem {
-	item: string;
-	cb: (item: string) => void;
-}
-const createMenu = (items: CreateMenuItem[]) => (
-	<Menu>
-		{items.map((menuItem, i) => (
-			<Menu.Item key={i} onClick={() => menuItem.cb(menuItem.item)}>
-				<a>{menuItem.item}</a>
-			</Menu.Item>
-		))}
-	</Menu>
-);
-
-interface HostListProps {
-	hosts: string[];
-	onHostChange: (host: string) => void;
-}
-const HostList = (props: HostListProps) => {
-	const { hosts, onHostChange } = props;
-
-	return (
-		<Dropdown
-			overlay={createMenu(
-				hosts.map((host) => ({ item: host, cb: onHostChange }))
-			)}
-			trigger={["click"]}
-		>
-			<a style={{ display: "flex" }} onClick={(e) => e.preventDefault()}>
-				{hosts[0]}
-				<DownOutlined />
-			</a>
-		</Dropdown>
-	);
-};
 
 export interface ShellProps {
-	collections: string[];
-	shellConfig: Ark.ShellProps;
+	allCollections: string[];
+	config: {
+		uri: string;
+		collection: string;
+	};
 	contextDB: string;
 	onExecutionResult?: (result: ExecutionResult) => void;
 	onShellMessage?: (message: string) => void;
+	onMonacoCommand?: (command: MONACO_COMMANDS) => void;
 }
 export const Shell: FC<ShellProps> = (props) => {
 	const {
-		collections,
+		allCollections,
 		onExecutionResult,
-		shellConfig,
+		config,
 		contextDB,
 		onShellMessage,
+		onMonacoCommand,
 	} = props;
 
-	const { collection, username: user, members } = shellConfig || {};
+	const { collection, uri } = config;
 
 	const [code, setCode] = useState(() =>
 		collection
@@ -107,11 +73,8 @@ export const Shell: FC<ShellProps> = (props) => {
 	}, [code, onExecutionResult, onShellMessage, shellId]);
 
 	const cloneCurrentTab = useCallback(() => {
-		dispatch("browser:create_tab:editor", {
-			shellConfig: shellConfig,
-			contextDB,
-		});
-	}, [shellConfig, contextDB]);
+		onMonacoCommand && onMonacoCommand(MONACO_COMMANDS.CLONE_SHELL);
+	}, [onMonacoCommand]);
 
 	useEffect(() => {
 		if (monacoEditor) {
@@ -124,49 +87,16 @@ export const Shell: FC<ShellProps> = (props) => {
 	}, [cloneCurrentTab, exec, monacoEditor]);
 
 	useEffect(() => {
+		console.log("Context ", contextDB);
+		console.log("URI", uri);
 		contextDB &&
-			window.ark.shell.create(shellConfig, contextDB).then(function ({ id }) {
+			window.ark.shell.create(uri, contextDB).then(function ({ id }) {
 				setShellId(id);
 			});
-	}, [shellConfig, contextDB]);
+	}, [contextDB, uri]);
 
 	return (
 		<div className={"Shell"}>
-			<div className={"ShellHeader"}>
-				<div className={"ShellHeaderItem"}>
-					<span>
-						<VscGlobe />
-					</span>
-					{members.length === 1 ? (
-						<span>{members[0]}</span>
-					) : (
-						<HostList
-							hosts={members}
-							onHostChange={(host) => {
-								console.log("Host change to:", host);
-							}}
-						/>
-					)}
-				</div>
-				<div className={"ShellHeaderItem"}>
-					<span>
-						<VscDatabase />
-					</span>
-					<span>{contextDB}</span>
-				</div>
-				<div className={"ShellHeaderItem"}>
-					<span>
-						<VscAccount />
-					</span>
-					<span>{user}</span>
-				</div>
-				<div className={"ShellHeaderItem"}>
-					<span>
-						<VscListTree />
-					</span>
-					<span>{collection}</span>
-				</div>
-			</div>
 			<Monaco
 				options={{
 					minimap: {
@@ -175,7 +105,7 @@ export const Shell: FC<ShellProps> = (props) => {
 				}}
 				theme={"ark"}
 				beforeMount={(monaco) => {
-					mountMonaco(monaco, { collections });
+					mountMonaco(monaco, { collections: allCollections });
 					monaco.editor.defineTheme("ark", {
 						base: "vs-dark",
 						inherit: true,

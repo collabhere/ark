@@ -4,7 +4,7 @@ import { promisifyCallback } from "../../utils/misc";
 
 electronStorage.setDataPath(ARK_FOLDER_PATH);
 
-interface DiskStoreMethods {
+export interface DiskStore {
 	/**
 	 * @example
 	 *  get('connections', 'testConnection');
@@ -16,11 +16,8 @@ interface DiskStoreMethods {
 	remove(module: string, key: string): Promise<void>;
 	has(module: string, key: string): Promise<boolean>;
 }
-interface DiskStore {
-	(dirName?: string): DiskStoreMethods;
-}
 
-export const diskStore: DiskStore = () => {
+export const createDiskStore = (): DiskStore => {
 	/**
 	 * Usage example:
 	 *  set('connections', 'testConnection', { value: 'test'});
@@ -63,5 +60,3 @@ export const diskStore: DiskStore = () => {
 
 	return { get, set, remove, has, getAll };
 };
-
-export default diskStore();

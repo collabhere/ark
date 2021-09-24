@@ -3,9 +3,6 @@ import { resolveSrv, SrvRecord } from "dns";
 import { nanoid } from "nanoid";
 import { URL } from "url";
 
-import disk from "../stores/disk";
-import memory from "../stores/memory";
-
 import { ARK_FOLDER_PATH } from "../../utils/constants";
 
 interface URIConfiguration {
@@ -17,69 +14,69 @@ export interface Connection {
 	/**
 	 * Load all stored connections from disk.
 	 */
-	list(): Promise<Ark.StoredConnection[]>;
+	list(dep: Ark.DriverDependency): Promise<Ark.StoredConnection[]>;
 	/**
 	 * Load a single stored connection from disk.
 	 */
-	load(arg: { id: string; }): Promise<Ark.StoredConnection>;
+	load(dep: Ark.DriverDependency, arg: { id: string; }): Promise<Ark.StoredConnection>;
 	/**
 	 * Save a connection using just a uri
 	 */
-	save(arg: { type: "uri"; config: URIConfiguration; }): Promise<string>;
+	save(dep: Ark.DriverDependency, arg: { type: "uri"; config: URIConfiguration; }): Promise<string>;
 	/**
 	 * Save a connection using granular configurations
 	 */
-	save(arg: { type: "config"; config: Ark.StoredConnection; }): Promise<string>;
+	save(dep: Ark.DriverDependency, arg: { type: "config"; config: Ark.StoredConnection; }): Promise<string>;
 	/**
 	 * Delete a stored conneection from disk.
 	 */
-	delete(arg: { id: string; }): Promise<void>;
+	delete(dep: Ark.DriverDependency, arg: { id: string; }): Promise<void>;
 	/**
 	 * Connect and create cache entry for a stored connection.
 	 */
-	connect(arg: { id: string; }): Promise<void>;
+	connect(dep: Ark.DriverDependency, arg: { id: string; }): Promise<void>;
 	/**
 	 * Disconnect a cached connection.
 	 */
-	disconnect(arg: { id: string; }): Promise<void>;
+	disconnect(dep: Ark.DriverDependency, arg: { id: string; }): Promise<void>;
 	/**
 	 * List databases for a cached connection
 	 */
-	listDatabases(arg: { id: string }): Promise<ListDatabasesResult>;
+	listDatabases(dep: Ark.DriverDependency, arg: { id: string }): Promise<ListDatabasesResult>;
 }
 
 export const Connection: Connection = {
-	list: async () => {
-		const connections = await disk.getAll("connections");
+	list: async ({ diskStore }) => {
+		const connections = await diskStore.getAll("connections");
 		return connections as Ark.StoredConnection[];
 	},
-	load: async ({ id }) => {
-		const config = await disk.get("connections", id);
+	load: async ({ diskStore }, { id }) => {
+		const config = await diskStore.get("connections", id);
 		const uri = getConnectionUri(config);
 		return { ...config, uri };
 	},
-	connect: async ({ id }) => {
-		if (await disk.has("connections", id)) {
-			const config = await disk.get("connections", id);
+	connect: async ({ diskStore, memoryStore }, { id }) => {
+		if (await diskStore.has("connections", id)) {
+			const config = await diskStore.get("connections", id);
 			const connectionUri = getConnectionUri(config);
 			const client = new MongoClient(connectionUri, config.options);
 			const connection = await client.connect();
 			const databases = await connection.db().admin().listDatabases();
-			memory.save(id, { connection, databases });
+			memoryStore.save(id, { connection, databases });
 		} else {
 			throw new Error("Connection not found!");
 		}
 	},
-	disconnect: async ({ id }) => {
-		const client = memory.get(id).connection;
+	disconnect: async ({ memoryStore }, { id }) => {
+		const client = memoryStore.get(id).connection;
 		if (client) {
 			await client.close();
-			memory.drop(id);
+			memoryStore.drop(id);
 		} else {
 			throw new Error("Connection not found!");
 		}
 	},
-	save: async ({ type, config }) => {
+	save: async ({ diskStore }, { type, config }) => {
 		const options: MongoClientOptions = {};
 		let members: Array<string>;
 
@@ -108,7 +105,7 @@ export const Connection: Connection = {
 					return acc;
 				}, {});
 
-			await disk.set("connections", id, {
+			await diskStore.set("connections", id, {
 				id,
 				protocol: parsedUri.protocol,
 				name: config.name,
@@ -129,14 +126,14 @@ export const Connection: Connection = {
 					...formattedOptions
 				} = options;
 
-				await disk.set("connections", id, {
+				await diskStore.set("connections", id, {
 					...config,
 					options: { ...formattedOptions },
 					id,
 				});
 			} else if (config.options.tls && !config.options.tlsCertificateFile) {
 				config.options.tlsCertificateFile = `${ARK_FOLDER_PATH}/certs/ark.crt`;
-				await disk.set("connections", id, {
+				await diskStore.set("connections", id, {
 					...config,
 					id,
 				});
@@ -145,11 +142,11 @@ export const Connection: Connection = {
 			return id;
 		}
 	},
-	delete: async ({ id }) => {
-		await disk.remove("connections", id);
+	delete: async ({ diskStore }, { id }) => {
+		await diskStore.remove("connections", id);
 	},
-	listDatabases: async ({ id }) => {
-		const entry = memory.get(id);
+	listDatabases: async ({ memoryStore }, { id }) => {
+		const entry = memoryStore.get(id);
 		if (entry) {
 			const client = entry.connection;
 			const db = client.db().admin();

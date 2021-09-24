@@ -1,9 +1,17 @@
-import { EvalResult } from "./electron/core/evaluator";
-import { Connection, Database } from "./electron/core/driver";
-import { MongoClientOptions } from "@mongosh/service-provider-server";
+import type { EvalResult } from "./electron/core/evaluator";
+import type { Connection, Database } from "./electron/core/driver";
+import type { MongoClientOptions } from "@mongosh/service-provider-server";
+import type { MemoryStore } from "./electron/core/stores/memory";
+import type { MemEntry } from "./electron/modules/ipc";
+import type { DiskStore } from "./electron/core/stores/disk";
 
 declare global {
 	namespace Ark {
+
+		interface DriverDependency {
+			memoryStore: MemoryStore<MemEntry>;
+			diskStore: DiskStore;
+		}
 		interface StoredConnection {
 			id: string;
 			name: string;
@@ -30,16 +38,16 @@ declare global {
 		type AnyObject = Record<string, unknown> | Record<string, unknown>[];
 
 		interface Driver {
-			run<T extends keyof Database>(
+			run<D extends keyof Database>(
 				library: "database",
-				action: T,
-				arg: Parameters<Database[T]>[0]
-			): ReturnType<Database[T]>;
-			run<T extends keyof Connection>(
+				action: D,
+				arg: Parameters<Database[D]>[1]
+			): ReturnType<Database[D]>;
+			run<C extends keyof Connection>(
 				library: "connection",
-				action: T,
-				arg: Parameters<Connection[T]>[0]
-			): ReturnType<Connection[T]>;
+				action: C,
+				arg: Parameters<Connection[C]>[1]
+			): ReturnType<Connection[C]>;
 		}
 
 		interface ShellProps {
@@ -47,10 +55,10 @@ declare global {
 			members: string[];
 			database: string;
 			username: string;
-			collection?: string;
+			collection: string;
 		}
 		interface Shell {
-			create: (ShellProps: ShellProps, contextDB: string) => Promise<{ id: string }>;
+			create: (uri: string, contextDB: string) => Promise<{ id: string }>;
 			eval: (
 				shellId: string,
 				code: string

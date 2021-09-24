@@ -3,25 +3,15 @@ import { nanoid } from "nanoid";
 import * as bson from "bson";
 
 import { createEvaluator, Evaluator } from "../core/evaluator";
-import { createDriver, Driver } from "../core/driver";
-
-function command(type: keyof Driver, func: string, args: any) {
-	const driver = createDriver();
-	const library: any = driver[type];
-	if (!library) {
-		throw new Error("Library (" + type + ") not found.");
-	}
-	let method = library[func];
-	if (!method) {
-		throw new Error("Method (" + func + ") not found.");
-	}
-	return method(args);
-}
+import { createDriver, DriverModules } from "../core/driver";
+import { createMemoryStore } from "../core/stores/memory";
+import { createDiskStore } from "../core/stores/disk";
+import { MongoClient, ListDatabasesResult } from "mongodb";
 
 interface RunCommandInput {
-	library: keyof Driver;
+	library: keyof DriverModules;
 	action: string;
-	args: Record<string, any>;
+	args: Record<string, any> & { id: string; };
 }
 
 interface InvokeJS {
@@ -30,8 +20,13 @@ interface InvokeJS {
 }
 
 interface CreateShell {
-	shellConfig: Ark.ShellProps;
+	uri: string;
 	contextDB: string;
+}
+
+export interface MemEntry {
+	connection: MongoClient;
+	databases: ListDatabasesResult;
 }
 interface StoredShellValue {
 	id: string;
@@ -40,14 +35,19 @@ interface StoredShellValue {
 }
 
 function IPC() {
-	const shells = new Map<string, StoredShellValue>();
+	const shells = createMemoryStore<StoredShellValue>();
+
+	const driver = createDriver({
+		memoryStore: createMemoryStore<MemEntry>(),
+		diskStore: createDiskStore()
+	});
 
 	return {
 		init: () => {
-			ipcMain.handle("run_command", async (event, data: RunCommandInput) => {
+			ipcMain.handle("driver_run", async (event, data: RunCommandInput) => {
 				try {
 					console.log(`calling ${data.library}.${data.action}()`);
-					const result = await command(data.library, data.action, data.args);
+					const result = await driver.run(data.library, data.action, data.args)
 					return result;
 				} catch (err) {
 					console.error("`run_command` error");
@@ -56,19 +56,18 @@ function IPC() {
 				}
 			});
 
-			ipcMain.handle("create_shell", async (event, data: CreateShell) => {
+			ipcMain.handle("shell_create", async (event, data: CreateShell) => {
 				try {
-					const { shellConfig, contextDB } = data;
+					const { uri, contextDB } = data;
 					const shellExecutor = await createEvaluator({
-						database: shellConfig.database,
-						uri: shellConfig.uri,
+						uri,
 					});
 					const shell = {
 						id: nanoid(),
 						executor: shellExecutor,
 						database: contextDB
 					};
-					shells.set(shell.id, shell);
+					shells.save(shell.id, shell);
 					return { id: shell.id };
 				} catch (err) {
 					console.error("`create_shell` error");
@@ -77,7 +76,7 @@ function IPC() {
 				}
 			});
 
-			ipcMain.handle("invoke_js", async (event, data: InvokeJS) => {
+			ipcMain.handle("shell_eval", async (event, data: InvokeJS) => {
 				try {
 					const shell = shells.get(data.shell);
 					if (!shell) throw new Error("Invalid shell");
@@ -89,6 +88,7 @@ function IPC() {
 					return { err };
 				}
 			});
+
 		}
 	}
 }

@@ -3,6 +3,7 @@ import path from "path";
 
 import Window from "./modules/window";
 import IPC from "./modules/ipc";
+
 import { enableDevTools } from "./utils/dev";
 
 (async function main() {
