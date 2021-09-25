@@ -20,7 +20,7 @@ export interface EvalResult {
 }
 
 export interface Evaluator {
-    evaluate(code: string, database: string): Promise<{ result: Ark.AnyObject; }>;
+    evaluate(code: string, database: string): Promise<Ark.AnyObject>;
     disconnect(): Promise<void>;
 }
 
@@ -96,5 +96,5 @@ async function evaluate(
         result = await paginateCursor(result, (page || 1)).toArray();
     }
 
-    return { result };
+    return result;
 }

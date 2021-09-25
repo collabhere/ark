@@ -1,80 +1,41 @@
 import "./shell.less";
 
 import React, { FC, useCallback, useEffect, useState } from "react";
-import { deserialize } from "bson";
-import { default as Monaco } from "@monaco-editor/react";
+import Monaco from "@monaco-editor/react";
 import { KeyMod, KeyCode, editor } from "monaco-editor";
 import { mountMonaco } from "./monaco";
 
-const createDefaultCodeSnippet = (collection: string) => `// Mongo shell
-db.getCollection('${collection}').find({});
-`;
-
 export enum MONACO_COMMANDS {
 	CLONE_SHELL,
-}
-
-interface ExecutionResult {
-	data: Ark.AnyObject;
+	EXEC_CODE,
 }
 
 export interface ShellProps {
 	allCollections: string[];
-	config: {
-		uri: string;
-		collection: string;
-	};
-	contextDB: string;
-	onExecutionResult?: (result: ExecutionResult) => void;
-	onShellMessage?: (message: string) => void;
-	onMonacoCommand?: (command: MONACO_COMMANDS) => void;
+	initialCode: string;
+	onMonacoCommand?: (command: MONACO_COMMANDS, params?: any) => void;
 }
 export const Shell: FC<ShellProps> = (props) => {
-	const {
-		allCollections,
-		onExecutionResult,
-		config,
-		contextDB,
-		onShellMessage,
-		onMonacoCommand,
-	} = props;
+	const { allCollections, onMonacoCommand, initialCode } = props;
 
-	const { collection, uri } = config;
+	const [code, setCode] = useState(initialCode);
 
-	const [code, setCode] = useState(() =>
-		collection
-			? createDefaultCodeSnippet(collection)
-			: createDefaultCodeSnippet("test")
-	);
 	const [monacoEditor, setMonacoEditor] =
 		useState<editor.IStandaloneCodeEditor>();
-	const [shellId, setShellId] = useState<string>();
 
 	const exec = useCallback(() => {
 		const _code = code.replace(/(\/\/.*)|(\n)/g, "");
-		shellId &&
-			window.ark.shell
-				.eval(shellId, _code)
-				.then(function ({ result, err }) {
-					if (err) {
-						onShellMessage && onShellMessage(err.message);
-						return console.error("exec shell error", err);
-					}
-					onExecutionResult &&
-						onExecutionResult({
-							data: Object.values(
-								deserialize(result ? result : Buffer.from([]))
-							),
-						});
-				})
-				.catch(function (err) {
-					console.error("exec shell error: ", err);
-				});
-	}, [code, onExecutionResult, onShellMessage, shellId]);
+		onMonacoCommand &&
+			onMonacoCommand(MONACO_COMMANDS.EXEC_CODE, { code: _code });
+	}, [code, onMonacoCommand]);
 
 	const cloneCurrentTab = useCallback(() => {
 		onMonacoCommand && onMonacoCommand(MONACO_COMMANDS.CLONE_SHELL);
 	}, [onMonacoCommand]);
+
+	useEffect(() => {
+		setCode(initialCode);
+	}, [initialCode]);
 
 	useEffect(() => {
 		if (monacoEditor) {
@@ -85,15 +46,6 @@ export const Shell: FC<ShellProps> = (props) => {
 			);
 		}
 	}, [cloneCurrentTab, exec, monacoEditor]);
-
-	useEffect(() => {
-		console.log("Context ", contextDB);
-		console.log("URI", uri);
-		contextDB &&
-			window.ark.shell.create(uri, contextDB).then(function ({ id }) {
-				setShellId(id);
-			});
-	}, [contextDB, uri]);
 
 	return (
 		<div className={"Shell"}>

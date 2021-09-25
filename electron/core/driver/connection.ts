@@ -2,8 +2,10 @@ import { ListDatabasesResult, MongoClient, MongoClientOptions } from "mongodb";
 import { resolveSrv, SrvRecord } from "dns";
 import { nanoid } from "nanoid";
 import { URL } from "url";
+import { stringify } from "querystring";
 
 import { ARK_FOLDER_PATH } from "../../utils/constants";
+import * as ObjectUtils from "../../utils/object";
 
 interface URIConfiguration {
 	uri: string;
@@ -166,14 +168,16 @@ const getConnectionUri = ({
 	password,
 	options,
 }: Ark.StoredConnection) => {
-	const optionsString = Object.entries(options).reduce(
-		(prevOption, option) => `${prevOption}?${option[0]}=${option[1]}`,
-		""
+
+	const querystring = stringify(
+		ObjectUtils.pick(options, ["authSource"])
 	);
 
-	const auth = username && password ? `${username}:${password}@` : "";
-	return `mongodb://${auth}${members.join(",")}/${options.authSource || database
-		}${optionsString}`;
+	const userpass = username && password ? `${username}:${password}@` : "";
+
+	const hoststring = members.join(",");
+
+	return `mongodb://${userpass}${hoststring}/${database}?${querystring}`;
 };
 
 const lookupSRV = (connectionString: string): Promise<SrvRecord[]> => {

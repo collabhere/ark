@@ -3,7 +3,7 @@ import "./browser.less";
 import { Tabs } from "antd";
 import { nanoid } from "nanoid";
 import React, { useCallback, useEffect, useState } from "react";
-import { listenEffect } from "../../util/events";
+import { dispatch, listenEffect } from "../../util/events";
 import { Editor, EditorProps } from "../panes/Editor";
 import { ConnectionForm, ConnectionFormProps } from "../panes/ConnectionForm";
 
@@ -146,7 +146,12 @@ export const Browser = (): JSX.Element => {
 						if (typeof e === "string")
 							switch (action) {
 								case "remove": {
-									return deleteTab({ id: e });
+									if (e.startsWith("e-"))
+										return dispatch("browser:delete_tab:editor", { id: e });
+									else if (e.startsWith("cf-"))
+										return dispatch("browser:delete_tab:connection_form", {
+											id: e,
+										});
 								}
 							}
 					}}

@@ -59,6 +59,7 @@ declare global {
 		}
 		interface Shell {
 			create: (uri: string, contextDB: string) => Promise<{ id: string }>;
+			destroy: (uri: string) => Promise<{ id: string }>;
 			eval: (
 				shellId: string,
 				code: string

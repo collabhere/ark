@@ -1,6 +1,7 @@
-import React, { FC, useState } from "react";
+import React, { FC, useState, useEffect, useCallback, useMemo } from "react";
+import { deserialize } from "bson";
 import "./panes.less";
-import { MONACO_COMMANDS, Shell, ShellProps } from "../shell/Shell";
+import { MONACO_COMMANDS, Shell } from "../shell/Shell";
 import { Resizable } from "re-resizable";
 import AnsiToHtml from "ansi-to-html";
 import { Menu, Dropdown } from "antd";
@@ -11,8 +12,12 @@ import {
 	VscAccount,
 	VscListTree,
 } from "react-icons/vsc";
-import { dispatch } from "../../util/events";
+import { dispatch, listenEffect } from "../../util/events";
 const ansiToHtmlConverter = new AnsiToHtml();
+
+const createDefaultCodeSnippet = (collection: string) => `// Mongo shell
+db.getCollection('${collection}').find({});
+`;
 
 export interface TreeViewerProps {
 	json: Ark.AnyObject;
@@ -82,14 +87,79 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 export interface EditorProps {
 	shellConfig: Ark.ShellProps;
 	contextDB: string;
+	/** Browser tab id */
+	id: string;
 }
 
 export const Editor: FC<EditorProps> = (props) => {
-	const { shellConfig, contextDB } = props;
+	const { shellConfig, contextDB, id: TAB_ID } = props;
 
-	const { collection, username: user, members } = shellConfig || {};
+	const { collection, username: user, members, uri } = shellConfig || {};
 
 	const [currentResult, setCurrentResult] = useState<ResultViewerProps>();
+	const [shellId, setShellId] = useState<string>();
+	const code = useMemo(
+		() =>
+			collection
+				? createDefaultCodeSnippet(collection)
+				: createDefaultCodeSnippet("test"),
+		[collection]
+	);
+
+	const exec = useCallback(
+		(code) => {
+			const _code = code.replace(/(\/\/.*)|(\n)/g, "");
+			shellId &&
+				window.ark.shell
+					.eval(shellId, _code)
+					.then(function ({ result, err }) {
+						if (err) {
+							console.log("exec shell");
+							console.log(err);
+							const message = err.message;
+							const messageLines = message.split("\n").filter(Boolean);
+							const [msg, code] = messageLines;
+							const html = code ? ansiToHtmlConverter.toHtml(code) : "";
+							// setTextResult(msg + "<br/>" + html);
+							return;
+						}
+						const json = Object.values(
+							deserialize(result ? result : Buffer.from([]))
+						);
+						setCurrentResult({
+							type: "json",
+							json,
+						});
+					})
+					.catch(function (err) {
+						console.error("exec shell error: ", err);
+					});
+		},
+		[shellId]
+	);
+
+	useEffect(() => {
+		contextDB &&
+			window.ark.shell.create(uri, contextDB).then(function ({ id }) {
+				setShellId(id);
+			});
+	}, [contextDB, uri]);
+
+	/** Register browser event listeners */
+	useEffect(
+		() =>
+			listenEffect([
+				{
+					event: "browser:delete_tab:editor",
+					cb: (e, payload) => {
+						if (payload.id === TAB_ID && shellId) {
+							window.ark.shell.destroy(shellId);
+						}
+					},
+				},
+			]),
+		[TAB_ID, shellId]
+	);
 
 	return (
 		<div className={"Editor"}>
@@ -134,40 +204,29 @@ export const Editor: FC<EditorProps> = (props) => {
 						<span>{collection}</span>
 					</div>
 				</div>
-				<Shell
-					config={{
-						collection,
-						uri: shellConfig.uri,
-					}}
-					contextDB={contextDB}
-					allCollections={["test_collection_1"]}
-					onExecutionResult={(result) => {
-						console.log("Execution result", result);
-						setCurrentResult({
-							type: "json",
-							json: result.data,
-						});
-					}}
-					onShellMessage={(message) => {
-						console.log("Shell message");
-						console.log(message);
-						const messageLines = message.split("\n").filter(Boolean);
-						const [msg, code] = messageLines;
-						const html = code ? ansiToHtmlConverter.toHtml(code) : "";
-						// setTextResult(msg + "<br/>" + html);
-					}}
-					onMonacoCommand={(command) => {
-						switch (command) {
-							case MONACO_COMMANDS.CLONE_SHELL: {
-								dispatch("browser:create_tab:editor", {
-									shellConfig,
-									contextDB,
-								});
-								return;
+				{shellId ? (
+					<Shell
+						initialCode={code}
+						allCollections={["test_collection_1"]} // @todo: Fetch these collection names
+						onMonacoCommand={(command, params) => {
+							switch (command) {
+								case MONACO_COMMANDS.CLONE_SHELL: {
+									dispatch("browser:create_tab:editor", {
+										shellConfig,
+										contextDB,
+									});
+									return;
+								}
+								case MONACO_COMMANDS.EXEC_CODE: {
+									const { code } = params;
+									exec(code);
+								}
 							}
-						}
-					}}
-				/>
+						}}
+					/>
+				) : (
+					<div>Loading shell</div>
+				)}
 			</Resizable>
 			{currentResult && <ResultViewer {...currentResult} />}
 		</div>
