@@ -1,4 +1,4 @@
-import "./connectionManager.less";
+import "./styles.less";
 import React, { FC, useCallback, useEffect, useState } from "react";
 import { Button, Card } from "antd";
 import {

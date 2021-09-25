@@ -1,4 +1,4 @@
-import "./shell.less";
+import "./styles.less";
 
 import React, { FC, useCallback, useEffect, useState } from "react";
 import Monaco from "@monaco-editor/react";

@@ -1,4 +1,4 @@
-import "./browser.less";
+import "./styles.less";
 
 import { Tabs } from "antd";
 import { nanoid } from "nanoid";

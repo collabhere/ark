@@ -1,4 +1,4 @@
-import "./layout.less";
+import "./styles.less";
 
 import React from "react";
 

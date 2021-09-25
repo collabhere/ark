@@ -1,4 +1,4 @@
-import "./explorer.less";
+import "./styles.less";
 
 import React, { FC, useCallback, useEffect, useState } from "react";
 import { Tree } from "antd";

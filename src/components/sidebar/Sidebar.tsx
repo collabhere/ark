@@ -1,4 +1,4 @@
-import "./sidebar.less";
+import "./styles.less";
 import { VscDatabase } from "react-icons/vsc";
 import React, { FC, useCallback, useEffect, useState } from "react";
 import { dispatch, listenEffect } from "../../util/events";
