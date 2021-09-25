@@ -4,8 +4,11 @@ import { Tabs } from "antd";
 import { nanoid } from "nanoid";
 import React, { useCallback, useEffect, useState } from "react";
 import { dispatch, listenEffect } from "../../util/events";
-import { Editor, EditorProps } from "../panes/Editor";
-import { ConnectionForm, ConnectionFormProps } from "../panes/ConnectionForm";
+import { Editor, EditorProps } from "../panes/editor/Editor";
+import {
+	ConnectionForm,
+	ConnectionFormProps,
+} from "../panes/connection-form/ConnectionForm";
 
 const { TabPane } = Tabs;
 

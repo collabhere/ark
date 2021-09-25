@@ -1,7 +1,7 @@
 import React, { FC, useState, useEffect, useCallback, useMemo } from "react";
 import { deserialize } from "bson";
-import "./panes.less";
-import { MONACO_COMMANDS, Shell } from "../shell/Shell";
+import "../styles.less";
+import { MONACO_COMMANDS, Shell } from "../../shell/Shell";
 import { Resizable } from "re-resizable";
 import AnsiToHtml from "ansi-to-html";
 import { Menu, Dropdown } from "antd";
@@ -12,7 +12,7 @@ import {
 	VscAccount,
 	VscListTree,
 } from "react-icons/vsc";
-import { dispatch, listenEffect } from "../../util/events";
+import { dispatch, listenEffect } from "../../../util/events";
 const ansiToHtmlConverter = new AnsiToHtml();
 
 const createDefaultCodeSnippet = (collection: string) => `// Mongo shell

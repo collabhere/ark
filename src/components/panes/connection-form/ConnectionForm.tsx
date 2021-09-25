@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from "react";
 import { Input, Button, Checkbox, Menu, Dropdown, Upload } from "antd";
-import "./panes.less";
-import { dispatch } from "../../util/events";
+import "../styles.less";
+import { dispatch } from "../../../util/events";
 const { TextArea } = Input;
 export interface ConnectionFormProps {
 	connectionParams?: Ark.StoredConnection;
