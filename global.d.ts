@@ -50,11 +50,13 @@ declare global {
 			): ReturnType<Connection[C]>;
 		}
 
-		interface ShellProps {
+		interface ShellConfig {
+			name: string;
 			uri: string;
 			members: string[];
-			database: string;
+			database?: string;
 			username: string;
+			password: string;
 			collection: string;
 		}
 		interface Shell {

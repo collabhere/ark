@@ -4,14 +4,11 @@ import "../styles.less";
 import { MONACO_COMMANDS, Shell } from "../../shell/Shell";
 import { Resizable } from "re-resizable";
 import AnsiToHtml from "ansi-to-html";
-import { Menu, Dropdown } from "antd";
+import { Menu, Dropdown, Spin, Space } from "antd";
 import { DownOutlined } from "@ant-design/icons";
-import {
-	VscGlobe,
-	VscDatabase,
-	VscAccount,
-	VscListTree,
-} from "react-icons/vsc";
+import { VscGlobe, VscDatabase, VscAccount } from "react-icons/vsc";
+import { LoadingOutlined } from "@ant-design/icons";
+
 import { dispatch, listenEffect } from "../../../util/events";
 const ansiToHtmlConverter = new AnsiToHtml();
 
@@ -85,7 +82,7 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 };
 
 export interface EditorProps {
-	shellConfig: Ark.ShellProps;
+	shellConfig: Ark.ShellConfig;
 	contextDB: string;
 	/** Browser tab id */
 	id: string;
@@ -195,13 +192,7 @@ export const Editor: FC<EditorProps> = (props) => {
 						<span>
 							<VscAccount />
 						</span>
-						<span>{user}</span>
-					</div>
-					<div className={"EditorHeaderItem"}>
-						<span>
-							<VscListTree />
-						</span>
-						<span>{collection}</span>
+						<span>{user || "no user"}</span>
 					</div>
 				</div>
 				{shellId ? (
@@ -225,7 +216,18 @@ export const Editor: FC<EditorProps> = (props) => {
 						}}
 					/>
 				) : (
-					<div>Loading shell</div>
+					<div
+						style={{
+							display: "flex",
+							justifyContent: "center",
+							alignItems: "center",
+							height: "100%",
+						}}
+					>
+						<Space align={"center"} size="middle">
+							<Spin indicator={<LoadingOutlined />} size="large" />
+						</Space>
+					</div>
 				)}
 			</Resizable>
 			{currentResult && <ResultViewer {...currentResult} />}
