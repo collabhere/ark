@@ -1,8 +1,9 @@
 import "./Button.less";
 
 import React, { FC, useState, useMemo } from "react";
-import { Button as AntButton, Popover as AntPopover } from "antd";
+import { Button as AntButton } from "antd";
 import { PromiseCompleteCallback, asyncEventOverload } from "../util";
+import { Popover } from "./Popover";
 
 interface PopoverOptions {
 	content?: React.ReactNode;
@@ -78,26 +79,4 @@ export const Button: FC<ButtonProps> = (props) => {
 	);
 
 	return buttonWithPopovers;
-};
-
-type PopoverProps = PopoverOptions & { trigger: "click" | "hover" };
-
-const Popover: FC<PopoverProps> = (props) => {
-	const { children, content, title, trigger } = props;
-
-	console.log("Render popover", trigger, title, content);
-
-	const [visible, setVisible] = useState(false);
-
-	return (
-		<AntPopover
-			content={content}
-			title={title}
-			trigger={trigger}
-			visible={visible}
-			onVisibleChange={(visible) => setVisible(visible)}
-		>
-			{children}
-		</AntPopover>
-	);
 };
