@@ -1,3 +1,5 @@
+@import "../styles/variables.less";
+
 .ant-btn {
 	height: 34px;
 	display: flex;
@@ -7,6 +9,36 @@
 
 .button-icon-wrapper {
 	display: flex !important;
-	padding: 2px;
-	margin-right: 4px;
+	padding: 3px;
+}
+
+.button-primary {
+	background: @primary-tint-8;
+	color: @primary-tint-1;
+}
+
+.button-secondary {
+	background: @primary-tint-4;
+	color: @primary-tint-7;
+
+	&:hover {
+		background: @primary-tint-3;
+		color: @primary-tint-6;
+	}
+}
+
+.button-success {
+	background: @success;
+
+	&:hover {
+		background: @success-tint-1;
+	}
+}
+
+.button-danger {
+	background: @danger;
+
+	&:hover {
+		background: @danger-tint-1;
+	}
 }

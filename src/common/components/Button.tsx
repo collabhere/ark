@@ -10,6 +10,8 @@ interface PopoverOptions {
 }
 
 interface ButtonProps {
+	variant?: "primary" | "secondary" | "danger" | "success";
+	shape?: "round" | "circle";
 	text?: string;
 	icon?: React.ReactNode;
 	size?: "large" | "middle" | "small";
@@ -26,16 +28,18 @@ interface ButtonProps {
 }
 
 export const Button: FC<ButtonProps> = (props) => {
-	const { icon, text, onClick, popoverOptions, size } = props;
+	const { icon, text, onClick, popoverOptions, size, variant, shape } = props;
 
 	const [loading, setLoading] = useState(false);
 
 	const baseButton = useMemo(
 		() => (
 			<AntButton
+				className={variant ? "button-" + variant : "button-primary"}
+				shape={shape}
 				disabled={loading}
 				onClick={() => {
-					if (popoverOptions && !popoverOptions.click)
+					if (!popoverOptions || (popoverOptions && !popoverOptions.click))
 						onClick && asyncEventOverload(setLoading, onClick);
 				}}
 				loading={icon ? loading : undefined}
@@ -46,10 +50,10 @@ export const Button: FC<ButtonProps> = (props) => {
 				}
 				size={size || "large"}
 			>
-				<span>{text}</span>
+				{text && <span>{text}</span>}
 			</AntButton>
 		),
-		[icon, loading, onClick, popoverOptions, size, text]
+		[icon, loading, onClick, popoverOptions, shape, size, text, variant]
 	);
 
 	const buttonWithPopovers = useMemo(
