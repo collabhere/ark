@@ -138,6 +138,22 @@ export const Editor: FC<EditorProps> = (props) => {
 		[shellId]
 	);
 
+	const exportData = useCallback(
+		(code) => {
+			const _code = code.replace(/(\/\/.*)|(\n)/g, "");
+			shellId &&
+				window.ark.shell
+					.export(shellId, _code)
+					.then(() => {
+						console.log("Export complete");
+					})
+					.catch(function (err) {
+						console.error("exec shell error: ", err);
+					});
+		},
+		[shellId]
+	);
+
 	useEffect(() => {
 		contextDB &&
 			window.ark.shell.create(uri, contextDB).then(function ({ id }) {
@@ -223,6 +239,7 @@ export const Editor: FC<EditorProps> = (props) => {
 								}
 							}
 						}}
+						onExport={(params) => exportData(params.code)}
 					/>
 				) : (
 					<div>Loading shell</div>

@@ -7,7 +7,6 @@ import type { DiskStore } from "./electron/core/stores/disk";
 
 declare global {
 	namespace Ark {
-
 		interface DriverDependency {
 			memoryStore: MemoryStore<MemEntry>;
 			diskStore: DiskStore;
@@ -60,10 +59,8 @@ declare global {
 		interface Shell {
 			create: (uri: string, contextDB: string) => Promise<{ id: string }>;
 			destroy: (uri: string) => Promise<{ id: string }>;
-			eval: (
-				shellId: string,
-				code: string
-			) => Promise<EvalResult>;
+			eval: (shellId: string, code: string) => Promise<EvalResult>;
+			export: (shellId: string, code: string) => Promise<void>;
 		}
 		interface Context {
 			driver: Driver;
