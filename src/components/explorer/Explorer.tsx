@@ -11,6 +11,11 @@ const dbTreeKey = (dbName: string) => "database;" + dbName;
 const collectionTreeKey = (collectionName: string, dbName: string) =>
 	"collection;" + collectionName + ";" + dbName;
 
+interface CollectionsMap {
+	/* db_name => collection_name[] */
+	[k: string]: string[];
+}
+
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface ExplorerProps {}
 
@@ -19,6 +24,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 	const [loading, setLoading] = useState(true);
 	const { tree, addChildrenToNode, createNode, addNodeAtEnd } = useTree();
 	const [currentConnectionId, setCurrentConnectionId] = useState<string>();
+	const [collectionsMap, setCollectionsMap] = useState<CollectionsMap>({});
 
 	const switchConnections = useCallback((args: { connectionId: string }) => {
 		const { connectionId } = args;
@@ -57,6 +63,10 @@ export const Explorer: FC<ExplorerProps> = () => {
 					.then((collections) => {
 						if (collections && collections.length) {
 							addCollectionNodesToDatabase(dbName, collections);
+							setCollectionsMap((map) => {
+								map[dbName] = collections.map((x) => x.name);
+								return { ...map };
+							});
 						}
 					});
 		},
@@ -64,7 +74,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 	);
 
 	const openShellForCollection = useCallback(
-		(collection: string, db?: string) => {
+		(collection: string, db: string) => {
 			currentConnectionId &&
 				window.ark.driver
 					.run("connection", "load", { id: currentConnectionId })
@@ -72,10 +82,11 @@ export const Explorer: FC<ExplorerProps> = () => {
 						dispatch("browser:create_tab:editor", {
 							shellConfig: { ...storedConnection, collection },
 							contextDB: db,
+							collections: collectionsMap[db] ? collectionsMap[db] : [],
 						});
 					});
 		},
-		[currentConnectionId]
+		[collectionsMap, currentConnectionId]
 	);
 
 	/* Load base tree */

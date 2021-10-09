@@ -84,12 +84,18 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 export interface EditorProps {
 	shellConfig: Ark.ShellConfig;
 	contextDB: string;
+	collections: string[];
 	/** Browser tab id */
 	id: string;
 }
 
 export const Editor: FC<EditorProps> = (props) => {
-	const { shellConfig, contextDB, id: TAB_ID } = props;
+	const {
+		shellConfig,
+		contextDB,
+		id: TAB_ID,
+		collections: COLLECTIONS,
+	} = props;
 
 	const { collection, username: user, members, uri } = shellConfig || {};
 
@@ -198,13 +204,14 @@ export const Editor: FC<EditorProps> = (props) => {
 				{shellId ? (
 					<Shell
 						initialCode={code}
-						allCollections={["test_collection_1"]} // @todo: Fetch these collection names
+						allCollections={COLLECTIONS}
 						onMonacoCommand={(command, params) => {
 							switch (command) {
 								case MONACO_COMMANDS.CLONE_SHELL: {
 									dispatch("browser:create_tab:editor", {
 										shellConfig,
 										contextDB,
+										collections: COLLECTIONS,
 									});
 									return;
 								}
