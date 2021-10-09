@@ -13,7 +13,8 @@ const arkContext: Ark.Context = {
 	shell: {
 		create: (uri, contextDB) => invoke("shell_create", { uri, contextDB }),
 		eval: (shell, code) => invoke("shell_eval", { code, shell }),
-		export: (shell, code) => invoke("shell_export", { code, shell }),
+		export: (shell, code, options) =>
+			invoke("shell_export", { code, shell, options }),
 		destroy: (shell) => invoke("shell_destroy", { shell }),
 	},
 	driver: {

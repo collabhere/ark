@@ -3,7 +3,7 @@ import { Transform } from "stream";
 const ndjsonFormatter = (chunk: Record<string, any>) =>
 	Promise.resolve(JSON.stringify(chunk) + "\n");
 
-export const exportAsNdjson = () => {
+export const NDJSONTransform = () => {
 	return new Transform({
 		objectMode: true,
 

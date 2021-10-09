@@ -10,8 +10,9 @@ import {
 } from "@mongosh/shell-api";
 import { ConnectOptions as DriverConnectOptions } from "mongodb";
 import { CliServiceProvider } from "@mongosh/service-provider-server";
-import { EventEmitter } from "stream";
+import { EventEmitter, Transform } from "stream";
 import { CSVTransform } from "../../modules/exports/csv-transform";
+import { NDJSONTransform } from "../../modules/exports/ndjson-transform";
 
 import { _evaluate } from "./_eval";
 import { createWriteStream } from "fs";
@@ -25,7 +26,11 @@ export interface EvalResult {
 export interface Evaluator {
 	evaluate(code: string, database: string): Promise<Ark.AnyObject>;
 	disconnect(): Promise<void>;
-	export(code: string, database: string): Promise<void>;
+	export(
+		code: string,
+		database: string,
+		options: Ark.ExportCsvOptions | Ark.ExportNdjsonOptions
+	): Promise<void>;
 }
 
 interface CreateEvaluatorOptions {
@@ -40,11 +45,14 @@ export async function createEvaluator(
 	const provider = await createServiceProvider(uri);
 
 	const evaluator: Evaluator = {
-		export: (code, database) => {
-			return evaluate(code, provider, { database, mode: "export" });
+		export: (code, database, options) => {
+			return evaluate(code, provider, {
+				mode: "export",
+				params: { database, ...options },
+			});
 		},
 		evaluate: (code, database) => {
-			return evaluate(code, provider, { database });
+			return evaluate(code, provider, { mode: "query", params: { database } });
 		},
 		disconnect: async () => {
 			await provider.close(true);
@@ -73,15 +81,23 @@ function paginateCursor(cursor: Cursor, page: number) {
 interface MongoEvalOptions {
 	database: string;
 	page?: number;
-	mode?: "export" | "query";
+}
+interface MongoQueryOptions {
+	mode: "query";
+	params: MongoEvalOptions;
+}
+
+interface MongoExportOptions {
+	mode: "export";
+	params: MongoEvalOptions & (Ark.ExportCsvOptions | Ark.ExportNdjsonOptions);
 }
 
 async function evaluate(
 	code: string,
 	serviceProvider: CliServiceProvider,
-	options: MongoEvalOptions
+	options: MongoQueryOptions | MongoExportOptions
 ) {
-	const { database, page, mode } = options;
+	const { database, page } = options.params;
 
 	const internalState = new ShellInternalState(serviceProvider);
 
@@ -105,28 +121,55 @@ async function evaluate(
 
 	let result = await _evaluate(transpiledCodeString, db, rs, sh, shellApi);
 
-	if (mode === "export") {
-		const transform = CSVTransform({ destructureData: true });
-		const write = createWriteStream(`${ARK_FOLDER_PATH}/exports/test.csv`);
-
-		return new Promise((resolve, reject) => {
-			if (result instanceof Cursor) {
-				const stream = result._cursor.stream();
-
-				transform.on("error", (err) => {
-					reject(err);
-				});
-
-				write.on("close", () => {
-					resolve("");
-				});
-
-				stream.pipe(transform).pipe(write);
-			}
-		});
-	} else if (result instanceof Cursor) {
-		result = await paginateCursor(result, page || 1).toArray();
+	if (result instanceof Cursor) {
+		if (options.mode === "export") {
+			return await exportData(result, options);
+		} else {
+			result = await paginateCursor(result, page || 1).toArray();
+		}
 	}
 
 	return result;
+}
+
+async function exportData(result: any, options: MongoExportOptions) {
+	const params = options.params;
+	const suffix =
+		params.type === "CSV"
+			? !/\.csv$/i.test(params.fileName)
+				? ".csv"
+				: ""
+			: !/\.ndjson$/.test(params.fileName)
+			? ".ndjson"
+			: "";
+
+	const fileName = params.fileName
+		? `${params.fileName}${suffix}`
+		: `${new Date().toISOString()}${suffix}`;
+
+	const write = createWriteStream(`${ARK_FOLDER_PATH}/exports/${fileName}`);
+
+	let transform: Transform;
+	if (params.type === "CSV") {
+		transform = CSVTransform({
+			destructureData: params.destructureData,
+			fields: params.fields ? [...params.fields] : undefined,
+		});
+	} else {
+		transform = NDJSONTransform();
+	}
+
+	return new Promise((resolve, reject) => {
+		const stream = result._cursor.stream();
+
+		transform.on("error", (err) => {
+			reject(err);
+		});
+
+		write.on("close", () => {
+			resolve("");
+		});
+
+		stream.pipe(transform).pipe(write);
+	});
 }

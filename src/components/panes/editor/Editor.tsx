@@ -139,11 +139,11 @@ export const Editor: FC<EditorProps> = (props) => {
 	);
 
 	const exportData = useCallback(
-		(code) => {
+		(code, options) => {
 			const _code = code.replace(/(\/\/.*)|(\n)/g, "");
 			shellId &&
 				window.ark.shell
-					.export(shellId, _code)
+					.export(shellId, _code, options)
 					.then(() => {
 						console.log("Export complete");
 					})
@@ -239,7 +239,7 @@ export const Editor: FC<EditorProps> = (props) => {
 								}
 							}
 						}}
-						onExport={(params) => exportData(params.code)}
+						onExport={(params) => exportData(params.code, params.options)}
 					/>
 				) : (
 					<div>Loading shell</div>

@@ -19,6 +19,10 @@ interface InvokeJS {
 	shell: string;
 }
 
+interface ExportData extends InvokeJS {
+	options: Ark.ExportCsvOptions | Ark.ExportNdjsonOptions;
+}
+
 interface CreateShell {
 	uri: string;
 	contextDB: string;
@@ -97,11 +101,11 @@ function IPC() {
 				}
 			});
 
-			ipcMain.handle("shell_export", async (event, data: InvokeJS) => {
+			ipcMain.handle("shell_export", async (event, data: ExportData) => {
 				try {
 					const shell = shells.get(data.shell);
 					if (!shell) throw new Error("Invalid shell");
-					await shell.executor.export(data.code, shell.database);
+					await shell.executor.export(data.code, shell.database, data.options);
 					return;
 				} catch (err) {
 					console.error("`shell_export` error");

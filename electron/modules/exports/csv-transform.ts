@@ -66,7 +66,7 @@ const convertToCsv = ({ destructureData, fields }: ImportOptions) => {
 
 	const processFields = (chunk: Record<string, any>) => {
 		rowsProcessed = true;
-		return fields
+		return fields && fields.length > 0
 			? fields.join(",")
 			: destructureData
 			? Object.keys(chunk).reduce(
