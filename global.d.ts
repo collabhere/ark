@@ -1,5 +1,4 @@
-import type { EvalResult } from "./electron/core/evaluator";
-import type { Connection, Database } from "./electron/core/driver";
+import type { EvalResult } from "./electron/core/evaluator"; import type { Connection, Database } from "./electron/core/driver";
 import type { MongoClientOptions } from "@mongosh/service-provider-server";
 import type { MemoryStore } from "./electron/core/stores/memory";
 import type { MemEntry } from "./electron/modules/ipc";
@@ -10,12 +9,13 @@ declare global {
 
 		interface DriverDependency {
 			memoryStore: MemoryStore<MemEntry>;
-			diskStore: DiskStore;
+			diskStore: DiskStore<StoredConnection>;
 		}
 		interface StoredConnection {
 			id: string;
 			name: string;
-			members: Array<string>;
+			protocol: string;
+			hosts: Array<string>;
 			database: string;
 			username: string;
 			password: string;
@@ -53,14 +53,14 @@ declare global {
 		interface ShellConfig {
 			name: string;
 			uri: string;
-			members: string[];
+			hosts: string[];
 			database?: string;
 			username: string;
 			password: string;
 			collection: string;
 		}
 		interface Shell {
-			create: (uri: string, contextDB: string) => Promise<{ id: string }>;
+			create: (uri: string, contextDB: string, driverConnectionId: string) => Promise<{ id: string }>;
 			destroy: (uri: string) => Promise<{ id: string }>;
 			eval: (
 				shellId: string,

@@ -22,10 +22,23 @@ interface InvokeJS {
 interface CreateShell {
 	uri: string;
 	contextDB: string;
+	driverConnectionId: string;
 }
 
 interface DestroyShell {
 	shell: string;
+}
+
+interface StoredScript {
+	name: string;
+	storedConnectionId?: string;
+}
+
+interface StoreAction {
+	type: "memory" | "disk";
+	action: "create" | "read" | "update" | "delete";
+	key: string;
+	params?: Partial<StoredScript>;
 }
 
 export interface MemEntry {
@@ -34,6 +47,7 @@ export interface MemEntry {
 }
 interface StoredShellValue {
 	id: string;
+	uri: string;
 	executor: Evaluator;
 	database: string;
 }
@@ -43,15 +57,17 @@ function IPC() {
 
 	const driver = createDriver({
 		memoryStore: createMemoryStore<MemEntry>(),
-		diskStore: createDiskStore()
+		diskStore: createDiskStore<Ark.StoredConnection>("connections")
 	});
+
+	const scriptDiskStore = createDiskStore<StoredScript>("scripts");
 
 	return {
 		init: () => {
 			ipcMain.handle("driver_run", async (event, data: RunCommandInput) => {
 				try {
 					console.log(`calling ${data.library}.${data.action}()`);
-					const result = await driver.run(data.library, data.action, data.args)
+					const result = await driver.run(data.library as any, data.action as any, data.args)
 					return result;
 				} catch (err) {
 					console.error("`driver_run` error");
@@ -62,17 +78,26 @@ function IPC() {
 
 			ipcMain.handle("shell_create", async (event, data: CreateShell) => {
 				try {
-					const { uri, contextDB } = data;
-					console.log("Create shell data", data);
+					const { uri, contextDB, driverConnectionId } = data;
+
+					const storedConnection = await driver.run("connection", "load", { id: driverConnectionId });
+					const driverConnection = await driver.run("connection", "info", { id: driverConnectionId });
+					const mongoOptions = {
+						...storedConnection.options,
+						replicaSet: driverConnection.replicaSetDetails && driverConnection.replicaSetDetails.set ? driverConnection.replicaSetDetails.set : undefined
+					};
 					const shellExecutor = await createEvaluator({
 						uri,
+						mongoOptions,
 					});
 					const shell = {
 						id: nanoid(),
 						executor: shellExecutor,
-						database: contextDB
+						database: contextDB,
+						uri
 					};
 					shells.save(shell.id, shell);
+					console.log(`created shell id=${shell.id} driverConnectionId=${driverConnectionId} uri=${uri} db=${contextDB}`);
 					return { id: shell.id };
 				} catch (err) {
 					console.error("`shell_create` error");
@@ -85,6 +110,7 @@ function IPC() {
 				try {
 					const shell = shells.get(data.shell);
 					if (!shell) throw new Error("Invalid shell");
+					console.log(`shell eval id=${shell.id} db=${shell.database}`);
 					const result = await shell.executor.evaluate(data.code, shell.database);
 					return { result: bson.serialize(result) };
 				} catch (err) {
@@ -99,6 +125,7 @@ function IPC() {
 					const shell = shells.get(data.shell);
 					if (!shell) throw new Error("No shell to destroy");
 					await shell.executor.disconnect();
+					console.log(`shell destroy id=${shell.id} db=${shell.database}`);
 					shells.drop(data.shell);
 					return { id: data.shell };
 				} catch (err) {

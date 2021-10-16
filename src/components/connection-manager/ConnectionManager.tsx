@@ -172,7 +172,7 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 			enable={{
 				right: true,
 			}}
-			maxWidth="40%"
+			maxWidth="30%"
 			minWidth="20%"
 			minHeight="100%"
 		>
@@ -202,7 +202,7 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 							<div key={conn.id} className="ConnectionDetails">
 								<Card title={CardTitle(conn.name, conn.id, conn.active)}>
 									<div className="FlexboxWithGap">
-										<div className="FlexFill">{conn.members[0]}</div>
+										<div className="FlexFill">{conn.hosts[0]}</div>
 										<div className="FlexFill">
 											<span>{conn.username}</span>
 											<span> / {conn.database}</span>

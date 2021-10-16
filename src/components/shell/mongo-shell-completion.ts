@@ -1,6 +1,22 @@
 
 import MONGO_SHELL_GLOBAL_DEFINITION from "../../mongoshell.d.ts?raw";
 
+import MONGO_SHELL_CORE_ALL_FLE_TYPES from "@mongosh/service-provider-core/lib/all-fle-types.d.ts?raw";
+import MONGO_SHELL_CORE_ALL_TRANSPORT_TYPES from "@mongosh/service-provider-core/lib/all-transport-types.d.ts?raw";
+import MONGO_SHELL_CORE_ADMIN from "@mongosh/service-provider-core/lib/admin.d.ts?raw";
+import MONGO_SHELL_CORE_CLI_OPTIONS from "@mongosh/service-provider-core/lib/cli-options.d.ts?raw";
+import MONGO_SHELL_CORE_CLOSABLE from "@mongosh/service-provider-core/lib/closable.d.ts?raw";
+import MONGO_SHELL_CORE_CONNECT_INFO from "@mongosh/service-provider-core/lib/connect-info.d.ts?raw";
+import MONGO_SHELL_CORE_FAST_FAILURE_CONNECT from "@mongosh/service-provider-core/lib/fast-failure-connect.d.ts?raw";
+import MONGO_SHELL_CORE_INDEX from "@mongosh/service-provider-core/lib/index.d.ts?raw";
+import MONGO_SHELL_CORE_PLATFORM from "@mongosh/service-provider-core/lib/platform.d.ts?raw";
+import MONGO_SHELL_CORE_PRINTABLE_BSON from "@mongosh/service-provider-core/lib/printable-bson.d.ts?raw";
+import MONGO_SHELL_CORE_READABLE from "@mongosh/service-provider-core/lib/readable.d.ts?raw";
+import MONGO_SHELL_CORE_SERVICE_PROVIDER from "@mongosh/service-provider-core/lib/service-provider.d.ts?raw";
+import MONGO_SHELL_CORE_SHELL_AUTH_OPTIONS from "@mongosh/service-provider-core/lib/shell-auth-options.d.ts?raw";
+import MONGO_SHELL_CORE_TEXTENCODER_POLYFILL from "@mongosh/service-provider-core/lib/textencoder-polyfill.d.ts?raw";
+import MONGO_SHELL_CORE_URI_GENERATOR from "@mongosh/service-provider-core/lib/uri-generator.d.ts?raw";
+import MONGO_SHELL_CORE_WRITABLE from "@mongosh/service-provider-core/lib/writable.d.ts?raw";
 import MONGO_SHELL_API_ABSTRACT_CURSOR from "@mongosh/shell-api/lib/abstract-cursor.d.ts?raw";
 import MONGO_SHELL_API_AGGREGATION_CURSOR from "@mongosh/shell-api/lib/aggregation-cursor.d.ts?raw";
 import MONGO_SHELL_API_BULK from "@mongosh/shell-api/lib/bulk.d.ts?raw";
@@ -34,6 +50,22 @@ import MONGO_SHELL_API_SHELL_INTERNAL_STATE from "@mongosh/shell-api/lib/shell-i
 import { Monaco } from "@monaco-editor/react";
 
 const MONGO_SHELL_TYPE_DEFINITIONS = [
+    { name: "all-fle-types.d.ts", code: MONGO_SHELL_CORE_ALL_FLE_TYPES },
+    { name: "all-transport-types.d.ts", code: MONGO_SHELL_CORE_ALL_TRANSPORT_TYPES },
+    { name: "admin.d.ts", code: MONGO_SHELL_CORE_ADMIN },
+    { name: "cli-options.d.ts", code: MONGO_SHELL_CORE_CLI_OPTIONS },
+    { name: "closable.d.ts", code: MONGO_SHELL_CORE_CLOSABLE },
+    { name: "connect-info.d.ts", code: MONGO_SHELL_CORE_CONNECT_INFO },
+    { name: "fast-failure-connect.d.ts", code: MONGO_SHELL_CORE_FAST_FAILURE_CONNECT },
+    { name: "index.d.ts", code: MONGO_SHELL_CORE_INDEX },
+    { name: "platform.d.ts", code: MONGO_SHELL_CORE_PLATFORM },
+    { name: "printable-bson.d.ts", code: MONGO_SHELL_CORE_PRINTABLE_BSON },
+    { name: "readable.d.ts", code: MONGO_SHELL_CORE_READABLE },
+    { name: "service-provider.d.ts", code: MONGO_SHELL_CORE_SERVICE_PROVIDER },
+    { name: "shell-auth-options.d.ts", code: MONGO_SHELL_CORE_SHELL_AUTH_OPTIONS },
+    { name: "textencoder-polyfill.d.ts", code: MONGO_SHELL_CORE_TEXTENCODER_POLYFILL },
+    { name: "uri-generator.d.ts", code: MONGO_SHELL_CORE_URI_GENERATOR },
+    { name: "writable.d.ts", code: MONGO_SHELL_CORE_WRITABLE },
     { name: "abstract-cursor.d.ts", code: MONGO_SHELL_API_ABSTRACT_CURSOR, },
     { name: "aggregation-cursor.d.ts", code: MONGO_SHELL_API_AGGREGATION_CURSOR, },
     { name: "bulk.d.ts", code: MONGO_SHELL_API_BULK, },

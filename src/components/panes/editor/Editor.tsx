@@ -3,18 +3,24 @@ import { deserialize } from "bson";
 import "../styles.less";
 import { MONACO_COMMANDS, Shell } from "../../shell/Shell";
 import { Resizable } from "re-resizable";
-import AnsiToHtml from "ansi-to-html";
 import { Menu, Dropdown, Spin, Space } from "antd";
 import { DownOutlined } from "@ant-design/icons";
 import { VscGlobe, VscDatabase, VscAccount } from "react-icons/vsc";
 import { LoadingOutlined } from "@ant-design/icons";
 
 import { dispatch, listenEffect } from "../../../util/events";
-const ansiToHtmlConverter = new AnsiToHtml();
+import { getConnectionUri } from "../../../common/util";
 
 const createDefaultCodeSnippet = (collection: string) => `// Mongo shell
 db.getCollection('${collection}').find({});
 `;
+
+interface ReplicaSetMember {
+	name: string;
+	health: number;
+	state: number;
+	stateStr: "PRIMARY" | "SECONDARY";
+}
 
 export interface TreeViewerProps {
 	json: Ark.AnyObject;
@@ -49,7 +55,15 @@ const JSONViewer: FC<JSONViewerProps> = (props) => {
 				json.map((doc, i) => (
 					<div key={i}>
 						<div>{"// " + (i + 1)}</div>
-						<div>{JSON.stringify(doc, null, 4)}</div>
+						<p>{JSON.stringify(doc, null, 4)}</p>
+						<br />
+					</div>
+				))
+			) : Object.keys(json)[0] === "0" ? (
+				Object.values(json).map((doc, i) => (
+					<div key={i}>
+						<div>{"// " + (i + 1)}</div>
+						<p>{JSON.stringify(doc, null, 4)}</p>
 						<br />
 					</div>
 				))
@@ -83,6 +97,7 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 
 export interface EditorProps {
 	shellConfig: Ark.ShellConfig;
+	driverConnectionId: string;
 	contextDB: string;
 	collections: string[];
 	/** Browser tab id */
@@ -95,12 +110,16 @@ export const Editor: FC<EditorProps> = (props) => {
 		contextDB,
 		id: TAB_ID,
 		collections: COLLECTIONS,
+		driverConnectionId,
 	} = props;
 
-	const { collection, username: user, members, uri } = shellConfig || {};
+	const { collection, username: user, uri, hosts } = shellConfig || {};
 
 	const [currentResult, setCurrentResult] = useState<ResultViewerProps>();
 	const [shellId, setShellId] = useState<string>();
+	const [currentReplicaHost, setCurrentReplicaHost] =
+		useState<ReplicaSetMember>();
+	const [replicaHosts, setReplicaHosts] = useState<ReplicaSetMember[]>();
 	const code = useMemo(
 		() =>
 			collection
@@ -112,6 +131,7 @@ export const Editor: FC<EditorProps> = (props) => {
 	const exec = useCallback(
 		(code) => {
 			const _code = code.replace(/(\/\/.*)|(\n)/g, "");
+			console.log(`executing ${shellId} code`);
 			shellId &&
 				window.ark.shell
 					.eval(shellId, _code)
@@ -119,16 +139,11 @@ export const Editor: FC<EditorProps> = (props) => {
 						if (err) {
 							console.log("exec shell");
 							console.log(err);
-							const message = err.message;
-							const messageLines = message.split("\n").filter(Boolean);
-							const [msg, code] = messageLines;
-							const html = code ? ansiToHtmlConverter.toHtml(code) : "";
 							// setTextResult(msg + "<br/>" + html);
 							return;
 						}
-						const json = Object.values(
-							deserialize(result ? result : Buffer.from([]))
-						);
+						const json = deserialize(result ? result : Buffer.from([]));
+						console.log("RESULT", json);
 						setCurrentResult({
 							type: "json",
 							json,
@@ -141,12 +156,83 @@ export const Editor: FC<EditorProps> = (props) => {
 		[shellId]
 	);
 
+	const destroyShell = useCallback(
+		(shellId: string) =>
+			window.ark.shell.destroy(shellId).then(() => setShellId(undefined)),
+		[]
+	);
+
+	const switchReplicaShell = useCallback(
+		(member: ReplicaSetMember) => {
+			console.log(`[switch replica] ${member.name} ${member.stateStr}`);
+			return window.ark.driver
+				.run("connection", "load", {
+					id: driverConnectionId,
+				})
+				.then((storedConnection) => {
+					const uri = getConnectionUri({
+						...storedConnection,
+						hosts: [member.name],
+					});
+					console.log(
+						`[switch replica] creating shell ${member.name} ${member.stateStr}`
+					);
+					return window.ark.shell
+						.create(uri, contextDB, driverConnectionId)
+						.then(({ id }) => {
+							console.log(
+								`[switch replica] created shell ${id} ${member.name} ${member.stateStr}`
+							);
+							setShellId(id);
+							setCurrentReplicaHost(member);
+						});
+				});
+		},
+		[contextDB, driverConnectionId]
+	);
+
 	useEffect(() => {
-		contextDB &&
-			window.ark.shell.create(uri, contextDB).then(function ({ id }) {
-				setShellId(id);
-			});
-	}, [contextDB, uri]);
+		if (contextDB && driverConnectionId) {
+			console.log("[editor onload]");
+			if (hosts && hosts.length > 1) {
+				console.log("[editor onload] multi-host");
+				window.ark.driver
+					.run("connection", "info", {
+						id: driverConnectionId,
+					})
+					.then((connection) => {
+						if (connection.replicaSetDetails) {
+							console.log("[editor onload] multi-host replica set");
+							const primary = connection.replicaSetDetails.members.find(
+								(x) => x.stateStr === "PRIMARY"
+							);
+							if (primary) {
+								setReplicaHosts(() => connection.replicaSetDetails?.members);
+								switchReplicaShell(primary);
+							} else {
+								console.error("NO PRIMARY");
+							}
+						} else {
+							// Multi-host standalone? not possible
+						}
+					});
+			} else {
+				console.log("[editor onload] single-host");
+				Promise.all([
+					window.ark.shell.create(uri, contextDB, driverConnectionId),
+					window.ark.driver.run("connection", "info", {
+						id: driverConnectionId,
+					}),
+				]).then(([{ id }, connection]) => {
+					console.log("[editor onload] single-host shell created - " + id);
+					setShellId(id);
+					// incase of single node replica set
+					connection.replicaSetDetails &&
+						setReplicaHosts(() => connection.replicaSetDetails?.members);
+				});
+			}
+		}
+	}, [contextDB, uri, driverConnectionId, hosts, switchReplicaShell]);
 
 	/** Register browser event listeners */
 	useEffect(
@@ -156,12 +242,12 @@ export const Editor: FC<EditorProps> = (props) => {
 					event: "browser:delete_tab:editor",
 					cb: (e, payload) => {
 						if (payload.id === TAB_ID && shellId) {
-							window.ark.shell.destroy(shellId);
+							destroyShell(shellId);
 						}
 					},
 				},
 			]),
-		[TAB_ID, shellId]
+		[TAB_ID, destroyShell, shellId]
 	);
 
 	return (
@@ -177,15 +263,20 @@ export const Editor: FC<EditorProps> = (props) => {
 						<span>
 							<VscGlobe />
 						</span>
-						{members.length === 1 ? (
-							<span>{members[0]}</span>
-						) : (
+						{replicaHosts && currentReplicaHost ? (
 							<HostList
-								hosts={members}
+								currentHost={currentReplicaHost}
+								hosts={replicaHosts}
 								onHostChange={(host) => {
-									console.log("Host change to:", host);
+									if (host.name !== currentReplicaHost.name) {
+										(shellId ? destroyShell(shellId) : Promise.resolve()).then(
+											() => switchReplicaShell(host)
+										);
+									}
 								}}
 							/>
+						) : (
+							<span>{hosts[0]}</span>
 						)}
 					</div>
 					<div className={"EditorHeaderItem"}>
@@ -212,6 +303,7 @@ export const Editor: FC<EditorProps> = (props) => {
 										shellConfig,
 										contextDB,
 										collections: COLLECTIONS,
+										driverConnectionId,
 									});
 									return;
 								}
@@ -244,12 +336,12 @@ export const Editor: FC<EditorProps> = (props) => {
 
 interface CreateMenuItem {
 	item: string;
-	cb: (item: string) => void;
+	cb: () => void;
 }
 const createMenu = (items: CreateMenuItem[]) => (
 	<Menu>
 		{items.map((menuItem, i) => (
-			<Menu.Item key={i} onClick={() => menuItem.cb(menuItem.item)}>
+			<Menu.Item key={i} onClick={() => menuItem.cb()}>
 				<a>{menuItem.item}</a>
 			</Menu.Item>
 		))}
@@ -257,21 +349,25 @@ const createMenu = (items: CreateMenuItem[]) => (
 );
 
 interface HostListProps {
-	hosts: string[];
-	onHostChange: (host: string) => void;
+	currentHost: ReplicaSetMember;
+	hosts: ReplicaSetMember[];
+	onHostChange: (host: ReplicaSetMember) => void;
 }
 const HostList = (props: HostListProps) => {
-	const { hosts, onHostChange } = props;
+	const { currentHost, hosts, onHostChange } = props;
 
 	return (
 		<Dropdown
 			overlay={createMenu(
-				hosts.map((host) => ({ item: host, cb: onHostChange }))
+				hosts.map((host) => ({
+					item: `${host.name} (${host.stateStr.substr(0, 1)})`,
+					cb: () => onHostChange(host),
+				}))
 			)}
 			trigger={["click"]}
 		>
 			<a style={{ display: "flex" }} onClick={(e) => e.preventDefault()}>
-				{hosts[0]}
+				{currentHost.name} ({currentHost.stateStr.substr(0, 1)})
 				<DownOutlined />
 			</a>
 		</Dropdown>

@@ -22,7 +22,8 @@ interface ExplorerProps {}
 export const Explorer: FC<ExplorerProps> = () => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [loading, setLoading] = useState(true);
-	const { tree, addChildrenToNode, createNode, addNodeAtEnd } = useTree();
+	const { tree, addChildrenToNode, createNode, addNodeAtEnd, dropTree } =
+		useTree();
 	const [currentConnectionId, setCurrentConnectionId] = useState<string>();
 	const [collectionsMap, setCollectionsMap] = useState<CollectionsMap>({});
 
@@ -83,6 +84,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 							shellConfig: { ...storedConnection, collection },
 							contextDB: db,
 							collections: collectionsMap[db] ? collectionsMap[db] : [],
+							driverConnectionId: currentConnectionId,
 						});
 					});
 		},
@@ -103,7 +105,8 @@ export const Explorer: FC<ExplorerProps> = () => {
 					}
 				});
 		}
-	}, [addDatabaseNodes, currentConnectionId]);
+		return () => dropTree();
+	}, [addDatabaseNodes, currentConnectionId, dropTree]);
 
 	/** Register explorer event listeners */
 	useEffect(

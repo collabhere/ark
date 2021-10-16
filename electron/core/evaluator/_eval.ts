@@ -4,13 +4,18 @@ import type {
     ReplicaSet,
     Shard,
 } from "@mongosh/shell-api";
+import type {
+    bson as BSON
+} from "@mongosh/service-provider-core";
 
 export async function _evaluate(
     code: string,
     db: Database,
     rs: ReplicaSet,
     sh: Shard,
-    shellApi: ShellApi
+    { sleep }: ShellApi,
+    { ObjectId, Int32, Long, Decimal128, Timestamp }: typeof BSON
 ) {
-    return await eval(code);
+    const result = await eval(code);
+    return result;
 }

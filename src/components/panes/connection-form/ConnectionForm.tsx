@@ -19,14 +19,14 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 
 	const [useSSH, toggleSSH] = useState<boolean>(false);
 	const [host, setHost] = useState<string>(
-		props.connectionParams?.members
-			? props.connectionParams?.members[0].split(":")[0]
+		props.connectionParams?.hosts
+			? props.connectionParams?.hosts[0].split(":")[0]
 			: ""
 	);
 
 	const [port, setPort] = useState<string>(
-		props.connectionParams?.members
-			? props.connectionParams?.members[0].split(":")[1]
+		props.connectionParams?.hosts
+			? props.connectionParams?.hosts[0].split(":")[1]
 			: ""
 	);
 
@@ -42,7 +42,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 		: {
 				id: "",
 				name: "",
-				members: [],
+				hosts: [],
 				database: "",
 				type: "directConnection" as const,
 				username: "",
@@ -76,10 +76,10 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 				type: "config",
 				config: {
 					...connectionData,
-					members:
+					hosts:
 						connectionData.type === "directConnection"
 							? [`${host}:${port}`]
-							: connectionData.members,
+							: connectionData.hosts,
 					name:
 						connectionData.name || "Test Connection " + new Date().valueOf(),
 				},
@@ -242,14 +242,14 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 								{connectionData.type === "replicaSet" && (
 									<div>
 										<div className="Label">
-											<span style={{ margin: "auto" }}>Members</span>
+											<span style={{ margin: "auto" }}>Hosts</span>
 										</div>
 										<div className="InputField">
 											<TextArea
 												className="Input"
-												value={connectionData?.members}
+												value={connectionData?.hosts}
 												onChange={(e) =>
-													editConnection("members", e.target.value.split(","))
+													editConnection("hosts", e.target.value.split(","))
 												}
 											/>
 										</div>

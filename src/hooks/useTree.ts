@@ -15,6 +15,7 @@ interface UseTree {
     addChildrenToNode(key: string, children: DataNode[]): void;
     removeNode(key: string): void;
     createNode(title: string, key: string, children?: DataNode[]): DataNode;
+    dropTree(): void;
 }
 
 export function useTree(): UseTree {
@@ -62,12 +63,17 @@ export function useTree(): UseTree {
         title, key, children
     }), []);
 
+    const dropTree = useCallback(() => {
+        setTree([]);
+    }, []);
+
     return {
         tree,
         node,
         createNode,
         addNodeAtEnd,
         addChildrenToNode,
-        removeNode
+        removeNode,
+        dropTree
     };
 }
