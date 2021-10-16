@@ -10,13 +10,10 @@ import {
 } from "@mongosh/shell-api";
 import { ConnectOptions as DriverConnectOptions } from "mongodb";
 import { CliServiceProvider } from "@mongosh/service-provider-server";
-import { EventEmitter, Transform } from "stream";
-import { CSVTransform } from "../../modules/exports/csv-transform";
-import { NDJSONTransform } from "../../modules/exports/ndjson-transform";
+import { EventEmitter } from "stream";
+import { exportData, MongoExportOptions } from "../../modules/exports";
 
 import { _evaluate } from "./_eval";
-import { createWriteStream } from "fs";
-import { ARK_FOLDER_PATH } from "../../utils/constants";
 
 export interface EvalResult {
 	result?: Buffer;
@@ -87,15 +84,10 @@ interface MongoQueryOptions {
 	params: MongoEvalOptions;
 }
 
-interface MongoExportOptions {
-	mode: "export";
-	params: MongoEvalOptions & (Ark.ExportCsvOptions | Ark.ExportNdjsonOptions);
-}
-
 async function evaluate(
 	code: string,
 	serviceProvider: CliServiceProvider,
-	options: MongoQueryOptions | MongoExportOptions
+	options: MongoQueryOptions | MongoExportOptions<MongoEvalOptions>
 ) {
 	const { database, page } = options.params;
 
@@ -130,46 +122,4 @@ async function evaluate(
 	}
 
 	return result;
-}
-
-async function exportData(result: any, options: MongoExportOptions) {
-	const params = options.params;
-	const suffix =
-		params.type === "CSV"
-			? !/\.csv$/i.test(params.fileName)
-				? ".csv"
-				: ""
-			: !/\.ndjson$/.test(params.fileName)
-			? ".ndjson"
-			: "";
-
-	const fileName = params.fileName
-		? `${params.fileName}${suffix}`
-		: `${new Date().toISOString()}${suffix}`;
-
-	const write = createWriteStream(`${ARK_FOLDER_PATH}/exports/${fileName}`);
-
-	let transform: Transform;
-	if (params.type === "CSV") {
-		transform = CSVTransform({
-			destructureData: params.destructureData,
-			fields: params.fields ? [...params.fields] : undefined,
-		});
-	} else {
-		transform = NDJSONTransform();
-	}
-
-	return new Promise((resolve, reject) => {
-		const stream = result._cursor.stream();
-
-		transform.on("error", (err) => {
-			reject(err);
-		});
-
-		write.on("close", () => {
-			resolve("");
-		});
-
-		stream.pipe(transform).pipe(write);
-	});
 }
