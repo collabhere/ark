@@ -7,7 +7,6 @@ import type { DiskStore } from "./electron/core/stores/disk";
 
 declare global {
 	namespace Ark {
-
 		interface DriverDependency {
 			memoryStore: MemoryStore<MemEntry>;
 			diskStore: DiskStore;
@@ -57,13 +56,27 @@ declare global {
 			username: string;
 			collection: string;
 		}
+
+		interface ExportNdjsonOptions {
+			type: "NDJSON";
+			fileName: string;
+		}
+
+		interface ExportCsvOptions {
+			type: "CSV";
+			destructureData: boolean;
+			fields?: Array<string>;
+			fileName: string;
+		}
 		interface Shell {
 			create: (uri: string, contextDB: string) => Promise<{ id: string }>;
 			destroy: (uri: string) => Promise<{ id: string }>;
-			eval: (
+			eval: (shellId: string, code: string) => Promise<EvalResult>;
+			export: (
 				shellId: string,
-				code: string
-			) => Promise<EvalResult>;
+				code: string,
+				options: ExportCsvOptions | ExportNdjsonOptions
+			) => Promise<void>;
 		}
 		interface Context {
 			driver: Driver;

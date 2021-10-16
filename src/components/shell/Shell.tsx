@@ -4,6 +4,7 @@ import React, { FC, useCallback, useEffect, useState } from "react";
 import Monaco from "@monaco-editor/react";
 import { KeyMod, KeyCode, editor } from "monaco-editor";
 import { mountMonaco } from "./monaco";
+import { Button } from "../../common/components/Button";
 
 export enum MONACO_COMMANDS {
 	CLONE_SHELL,
@@ -12,30 +13,23 @@ export enum MONACO_COMMANDS {
 
 export interface ShellProps {
 	allCollections: string[];
-	initialCode: string;
-	onMonacoCommand?: (command: MONACO_COMMANDS, params?: any) => void;
+	code: string;
+	onCodeChange: (code: string) => void;
+	onMonacoCommand?: (command: MONACO_COMMANDS) => void;
 }
 export const Shell: FC<ShellProps> = (props) => {
-	const { allCollections, onMonacoCommand, initialCode } = props;
-
-	const [code, setCode] = useState(initialCode);
+	const { allCollections, onMonacoCommand, code, onCodeChange } = props;
 
 	const [monacoEditor, setMonacoEditor] =
 		useState<editor.IStandaloneCodeEditor>();
 
 	const exec = useCallback(() => {
-		const _code = code.replace(/(\/\/.*)|(\n)/g, "");
-		onMonacoCommand &&
-			onMonacoCommand(MONACO_COMMANDS.EXEC_CODE, { code: _code });
-	}, [code, onMonacoCommand]);
+		onMonacoCommand && onMonacoCommand(MONACO_COMMANDS.EXEC_CODE);
+	}, [onMonacoCommand]);
 
 	const cloneCurrentTab = useCallback(() => {
 		onMonacoCommand && onMonacoCommand(MONACO_COMMANDS.CLONE_SHELL);
 	}, [onMonacoCommand]);
-
-	useEffect(() => {
-		setCode(initialCode);
-	}, [initialCode]);
 
 	useEffect(() => {
 		if (monacoEditor) {
@@ -76,7 +70,7 @@ export const Shell: FC<ShellProps> = (props) => {
 					setMonacoEditor(editor);
 				}}
 				onChange={(value, ev) => {
-					value && setCode(value);
+					value && onCodeChange(value);
 				}}
 				height="100%"
 				defaultValue={code}

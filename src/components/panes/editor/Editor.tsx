@@ -13,76 +13,12 @@ import {
 	VscListTree,
 } from "react-icons/vsc";
 import { dispatch, listenEffect } from "../../../util/events";
+import { ResultViewer, ResultViewerProps } from "./ResultViewer/ResultViewer";
 const ansiToHtmlConverter = new AnsiToHtml();
 
 const createDefaultCodeSnippet = (collection: string) => `// Mongo shell
 db.getCollection('${collection}').find({});
 `;
-
-export interface TreeViewerProps {
-	json: Ark.AnyObject;
-}
-
-const TreeViewer: FC<TreeViewerProps> = (props) => {
-	const { json } = props;
-	return <div></div>;
-};
-
-export interface TextViewerProps {
-	text: string | React.ReactNode;
-}
-const TextViewer: FC<TextViewerProps> = (props) => {
-	const { text } = props;
-	return typeof text == "string" ? (
-		<div dangerouslySetInnerHTML={{ __html: text }}></div>
-	) : (
-		<div>{text}</div>
-	);
-};
-
-interface JSONViewerProps {
-	json: Ark.AnyObject;
-}
-
-const JSONViewer: FC<JSONViewerProps> = (props) => {
-	const { json } = props;
-	return (
-		<>
-			{Array.isArray(json) ? (
-				json.map((doc, i) => (
-					<div key={i}>
-						<div>{"// " + (i + 1)}</div>
-						<div>{JSON.stringify(doc, null, 4)}</div>
-						<br />
-					</div>
-				))
-			) : (
-				<div>{JSON.stringify(json, null, 4)}</div>
-			)}
-		</>
-	);
-};
-
-type ResultViewerProps =
-	| { type: "json"; json: Ark.AnyObject }
-	| { type: "text"; text: string | React.ReactNode }
-	| { type: "tree"; tree: Ark.AnyObject };
-
-export const ResultViewer: FC<ResultViewerProps> = (props) => {
-	return (
-		<div className="ResultViewerContainer">
-			{props.type === "json" ? (
-				<JSONViewer json={props[props.type]} />
-			) : props.type === "text" ? (
-				<TextViewer text={props[props.type]} />
-			) : props.type === "tree" ? (
-				<TreeViewer json={props[props.type]} />
-			) : (
-				<div>{"Incorrect view type!"}</div>
-			)}
-		</div>
-	);
-};
 
 export interface EditorProps {
 	shellConfig: Ark.ShellProps;
@@ -98,13 +34,16 @@ export const Editor: FC<EditorProps> = (props) => {
 
 	const [currentResult, setCurrentResult] = useState<ResultViewerProps>();
 	const [shellId, setShellId] = useState<string>();
-	const code = useMemo(
-		() =>
-			collection
-				? createDefaultCodeSnippet(collection)
-				: createDefaultCodeSnippet("test"),
-		[collection]
+	const [code, setCode] = useState(
+		collection
+			? createDefaultCodeSnippet(collection)
+			: createDefaultCodeSnippet("test")
 	);
+
+	const onCodeChange = useCallback((code: string) => {
+		const _code = code.replace(/(\/\/.*)|(\n)/g, "");
+		setCode(_code);
+	}, []);
 
 	const exec = useCallback(
 		(code) => {
@@ -130,6 +69,22 @@ export const Editor: FC<EditorProps> = (props) => {
 							type: "json",
 							json,
 						});
+					})
+					.catch(function (err) {
+						console.error("exec shell error: ", err);
+					});
+		},
+		[shellId]
+	);
+
+	const exportData = useCallback(
+		(code, options) => {
+			const _code = code.replace(/(\/\/.*)|(\n)/g, "");
+			shellId &&
+				window.ark.shell
+					.export(shellId, _code, options)
+					.then(() => {
+						console.log("Export complete");
 					})
 					.catch(function (err) {
 						console.error("exec shell error: ", err);
@@ -206,9 +161,10 @@ export const Editor: FC<EditorProps> = (props) => {
 				</div>
 				{shellId ? (
 					<Shell
-						initialCode={code}
+						code={code}
+						onCodeChange={onCodeChange}
 						allCollections={["test_collection_1"]} // @todo: Fetch these collection names
-						onMonacoCommand={(command, params) => {
+						onMonacoCommand={(command) => {
 							switch (command) {
 								case MONACO_COMMANDS.CLONE_SHELL: {
 									dispatch("browser:create_tab:editor", {
@@ -218,7 +174,6 @@ export const Editor: FC<EditorProps> = (props) => {
 									return;
 								}
 								case MONACO_COMMANDS.EXEC_CODE: {
-									const { code } = params;
 									exec(code);
 								}
 							}
@@ -228,7 +183,13 @@ export const Editor: FC<EditorProps> = (props) => {
 					<div>Loading shell</div>
 				)}
 			</Resizable>
-			{currentResult && <ResultViewer {...currentResult} />}
+			{currentResult && (
+				<ResultViewer
+					{...currentResult}
+					code={code}
+					onExport={(params) => exportData(params.code, params.options)}
+				/>
+			)}
 		</div>
 	);
 };

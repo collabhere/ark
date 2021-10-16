@@ -8,6 +8,7 @@ interface ModalProps {
 	title?: string | JSX.Element;
 	onConfirm: () => void;
 	onCancel?: () => void;
+	onClose?: () => void;
 	children?: ReactNode;
 }
 
@@ -17,13 +18,18 @@ export function Dialog({
 	onConfirm,
 	onCancel,
 	children,
+	onClose,
 }: ModalProps): JSX.Element {
-	return (
+	const rootElement = document.getElementById("root");
+
+	return rootElement ? (
 		<Modal
 			title={<span className={"modal-title"}>{title}</span>}
 			onOk={onConfirm}
 			centered
+			getContainer={rootElement}
 			onCancel={onCancel}
+			afterClose={onClose}
 			visible={true}
 			width={size === "small" ? 600 : 1000}
 			footer={
@@ -47,5 +53,7 @@ export function Dialog({
 		>
 			<div>{children}</div>
 		</Modal>
+	) : (
+		<></>
 	);
 }

@@ -7,7 +7,7 @@ import { Popover } from "./Popover";
 
 interface PopoverOptions {
 	content?: React.ReactNode;
-	title: string;
+	title?: string;
 }
 
 interface ButtonProps {
