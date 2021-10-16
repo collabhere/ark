@@ -1,7 +1,8 @@
 import React, { useCallback, useState } from "react";
 import { Input, Button, Checkbox, Menu, Dropdown, Upload } from "antd";
-import "../styles.less";
 import { dispatch } from "../../../util/events";
+import "../styles.less";
+import "../../../common/styles/layout.less";
 const { TextArea } = Input;
 export interface ConnectionFormProps {
 	connectionParams?: Ark.StoredConnection;
@@ -211,7 +212,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 								</div>
 
 								{connectionData.type === "directConnection" && (
-									<div className="InlineInput">
+									<div className="flex-inline">
 										<div style={{ flexGrow: 1 }}>
 											<div className="Label">
 												<span style={{ margin: "auto" }}>Host</span>
@@ -288,7 +289,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 									</div>
 								</div>
 
-								<div className="InlineInput">
+								<div className="flex-inline">
 									<div style={{ flexGrow: 1 }}>
 										<div className="Label">
 											<span style={{ margin: "auto" }}>Password</span>
@@ -309,7 +310,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 						)}
 						{form === "ssh" && (
 							<div className="Form">
-								<div className="InlineInput">
+								<div className="flex-inline">
 									<div className="Label">
 										<span style={{ margin: "auto" }}>Use SSH Tunnel</span>
 									</div>
@@ -318,7 +319,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 										onChange={() => toggleSSH((useSSH) => !useSSH)}
 									/>
 								</div>
-								<div className="InlineInput">
+								<div className="flex-inline">
 									<div style={{ flexGrow: 1 }}>
 										<div className="Label">
 											<span style={{ margin: "auto" }}>Host</span>
@@ -396,7 +397,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 						)}
 						{form === "tls" && (
 							<div className="Form Gap">
-								<div className="InlineInput">
+								<div className="flex-inline">
 									<div className="Label">
 										<span style={{ margin: "auto" }}>Use TLS protocol</span>
 									</div>
@@ -410,7 +411,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 										}
 									/>
 								</div>
-								<div className="InlineInput">
+								<div className="flex-inline">
 									<div className="Label">
 										<span style={{ margin: "auto" }}>CA Certificate</span>
 									</div>

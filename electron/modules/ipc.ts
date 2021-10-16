@@ -11,12 +11,16 @@ import { MongoClient, ListDatabasesResult } from "mongodb";
 interface RunCommandInput {
 	library: keyof DriverModules;
 	action: string;
-	args: Record<string, any> & { id: string; };
+	args: Record<string, any> & { id: string };
 }
 
 interface InvokeJS {
 	code: string;
 	shell: string;
+}
+
+interface ExportData extends InvokeJS {
+	options: Ark.ExportCsvOptions | Ark.ExportNdjsonOptions;
 }
 
 interface CreateShell {
@@ -110,13 +114,28 @@ function IPC() {
 				try {
 					const shell = shells.get(data.shell);
 					if (!shell) throw new Error("Invalid shell");
-					console.log(`shell eval id=${shell.id} db=${shell.database}`);
-					const result = await shell.executor.evaluate(data.code, shell.database);
+					const result = await shell.executor.evaluate(
+						data.code,
+						shell.database
+					);
 					return { result: bson.serialize(result) };
 				} catch (err) {
 					console.error("`shell_eval` error");
 					console.error(err);
 					return { err };
+				}
+			});
+
+			ipcMain.handle("shell_export", async (event, data: ExportData) => {
+				try {
+					const shell = shells.get(data.shell);
+					if (!shell) throw new Error("Invalid shell");
+					await shell.executor.export(data.code, shell.database, data.options);
+					return;
+				} catch (err) {
+					console.error("`shell_export` error");
+					console.error(err);
+					return Promise.reject(err);
 				}
 			});
 
@@ -134,9 +153,8 @@ function IPC() {
 					return { err };
 				}
 			});
-
-		}
-	}
+		},
+	};
 }
 
 export default IPC();

@@ -9,7 +9,7 @@ export const Popover: FC<PopoverProps> = (props) => {
 	return (
 		<AntPopover
 			content={content}
-			title={title}
+			// title={title}
 			trigger={trigger}
 			visible={visible}
 			onVisibleChange={(visible) => setVisible(visible)}
