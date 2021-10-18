@@ -67,7 +67,12 @@ export const Browser = (): JSX.Element => {
 		}) => {
 			const id = "cf-" + nanoid();
 			setTabs((tabs) => {
-				const title = "New connection";
+				const title =
+					connectionParams && connectionParams.mode
+						? connectionParams.mode === "edit"
+							? "Edit connection"
+							: "Clone connection"
+						: "New connection";
 				return [
 					...tabs,
 					{
