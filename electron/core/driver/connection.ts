@@ -3,6 +3,7 @@ import { resolveSrv, SrvRecord } from "dns";
 import { nanoid } from "nanoid";
 import { URL } from "url";
 import { stringify } from "querystring";
+import tunnel, { Config } from "tunnel-ssh";
 
 import { ARK_FOLDER_PATH } from "../../utils/constants";
 import * as ObjectUtils from "../../utils/object";
@@ -20,31 +21,43 @@ export interface Connection {
 	/**
 	 * Load a single stored connection from disk.
 	 */
-	load(dep: Ark.DriverDependency, arg: { id: string; }): Promise<Ark.StoredConnection>;
+	load(
+		dep: Ark.DriverDependency,
+		arg: { id: string }
+	): Promise<Ark.StoredConnection>;
 	/**
 	 * Save a connection using just a uri
 	 */
-	save(dep: Ark.DriverDependency, arg: { type: "uri"; config: URIConfiguration; }): Promise<string>;
+	save(
+		dep: Ark.DriverDependency,
+		arg: { type: "uri"; config: URIConfiguration }
+	): Promise<string>;
 	/**
 	 * Save a connection using granular configurations
 	 */
-	save(dep: Ark.DriverDependency, arg: { type: "config"; config: Ark.StoredConnection; }): Promise<string>;
+	save(
+		dep: Ark.DriverDependency,
+		arg: { type: "config"; config: Ark.StoredConnection }
+	): Promise<string>;
 	/**
 	 * Delete a stored conneection from disk.
 	 */
-	delete(dep: Ark.DriverDependency, arg: { id: string; }): Promise<void>;
+	delete(dep: Ark.DriverDependency, arg: { id: string }): Promise<void>;
 	/**
 	 * Connect and create cache entry for a stored connection.
 	 */
-	connect(dep: Ark.DriverDependency, arg: { id: string; }): Promise<void>;
+	connect(dep: Ark.DriverDependency, arg: { id: string }): Promise<void>;
 	/**
 	 * Disconnect a cached connection.
 	 */
-	disconnect(dep: Ark.DriverDependency, arg: { id: string; }): Promise<void>;
+	disconnect(dep: Ark.DriverDependency, arg: { id: string }): Promise<void>;
 	/**
 	 * List databases for a cached connection
 	 */
-	listDatabases(dep: Ark.DriverDependency, arg: { id: string }): Promise<ListDatabasesResult>;
+	listDatabases(
+		dep: Ark.DriverDependency,
+		arg: { id: string }
+	): Promise<ListDatabasesResult>;
 }
 
 export const Connection: Connection = {
@@ -60,6 +73,17 @@ export const Connection: Connection = {
 	connect: async ({ diskStore, memoryStore }, { id }) => {
 		if (await diskStore.has("connections", id)) {
 			const config = await diskStore.get("connections", id);
+
+			if (config.ssh && config.ssh.host) {
+				const server = await sshTunnel(config.ssh);
+				if (server) {
+					server.on("close", () => console.log("SSH connection closed"));
+					server.on("error", () => console.log("SSH connection errored"));
+				} else {
+					throw new Error("Unable to make ssh connection.");
+				}
+			}
+
 			const connectionUri = getConnectionUri(config);
 			const client = new MongoClient(connectionUri, config.options);
 			const connection = await client.connect();
@@ -86,9 +110,9 @@ export const Connection: Connection = {
 			const id = nanoid();
 			const parsedUri = new URL(config.uri);
 			if (parsedUri.protocol.includes("+srv")) {
-				members = (
-					await lookupSRV(`_mongodb._tcp.${parsedUri.hostname}`)
-				).map((record) => `${record.name}:${record.port || 27017}`);
+				members = (await lookupSRV(`_mongodb._tcp.${parsedUri.hostname}`)).map(
+					(record) => `${record.name}:${record.port || 27017}`
+				);
 
 				options.tls = true;
 				options.tlsCertificateFile = `${ARK_FOLDER_PATH}/certs/ark.crt`;
@@ -111,6 +135,7 @@ export const Connection: Connection = {
 				id,
 				protocol: parsedUri.protocol,
 				name: config.name,
+				type: members.length > 1 ? "replicaSet" : "directConnection",
 				members,
 				username: parsedUri.username,
 				password: parsedUri.password,
@@ -122,11 +147,7 @@ export const Connection: Connection = {
 			const id = config.id || nanoid();
 
 			if (!config.options.tls) {
-				const {
-					tls: _,
-					tlsCertificateFile: __,
-					...formattedOptions
-				} = options;
+				const { tls: _, tlsCertificateFile: __, ...formattedOptions } = options;
 
 				await diskStore.set("connections", id, {
 					...config,
@@ -152,13 +173,51 @@ export const Connection: Connection = {
 		if (entry) {
 			const client = entry.connection;
 			const db = client.db().admin();
-			const result = await db.listDatabases({ authorizedDatabases: true, nameOnly: false });
+			const result = await db.listDatabases({
+				authorizedDatabases: true,
+				nameOnly: false,
+			});
 			// Incorrect type from mongo driver
 			return (result as any).databases as ListDatabasesResult;
 		} else {
 			throw new Error("Entry not found");
 		}
+	},
+};
+
+const sshTunnel = async (
+	sshConfig: Ark.StoredConnection["ssh"]
+): Promise<ReturnType<typeof tunnel> | void> => {
+	if (!sshConfig) {
+		return;
 	}
+
+	const tunnelConfig: Config = {
+		username: sshConfig.username,
+		host: sshConfig.host,
+		port: 22,
+		dstHost: "127.0.0.1",
+		dstPort: 27017,
+		localHost: "127.0.0.1",
+		localPort: 27000,
+	};
+
+	if (sshConfig.privateKey) {
+		tunnelConfig.privateKey = sshConfig.privateKey;
+		tunnelConfig.passphrase = sshConfig.passphrase || "";
+	} else {
+		tunnelConfig.password = sshConfig.password;
+	}
+
+	return new Promise((resolve, reject) => {
+		tunnel(tunnelConfig, (err, server) => {
+			if (err) {
+				reject(err);
+			}
+
+			resolve(server);
+		});
+	});
 };
 
 const getConnectionUri = ({
@@ -168,10 +227,7 @@ const getConnectionUri = ({
 	password,
 	options,
 }: Ark.StoredConnection) => {
-
-	const querystring = stringify(
-		ObjectUtils.pick(options, ["authSource"])
-	);
+	const querystring = stringify(ObjectUtils.pick(options, ["authSource"]));
 
 	const userpass = username && password ? `${username}:${password}@` : "";
 

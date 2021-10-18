@@ -23,14 +23,15 @@ declare global {
 				MongoClientOptions,
 				"authSource" | "retryWrites" | "tls" | "tlsCertificateFile" | "w"
 			>;
-			ssh?: {
-				host: string;
-				port: string;
-				username: string;
-				method: "privateKey" | "password";
-				privateKey: string;
+			ssh: {
+				host?: string;
+				port?: string;
+				username?: string;
+				method?: "privateKey" | "password";
+				password?: string;
+				privateKey?: string;
 				passphrase?: string;
-				askEachTime: boolean;
+				askEachTime?: boolean;
 			};
 		}
 
