@@ -14,6 +14,7 @@ import {
 } from "react-icons/vsc";
 import { dispatch, listenEffect } from "../../../util/events";
 import { ResultViewer, ResultViewerProps } from "./ResultViewer/ResultViewer";
+import { notify } from "../../../util/misc";
 const ansiToHtmlConverter = new AnsiToHtml();
 
 const createDefaultCodeSnippet = (collection: string) => `// Mongo shell
@@ -85,8 +86,16 @@ export const Editor: FC<EditorProps> = (props) => {
 					.export(shellId, _code, options)
 					.then(() => {
 						console.log("Export complete");
+						notify({
+							title: "Export complete!",
+							description: `Path: ~/.ark/exports/${options.fileName}`,
+						});
 					})
 					.catch(function (err) {
+						notify({
+							title: "Export failed!",
+							description: err.message || err,
+						});
 						console.error("exec shell error: ", err);
 					});
 		},
