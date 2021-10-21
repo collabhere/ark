@@ -1,16 +1,23 @@
-import React, { FC, useState, useEffect, useCallback, useMemo } from "react";
+import React, { FC, useState, useEffect, useCallback } from "react";
 import { deserialize } from "bson";
 import "../styles.less";
 import { MONACO_COMMANDS, Shell } from "../../shell/Shell";
 import { Resizable } from "re-resizable";
-import { Menu, Dropdown, Spin, Space } from "antd";
+import { Menu, Dropdown } from "antd";
 import { DownOutlined } from "@ant-design/icons";
-import { VscGlobe, VscDatabase, VscAccount } from "react-icons/vsc";
-import { LoadingOutlined } from "@ant-design/icons";
+import {
+	VscGlobe,
+	VscDatabase,
+	VscAccount,
+	VscSaveAs,
+	VscSave,
+} from "react-icons/vsc";
 
 import { dispatch, listenEffect } from "../../../util/events";
 import { getConnectionUri } from "../../../common/util";
 import { ResultViewer, ResultViewerProps } from "./ResultViewer/ResultViewer";
+import { Button } from "../../../common/components/Button";
+import { CircularLoading } from "../../../common/components/Loading";
 
 const createDefaultCodeSnippet = (collection: string) => `// Mongo shell
 db.getCollection('${collection}').find({});
@@ -25,9 +32,11 @@ interface ReplicaSetMember {
 
 export interface EditorProps {
 	shellConfig: Ark.ShellConfig;
-	driverConnectionId: string;
+	storedConnectionId: string;
 	contextDB: string;
 	collections: string[];
+	initialCode?: string;
+	scriptId?: string;
 	/** Browser tab id */
 	id: string;
 }
@@ -38,18 +47,25 @@ export const Editor: FC<EditorProps> = (props) => {
 		contextDB,
 		id: TAB_ID,
 		collections: COLLECTIONS,
-		driverConnectionId,
+		storedConnectionId,
+		initialCode,
+		scriptId,
 	} = props;
 
 	const { collection, username: user, uri, hosts } = shellConfig || {};
 
 	const [currentResult, setCurrentResult] = useState<ResultViewerProps>();
+	const [savedScriptId, setSavedScriptId] = useState<string | undefined>(
+		scriptId
+	);
 	const [shellId, setShellId] = useState<string>();
 	const [currentReplicaHost, setCurrentReplicaHost] =
 		useState<ReplicaSetMember>();
 	const [replicaHosts, setReplicaHosts] = useState<ReplicaSetMember[]>();
-	const [code, setCode] = useState(
-		collection
+	const [code, setCode] = useState(() =>
+		initialCode
+			? initialCode
+			: collection
 			? createDefaultCodeSnippet(collection)
 			: createDefaultCodeSnippet("test")
 	);
@@ -98,7 +114,7 @@ export const Editor: FC<EditorProps> = (props) => {
 			console.log(`[switch replica] ${member.name} ${member.stateStr}`);
 			return window.ark.driver
 				.run("connection", "load", {
-					id: driverConnectionId,
+					id: storedConnectionId,
 				})
 				.then((storedConnection) => {
 					const uri = getConnectionUri({
@@ -109,7 +125,7 @@ export const Editor: FC<EditorProps> = (props) => {
 						`[switch replica] creating shell ${member.name} ${member.stateStr}`
 					);
 					return window.ark.shell
-						.create(uri, contextDB, driverConnectionId)
+						.create(uri, contextDB, storedConnectionId)
 						.then(({ id }) => {
 							console.log(
 								`[switch replica] created shell ${id} ${member.name} ${member.stateStr}`
@@ -119,7 +135,7 @@ export const Editor: FC<EditorProps> = (props) => {
 						});
 				});
 		},
-		[contextDB, driverConnectionId]
+		[contextDB, storedConnectionId]
 	);
 	const exportData = useCallback(
 		(code, options) => {
@@ -138,13 +154,13 @@ export const Editor: FC<EditorProps> = (props) => {
 	);
 
 	useEffect(() => {
-		if (contextDB && driverConnectionId) {
+		if (contextDB && storedConnectionId) {
 			console.log("[editor onload]");
 			if (hosts && hosts.length > 1) {
 				console.log("[editor onload] multi-host");
 				window.ark.driver
 					.run("connection", "info", {
-						id: driverConnectionId,
+						id: storedConnectionId,
 					})
 					.then((connection) => {
 						if (connection.replicaSetDetails) {
@@ -165,9 +181,9 @@ export const Editor: FC<EditorProps> = (props) => {
 			} else {
 				console.log("[editor onload] single-host");
 				Promise.all([
-					window.ark.shell.create(uri, contextDB, driverConnectionId),
+					window.ark.shell.create(uri, contextDB, storedConnectionId),
 					window.ark.driver.run("connection", "info", {
-						id: driverConnectionId,
+						id: storedConnectionId,
 					}),
 				]).then(([{ id }, connection]) => {
 					console.log("[editor onload] single-host shell created - " + id);
@@ -178,7 +194,7 @@ export const Editor: FC<EditorProps> = (props) => {
 				});
 			}
 		}
-	}, [contextDB, uri, driverConnectionId, hosts, switchReplicaShell]);
+	}, [contextDB, uri, storedConnectionId, hosts, switchReplicaShell]);
 
 	/** Register browser event listeners */
 	useEffect(
@@ -237,6 +253,54 @@ export const Editor: FC<EditorProps> = (props) => {
 						</span>
 						<span>{user || "no user"}</span>
 					</div>
+					<Button
+						size="small"
+						icon={<VscSaveAs />}
+						onClick={() => {
+							window.ark
+								.browseForDirs("Select A Save Location", "Set")
+								.then((result) => {
+									const { dirs } = result;
+									const saveLocation = dirs[dirs.length - 1];
+									return window.ark.scripts
+										.saveAs({
+											code,
+											saveLocation,
+											storedConnectionId: storedConnectionId,
+											fileName: "saved-script-1.js",
+										})
+										.then((script) => {
+											setSavedScriptId(script.id);
+										});
+								});
+						}}
+						popoverOptions={{
+							hover: {
+								content: "Save as",
+							},
+						}}
+					/>
+					{savedScriptId && (
+						<Button
+							size="small"
+							icon={<VscSave />}
+							onClick={() => {
+								return window.ark.scripts
+									.save({
+										code,
+										id: savedScriptId,
+									})
+									.then((script) => {
+										setSavedScriptId(script.id);
+									});
+							}}
+							popoverOptions={{
+								hover: {
+									content: "Save",
+								},
+							}}
+						/>
+					)}
 				</div>
 				{shellId ? (
 					<Shell
@@ -250,7 +314,7 @@ export const Editor: FC<EditorProps> = (props) => {
 										shellConfig,
 										contextDB,
 										collections: COLLECTIONS,
-										driverConnectionId,
+										storedConnectionId,
 									});
 									return;
 								}
@@ -269,9 +333,7 @@ export const Editor: FC<EditorProps> = (props) => {
 							height: "100%",
 						}}
 					>
-						<Space align={"center"} size="middle">
-							<Spin indicator={<LoadingOutlined />} size="large" />
-						</Space>
+						<CircularLoading />
 					</div>
 				)}
 			</Resizable>

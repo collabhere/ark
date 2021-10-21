@@ -1,7 +1,6 @@
 import "./styles.less";
 
 import { Tabs } from "antd";
-import { VscAdd } from "react-icons/vsc";
 import { nanoid } from "nanoid";
 import React, { useCallback, useEffect, useState } from "react";
 import { dispatch, listenEffect } from "../../util/events";
@@ -10,8 +9,7 @@ import {
 	ConnectionForm,
 	ConnectionFormProps,
 } from "../panes/connection-form/ConnectionForm";
-
-// import { Button } from "../../common/components/Button";
+import { EmptyState } from "../onboarding/EmptyState";
 
 const { TabPane } = Tabs;
 
@@ -47,21 +45,6 @@ const TAB_PANES = {
 	editor: Editor,
 	connection_form: ConnectionForm,
 } as const;
-
-const EmptyState = () => {
-	return (
-		<div
-			style={{
-				display: "flex",
-				justifyContent: "center",
-				alignItems: "center",
-				height: "100%",
-			}}
-		>
-			Ark
-		</div>
-	);
-};
 
 export const Browser = (): JSX.Element => {
 	const [tabs, setTabs] = useState<Tab[]>([]);

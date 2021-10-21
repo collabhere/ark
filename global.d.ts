@@ -1,7 +1,7 @@
 import type { EvalResult } from "./electron/core/evaluator"; import type { Connection, Database } from "./electron/core/driver";
 import type { MongoClientOptions } from "@mongosh/service-provider-server";
 import type { MemoryStore } from "./electron/core/stores/memory";
-import type { MemEntry } from "./electron/modules/ipc";
+import type { MemEntry, StoredScript, ScriptSaveActionData, ScriptSaveAsActionData, ScriptOpenActionData } from "./electron/modules/ipc";
 import type { DiskStore } from "./electron/core/stores/disk";
 
 declare global {
@@ -71,7 +71,7 @@ declare global {
 			fileName: string;
 		}
 		interface Shell {
-			create: (uri: string, contextDB: string, driverConnectionId: string) => Promise<{ id: string }>;
+			create: (uri: string, contextDB: string, storedConnectionId: string) => Promise<{ id: string }>;
 			destroy: (uri: string) => Promise<{ id: string }>;
 			eval: (shellId: string, code: string) => Promise<EvalResult>;
 			export: (
@@ -80,7 +80,17 @@ declare global {
 				options: ExportCsvOptions | ExportNdjsonOptions
 			) => Promise<void>;
 		}
+		interface Scripts {
+			open(params: ScriptOpenActionData["params"]): Promise<{ code: string; script: StoredScript; }>;
+			save(params: ScriptSaveActionData["params"]): Promise<StoredScript>;
+			saveAs(params: ScriptSaveAsActionData["params"]): Promise<StoredScript>;
+			delete(scriptId: string): Promise<void>;
+		}
+
 		interface Context {
+			browseForDirs: (title?: string, buttonLabel?: string) => Promise<{ dirs: string[]; }>;
+			browseForFile: (title?: string, buttonLabel?: string) => Promise<{ path: string; }>;
+			scripts: Scripts;
 			driver: Driver;
 			shell: Shell;
 			[k: string]: any;

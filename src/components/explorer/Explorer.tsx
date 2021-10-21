@@ -84,7 +84,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 							shellConfig: { ...storedConnection, collection },
 							contextDB: db,
 							collections: collectionsMap[db] ? collectionsMap[db] : [],
-							driverConnectionId: currentConnectionId,
+							storedConnectionId: currentConnectionId,
 						});
 					});
 		},

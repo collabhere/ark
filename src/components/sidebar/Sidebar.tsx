@@ -19,7 +19,13 @@ export const Sidebar: FC = () => {
 
 	const addItem = useCallback(
 		(item: SidebarItem) => {
-			setItems((items) => [...items, item]);
+			setItems((items) => {
+				if (items.some((i) => i.name === item.name)) {
+					return items;
+				} else {
+					return [...items, item];
+				}
+			});
 			switchConnections(item.id);
 		},
 		[switchConnections]

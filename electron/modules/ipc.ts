@@ -1,4 +1,7 @@
-import { ipcMain } from "electron";
+import type { BrowserWindow } from "electron";
+import { ipcMain, dialog } from "electron";
+import fs from "fs";
+import path from "path";
 import { nanoid } from "nanoid";
 import * as bson from "bson";
 
@@ -26,24 +29,57 @@ interface ExportData extends InvokeJS {
 interface CreateShell {
 	uri: string;
 	contextDB: string;
-	driverConnectionId: string;
+	storedConnectionId: string;
 }
 
 interface DestroyShell {
 	shell: string;
 }
 
-interface StoredScript {
-	name: string;
+interface BrowseFS {
+	type: "dir" | "file";
+	title?: string;
+	buttonLabel?: string;
+}
+
+export interface StoredScript {
+	id: string;
+	fullpath: string;
+	fileName?: string;
 	storedConnectionId?: string;
 }
 
-interface StoreAction {
-	type: "memory" | "disk";
-	action: "create" | "read" | "update" | "delete";
-	key: string;
-	params?: Partial<StoredScript>;
+export interface ScriptSaveParams {
+	id: string;
+	code?: string;
 }
+
+export interface ScriptSaveActionData {
+	action: "save";
+	params: ScriptSaveParams;
+}
+
+export interface ScriptSaveAsActionData {
+	action: "save_as";
+	params: {
+		saveLocation?: string;
+		storedConnectionId?: string;
+		fileName?: string;
+		code?: string;
+	} & Omit<ScriptSaveParams, "id">;
+}
+
+export interface ScriptDeleteActionData {
+	action: "delete";
+	params: { scriptId: string; };
+}
+
+export interface ScriptOpenActionData {
+	action: "open";
+	params: { storedConnectionId?: string; fileLocation?: string; };
+}
+
+export type ScriptActionData = (ScriptOpenActionData | ScriptSaveActionData | ScriptSaveAsActionData | ScriptDeleteActionData)
 
 export interface MemEntry {
 	connection: MongoClient;
@@ -56,6 +92,10 @@ interface StoredShellValue {
 	database: string;
 }
 
+interface IPCInitParams {
+	window: BrowserWindow;
+}
+
 function IPC() {
 	const shells = createMemoryStore<StoredShellValue>();
 
@@ -64,10 +104,11 @@ function IPC() {
 		diskStore: createDiskStore<Ark.StoredConnection>("connections")
 	});
 
+	// Stores opened scripts
 	const scriptDiskStore = createDiskStore<StoredScript>("scripts");
 
 	return {
-		init: () => {
+		init: ({ window }: IPCInitParams) => {
 			ipcMain.handle("driver_run", async (event, data: RunCommandInput) => {
 				try {
 					console.log(`calling ${data.library}.${data.action}()`);
@@ -82,10 +123,10 @@ function IPC() {
 
 			ipcMain.handle("shell_create", async (event, data: CreateShell) => {
 				try {
-					const { uri, contextDB, driverConnectionId } = data;
+					const { uri, contextDB, storedConnectionId } = data;
 
-					const storedConnection = await driver.run("connection", "load", { id: driverConnectionId });
-					const driverConnection = await driver.run("connection", "info", { id: driverConnectionId });
+					const storedConnection = await driver.run("connection", "load", { id: storedConnectionId });
+					const driverConnection = await driver.run("connection", "info", { id: storedConnectionId });
 					const mongoOptions = {
 						...storedConnection.options,
 						replicaSet: driverConnection.replicaSetDetails && driverConnection.replicaSetDetails.set ? driverConnection.replicaSetDetails.set : undefined
@@ -101,7 +142,7 @@ function IPC() {
 						uri
 					};
 					shells.save(shell.id, shell);
-					console.log(`created shell id=${shell.id} driverConnectionId=${driverConnectionId} uri=${uri} db=${contextDB}`);
+					console.log(`created shell id=${shell.id} storedConnectionId=${storedConnectionId} uri=${uri} db=${contextDB}`);
 					return { id: shell.id };
 				} catch (err) {
 					console.error("`shell_create` error");
@@ -153,8 +194,111 @@ function IPC() {
 					return { err };
 				}
 			});
-		},
-	};
+
+			ipcMain.handle("browse_fs", async (event, data: BrowseFS) => {
+				const { buttonLabel, title, type } = data;
+				if (type === "dir") {
+					const result = await dialog.showOpenDialog(window, {
+						title,
+						buttonLabel,
+						properties: ["openDirectory"]
+					});
+					return {
+						dirs: result.filePaths
+					};
+				} else if (type === "file") {
+					const result = await dialog.showOpenDialog(window, {
+						title,
+						buttonLabel,
+						properties: ["openFile"]
+					});
+					return {
+						path: result.filePaths[0]
+					};
+				}
+			});
+
+			ipcMain.handle("script_actions", async (event, data: ScriptActionData) => {
+				try {
+					if (data.action === 'open') {
+						const { fileLocation, storedConnectionId } = data.params;
+
+						if (fileLocation && storedConnectionId) {
+							const [fileName] = fileLocation.match(/(?<=\/)[ \w-]+?(\.)js/i) || [];
+							const code = (await fs.promises.readFile(fileLocation)).toString();
+
+							const id = nanoid();
+
+							const script: StoredScript = {
+								id,
+								storedConnectionId,
+								fullpath: fileLocation,
+								fileName
+							};
+
+							await scriptDiskStore.set(id, script);
+
+							return {
+								code,
+								script
+							};
+						} else {
+							throw new Error("Invalid input to open");
+						}
+
+					} else if (data.action === "save") {
+						const { code, id } = data.params;
+
+						const storedScript = await scriptDiskStore.get(id);
+
+						if (!storedScript) {
+							throw new Error("Script does not exist.");
+						}
+
+						const { fullpath } = storedScript;
+
+						await fs.promises.writeFile(fullpath, code);
+
+						return storedScript;
+					} else if (data.action === "save_as") {
+
+						const { code, saveLocation, storedConnectionId, fileName } = data.params;
+
+						const fullpath = path.join(
+							saveLocation
+								? saveLocation
+								: '',
+							fileName
+								? fileName
+								: 'untitled-ark-script.js'
+						);
+
+						await fs.promises.writeFile(fullpath, code);
+
+
+						const id = nanoid();
+
+						const script: StoredScript = {
+							id,
+							storedConnectionId,
+							fullpath,
+							fileName
+						};
+
+						await scriptDiskStore.set(id, script);
+
+						return script;
+					} else if (data.action === "delete") {
+						const { scriptId } = data.params;
+					}
+				} catch (err) {
+					console.error("`script_actions` error");
+					console.error(err);
+					return { err };
+				}
+			});
+		}
+	}
 }
 
 export default IPC();
