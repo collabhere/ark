@@ -11,6 +11,8 @@ import {
 	VscAccount,
 	VscSaveAs,
 	VscSave,
+	VscClose,
+	VscPlay,
 } from "react-icons/vsc";
 
 import { dispatch, listenEffect } from "../../../util/events";
@@ -18,6 +20,7 @@ import { getConnectionUri } from "../../../common/util";
 import { ResultViewer, ResultViewerProps } from "./ResultViewer/ResultViewer";
 import { Button } from "../../../common/components/Button";
 import { CircularLoading } from "../../../common/components/Loading";
+import { useRefresh } from "../../../hooks/useRefresh";
 
 const createDefaultCodeSnippet = (collection: string) => `// Mongo shell
 db.getCollection('${collection}').find({});
@@ -54,6 +57,8 @@ export const Editor: FC<EditorProps> = (props) => {
 
 	const { collection, username: user, uri, hosts } = shellConfig || {};
 
+	const [effectRefToken, refreshEffect] = useRefresh();
+	const [executing, setExecuting] = useState(false);
 	const [currentResult, setCurrentResult] = useState<ResultViewerProps>();
 	const [savedScriptId, setSavedScriptId] = useState<string | undefined>(
 		scriptId
@@ -79,26 +84,29 @@ export const Editor: FC<EditorProps> = (props) => {
 		(code) => {
 			const _code = code.replace(/(\/\/.*)|(\n)/g, "");
 			console.log(`executing ${shellId} code`);
-			shellId &&
-				window.ark.shell
-					.eval(shellId, _code)
-					.then(function ({ result, err }) {
-						if (err) {
-							console.log("exec shell");
-							console.log(err);
-							// setTextResult(msg + "<br/>" + html);
-							return;
-						}
-						const json = deserialize(result ? result : Buffer.from([]));
-						console.log("RESULT", json);
-						setCurrentResult({
-							type: "json",
-							json,
-						});
-					})
-					.catch(function (err) {
-						console.error("exec shell error: ", err);
-					});
+			setExecuting(true);
+			shellId
+				? window.ark.shell
+						.eval(shellId, _code)
+						.then(function ({ result, err }) {
+							if (err) {
+								console.log("exec shell");
+								console.log(err);
+								// setTextResult(msg + "<br/>" + html);
+								return;
+							}
+							const json = deserialize(result ? result : Buffer.from([]));
+							console.log("RESULT", json);
+							setCurrentResult({
+								type: "json",
+								json,
+							});
+						})
+						.catch(function (err) {
+							console.error("exec shell error: ", err);
+						})
+						.finally(() => setExecuting(false))
+				: setExecuting(false);
 		},
 		[shellId]
 	);
@@ -153,6 +161,10 @@ export const Editor: FC<EditorProps> = (props) => {
 		[shellId]
 	);
 
+	const terminateExecution = useCallback(() => {
+		if (shellId) return destroyShell(shellId).then(() => refreshEffect());
+	}, [destroyShell, refreshEffect, shellId]);
+
 	useEffect(() => {
 		if (contextDB && storedConnectionId) {
 			console.log("[editor onload]");
@@ -194,7 +206,14 @@ export const Editor: FC<EditorProps> = (props) => {
 				});
 			}
 		}
-	}, [contextDB, uri, storedConnectionId, hosts, switchReplicaShell]);
+	}, [
+		contextDB,
+		uri,
+		storedConnectionId,
+		hosts,
+		switchReplicaShell,
+		effectRefToken,
+	]);
 
 	/** Register browser event listeners */
 	useEffect(
@@ -297,6 +316,32 @@ export const Editor: FC<EditorProps> = (props) => {
 							popoverOptions={{
 								hover: {
 									content: "Save",
+								},
+							}}
+						/>
+					)}
+					{!executing && (
+						<Button
+							size="small"
+							icon={<VscPlay />}
+							variant="success"
+							onClick={() => exec(code)}
+							popoverOptions={{
+								hover: {
+									content: "Run",
+								},
+							}}
+						/>
+					)}
+					{executing && (
+						<Button
+							size="small"
+							icon={<VscClose />}
+							variant="danger"
+							onClick={() => terminateExecution()}
+							popoverOptions={{
+								hover: {
+									content: "Stop",
 								},
 							}}
 						/>
