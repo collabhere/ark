@@ -18,7 +18,6 @@ import { enableDevTools } from "./utils/dev";
 				height: 900,
 				frame: false,
 				webPreferences: {
-					nodeIntegration: true,
 					preload: path.join(__dirname, 'preload')
 				},
 			}
