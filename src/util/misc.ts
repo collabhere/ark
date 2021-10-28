@@ -1,4 +1,4 @@
-import { notification } from "antd";
+import notification, { NotificationInstance } from "antd/lib/notification";
 
 export const compose =
 	(...fns: any[]) =>
@@ -9,17 +9,28 @@ interface ToastProps {
 	title?: string;
 	description: string;
 	onClick?: () => void;
+	type: Extract<
+		keyof NotificationInstance,
+		"success" | "error" | "warning" | "info"
+	>;
 }
 
-export const notify = ({ title, description, onClick }: ToastProps): void => {
+export const notify = ({
+	title,
+	description,
+	onClick,
+	type,
+}: ToastProps): void => {
 	const rootElement = document.getElementById("root");
+	const notifyFunc = notification[type];
 
-	if (rootElement) {
-		notification.open({
+	if (rootElement && notifyFunc) {
+		notifyFunc({
 			message: title,
 			description,
 			onClick,
 			getContainer: () => rootElement,
+			className: "notification",
 		});
 	}
 };

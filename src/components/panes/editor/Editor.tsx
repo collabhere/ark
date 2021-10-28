@@ -89,12 +89,14 @@ export const Editor: FC<EditorProps> = (props) => {
 						notify({
 							title: "Export complete!",
 							description: `Path: ~/.ark/exports/${options.fileName}`,
+							type: "success",
 						});
 					})
-					.catch(function (err) {
+					.catch((err) => {
 						notify({
 							title: "Export failed!",
 							description: err.message || err,
+							type: "error",
 						});
 						console.error("exec shell error: ", err);
 					});
