@@ -167,7 +167,7 @@ export const Editor: FC<EditorProps> = (props) => {
 
 	useEffect(() => {
 		if (contextDB && storedConnectionId) {
-			console.log("[editor onload]");
+			console.log("[editor onload]", shellId);
 			if (hosts && hosts.length > 1) {
 				console.log("[editor onload] multi-host");
 				window.ark.driver
@@ -206,6 +206,9 @@ export const Editor: FC<EditorProps> = (props) => {
 				});
 			}
 		}
+		return () => {
+			if (shellId) destroyShell(shellId);
+		};
 	}, [
 		contextDB,
 		uri,

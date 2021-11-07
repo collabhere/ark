@@ -101,7 +101,7 @@ export const Connection: Connection = {
 		if (await diskStore.has(id)) {
 			const config = await diskStore.get(id);
 			const connectionUri = getConnectionUri(config);
-			const client = new MongoClient(connectionUri, config.options);
+			const client = new MongoClient(connectionUri);
 			const connection = await client.connect();
 			const databases = await connection.db().admin().listDatabases();
 			memoryStore.save(id, { connection, databases });
@@ -199,16 +199,16 @@ const getConnectionUri = ({
 	password,
 	options,
 }: Ark.StoredConnection) => {
+	const uri = mongoUri.format({
+		hosts: hosts.map(host => ({ host: host.split(":")[0], port: host.split(":")[1] ? parseInt(host.split(":")[1]) : undefined })),
+		scheme: "mongodb",
+		database,
+		options,
+		username,
+		password
+	})
 
-	const querystring = stringify(
-		ObjectUtils.pick(options, ["authSource"])
-	);
-
-	const userpass = username && password ? `${username}:${encodeURIComponent(password)}@` : "";
-
-	const hoststring = hosts.join(",");
-
-	return `mongodb://${userpass}${hoststring}/${database}?${querystring}`;
+	return uri;
 };
 
 const lookupSRV = (connectionString: string): Promise<SrvRecord[]> => {
