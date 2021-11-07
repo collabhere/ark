@@ -2,7 +2,7 @@ import AsyncWriter from "@mongosh/async-rewriter2";
 import {
 	Mongo,
 	Database,
-	ShellInternalState,
+	ShellInstanceState,
 	Cursor,
 	ShellApi,
 	ReplicaSet,
@@ -85,7 +85,7 @@ async function evaluate(
 ) {
 	const { database, page } = options.params;
 
-	const internalState = new ShellInternalState(serviceProvider);
+	const internalState = new ShellInstanceState(serviceProvider);
 
 	const mongo = new Mongo(
 		internalState,
