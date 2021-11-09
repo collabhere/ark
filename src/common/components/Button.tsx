@@ -11,7 +11,7 @@ interface PopoverOptions {
 }
 
 interface ButtonProps {
-	variant?: "primary" | "secondary" | "danger" | "success";
+	variant?: "primary" | "secondary" | "danger" | "success" | "link";
 	shape?: "round" | "circle";
 	text?: string;
 	icon?: React.ReactNode;
@@ -21,9 +21,9 @@ interface ButtonProps {
 		click?: PopoverOptions;
 	};
 	onClick?:
-		| (() => void)
+		| ((e: React.MouseEvent) => void)
 		| {
-				promise: () => Promise<void>;
+				promise: (e: React.MouseEvent) => Promise<void>;
 				callback: PromiseCompleteCallback;
 		  };
 }
@@ -36,12 +36,13 @@ export const Button: FC<ButtonProps> = (props) => {
 	const baseButton = useMemo(
 		() => (
 			<AntButton
+				type={variant === "link" ? "link" : undefined}
 				className={variant ? "button-" + variant : "button-primary"}
 				shape={shape}
 				disabled={loading}
-				onClick={() => {
+				onClick={(e) => {
 					if (!popoverOptions || (popoverOptions && !popoverOptions.click))
-						onClick && asyncEventOverload(setLoading, onClick);
+						onClick && asyncEventOverload(setLoading, onClick, e);
 				}}
 				loading={icon ? loading : undefined}
 				icon={
@@ -51,7 +52,11 @@ export const Button: FC<ButtonProps> = (props) => {
 				}
 				size={size || "large"}
 			>
-				{text && <span>{text}</span>}
+				{text && (
+					<span className={"button-text-size-" + (size || "large")}>
+						{text}
+					</span>
+				)}
 			</AntButton>
 		),
 		[icon, loading, onClick, popoverOptions, shape, size, text, variant]

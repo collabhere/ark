@@ -1,12 +1,22 @@
+
+export type ListResult = Array<{ key: string; value: any; }>;
 export interface MemoryStore<T> {
 	save(id: string, entry: Partial<T>): string;
 	get(id: string): T;
 	has(id: string): boolean;
 	drop(id: string): boolean;
+	list(): ListResult;
+	keys(): string[];
 }
 
 export const createMemoryStore = <T extends Record<string, any>>(): MemoryStore<T> => {
 	const store = new Map<string, Partial<T>>();
+
+	const keys = () => Array.from(store.keys());
+
+	const list = () => Array.from(
+		store.entries()
+	).reduce<ListResult>((acc, [key, value]) => (acc.push({ key, value }), acc), []);
 
 	const has = (k: string) => store.has(k);
 
@@ -37,5 +47,5 @@ export const createMemoryStore = <T extends Record<string, any>>(): MemoryStore<
 		}
 	};
 
-	return { save, get, drop, has };
+	return { save, get, drop, has, list, keys };
 };

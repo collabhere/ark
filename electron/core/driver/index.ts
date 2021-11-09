@@ -6,7 +6,7 @@ import { Database } from "./database";
 
 interface CreateDriverParams {
     memoryStore: MemoryStore<MemEntry>;
-    diskStore: DiskStore;
+    diskStore: DiskStore<Ark.StoredConnection>;
 }
 
 export interface DriverModules {
@@ -14,24 +14,20 @@ export interface DriverModules {
     database: Database;
 }
 
-interface DriverCommands {
-    run(type: keyof DriverModules, func: string, args: { id?: string;[k: string]: any; }): Promise<Ark.AnyObject>;
-}
-
-export function createDriver(params: CreateDriverParams): DriverCommands {
+export function createDriver(params: CreateDriverParams) {
     const {
         diskStore,
         memoryStore
     } = params;
 
-    const driver: DriverModules = {
+    const modules: DriverModules = {
         connection: Connection,
         database: Database
     };
 
-    return {
-        run: async (type, func, args = {}) => {
-            const module: any = driver[type];
+    const driver: Ark.Driver = {
+        run: async (type: keyof DriverModules, func: string, args = {}) => {
+            const module: any = modules[type];
 
             if (!module) {
                 throw new Error("Library (" + type + ") not found.");
@@ -49,7 +45,9 @@ export function createDriver(params: CreateDriverParams): DriverCommands {
             }
             return method(DriverDependency, args);
         }
-    }
+    };
+
+    return driver;
 }
 
 export type { Database };

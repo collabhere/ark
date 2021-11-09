@@ -1,12 +1,27 @@
 import { ListDatabasesResult, MongoClient, MongoClientOptions } from "mongodb";
-import { resolveSrv, SrvRecord } from "dns";
+import type { SrvRecord } from "dns";
+import { promises as netPromises } from "dns";
 import { nanoid } from "nanoid";
 import { URL } from "url";
+import mongoUri from "mongodb-uri";
 import { stringify } from "querystring";
 import tunnel, { Config } from "tunnel-ssh";
 
 import { ARK_FOLDER_PATH } from "../../utils/constants";
 import * as ObjectUtils from "../../utils/object";
+
+interface ReplicaSetMember {
+	name: string;
+	health: number;
+	state: number;
+	stateStr: "PRIMARY" | "SECONDARY";
+}
+interface GetConnectionResult {
+	replicaSetDetails?: {
+		members: ReplicaSetMember[];
+		set: string;
+	};
+}
 
 interface URIConfiguration {
 	uri: string;
@@ -14,6 +29,10 @@ interface URIConfiguration {
 }
 
 export interface Connection {
+	info(
+		dep: Ark.DriverDependency,
+		arg: { id: string }
+	): Promise<GetConnectionResult>;
 	/**
 	 * Load all stored connections from disk.
 	 */
@@ -61,18 +80,42 @@ export interface Connection {
 }
 
 export const Connection: Connection = {
+	info: async ({ memoryStore }, { id }) => {
+		const client = memoryStore.get(id).connection;
+		if (client) {
+			const admin = client.db().admin();
+			const serverStatus = await admin.serverStatus();
+
+			const result: GetConnectionResult = {};
+
+			const replSet = serverStatus.repl;
+
+			if (replSet) {
+				const replSetStatus = await admin.replSetGetStatus();
+				const members = replSetStatus.members;
+				result.replicaSetDetails = {
+					members,
+					set: replSetStatus.set,
+				};
+			}
+
+			return result;
+		} else {
+			throw new Error("Connection not found!");
+		}
+	},
 	list: async ({ diskStore }) => {
-		const connections = await diskStore.getAll("connections");
+		const connections = await diskStore.getAll();
 		return connections as Ark.StoredConnection[];
 	},
 	load: async ({ diskStore }, { id }) => {
-		const config = await diskStore.get("connections", id);
+		const config = await diskStore.get(id);
 		const uri = getConnectionUri(config);
 		return { ...config, uri };
 	},
 	connect: async ({ diskStore, memoryStore }, { id }) => {
-		if (await diskStore.has("connections", id)) {
-			const config = await diskStore.get("connections", id);
+		if (await diskStore.has(id)) {
+			const config = await diskStore.get(id);
 
 			if (config.ssh && config.ssh.host) {
 				const server = await sshTunnel(config.ssh);
@@ -83,9 +126,8 @@ export const Connection: Connection = {
 					throw new Error("Unable to make ssh connection.");
 				}
 			}
-
 			const connectionUri = getConnectionUri(config);
-			const client = new MongoClient(connectionUri, config.options);
+			const client = new MongoClient(connectionUri);
 			const connection = await client.connect();
 			const databases = await connection.db().admin().listDatabases();
 			memoryStore.save(id, { connection, databases });
@@ -104,13 +146,14 @@ export const Connection: Connection = {
 	},
 	save: async ({ diskStore }, { type, config }) => {
 		const options: MongoClientOptions = {};
-		let members: Array<string>;
+		let hosts: Array<string>;
 
 		if (isURITypeConfig(type, config)) {
 			const id = nanoid();
-			const parsedUri = new URL(config.uri);
-			if (parsedUri.protocol.includes("+srv")) {
-				members = (await lookupSRV(`_mongodb._tcp.${parsedUri.hostname}`)).map(
+			const parsedUri = mongoUri.parse(config.uri);
+			if (parsedUri.scheme.includes("+srv")) {
+				const hostdetails = parsedUri.hosts[0];
+				hosts = (await lookupSRV(`_mongodb._tcp.${hostdetails.host}`)).map(
 					(record) => `${record.name}:${record.port || 27017}`
 				);
 
@@ -118,29 +161,21 @@ export const Connection: Connection = {
 				options.tlsCertificateFile = `${ARK_FOLDER_PATH}/certs/ark.crt`;
 				options.authSource = "admin";
 			} else {
-				members = [`${parsedUri.hostname}:${parsedUri.port || 27017}`];
+				hosts = parsedUri.hosts.map(
+					(host) => `${host.host}:${host.port || 27017}`
+				);
 			}
 
-			const uriOptions = parsedUri.search
-				.slice(1, parsedUri.search.length)
-				.split("&")
-				.reduce<any>((acc, option) => {
-					const [key, value] = option.split("=");
-
-					acc[key] = value;
-					return acc;
-				}, {});
-
-			await diskStore.set("connections", id, {
+			await diskStore.set(id, {
 				id,
-				protocol: parsedUri.protocol,
+				protocol: parsedUri.scheme,
 				name: config.name,
-				type: members.length > 1 ? "replicaSet" : "directConnection",
-				members,
+				type: hosts.length > 1 ? "replicaSet" : "directConnection",
+				hosts: hosts,
 				username: parsedUri.username,
 				password: parsedUri.password,
-				database: parsedUri.pathname.slice(1, parsedUri.pathname.length),
-				options: { ...uriOptions, ...options },
+				database: parsedUri.database,
+				options: { ...parsedUri.options, ...options },
 			});
 			return id;
 		} else {
@@ -149,14 +184,14 @@ export const Connection: Connection = {
 			if (!config.options.tls) {
 				const { tls: _, tlsCertificateFile: __, ...formattedOptions } = options;
 
-				await diskStore.set("connections", id, {
+				await diskStore.set(id, {
 					...config,
 					options: { ...formattedOptions },
 					id,
 				});
 			} else if (config.options.tls && !config.options.tlsCertificateFile) {
 				config.options.tlsCertificateFile = `${ARK_FOLDER_PATH}/certs/ark.crt`;
-				await diskStore.set("connections", id, {
+				await diskStore.set(id, {
 					...config,
 					id,
 				});
@@ -166,17 +201,14 @@ export const Connection: Connection = {
 		}
 	},
 	delete: async ({ diskStore }, { id }) => {
-		await diskStore.remove("connections", id);
+		await diskStore.remove(id);
 	},
 	listDatabases: async ({ memoryStore }, { id }) => {
 		const entry = memoryStore.get(id);
 		if (entry) {
 			const client = entry.connection;
 			const db = client.db().admin();
-			const result = await db.listDatabases({
-				authorizedDatabases: true,
-				nameOnly: false,
-			});
+			const result = await db.listDatabases({ nameOnly: false });
 			// Incorrect type from mongo driver
 			return (result as any).databases as ListDatabasesResult;
 		} else {
@@ -221,23 +253,29 @@ const sshTunnel = async (
 };
 
 const getConnectionUri = ({
-	members,
+	hosts,
 	database = "admin",
 	username,
 	password,
 	options,
 }: Ark.StoredConnection) => {
-	const querystring = stringify(ObjectUtils.pick(options, ["authSource"]));
+	const uri = mongoUri.format({
+		hosts: hosts.map((host) => ({
+			host: host.split(":")[0],
+			port: host.split(":")[1] ? parseInt(host.split(":")[1]) : undefined,
+		})),
+		scheme: "mongodb",
+		database,
+		options,
+		username,
+		password,
+	});
 
-	const userpass = username && password ? `${username}:${password}@` : "";
-
-	const hoststring = members.join(",");
-
-	return `mongodb://${userpass}${hoststring}/${database}?${querystring}`;
+	return uri;
 };
 
 const lookupSRV = (connectionString: string): Promise<SrvRecord[]> => {
-	return resolveSrv.__promisify__(connectionString);
+	return netPromises.resolveSrv(connectionString);
 };
 
 function isURITypeConfig(

@@ -24,5 +24,8 @@
 	"include": [
 		"src",
 		"./global.d.ts"
+	],
+	"exclude": [
+		"src/mongoshell.d.ts"
 	]
 }

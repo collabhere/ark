@@ -6,10 +6,11 @@ import { Button } from "./Button";
 interface ModalProps {
 	size: "small" | "large";
 	title?: string | JSX.Element;
-	onConfirm: () => void;
+	onConfirm?: () => void;
 	onCancel?: () => void;
 	onClose?: () => void;
 	children?: ReactNode;
+	noFooter?: boolean;
 }
 
 export function Dialog({
@@ -19,6 +20,7 @@ export function Dialog({
 	onCancel,
 	children,
 	onClose,
+	noFooter = false,
 }: ModalProps): JSX.Element {
 	const rootElement = document.getElementById("root");
 
@@ -33,22 +35,28 @@ export function Dialog({
 			visible={true}
 			width={size === "small" ? 600 : 1000}
 			footer={
-				<div className={"modal-footer"}>
-					{onCancel && (
-						<div>
-							<Button variant={"primary"} text={"Cancel"} onClick={onCancel} />
-						</div>
-					)}
-					{onConfirm && (
-						<div>
-							<Button
-								variant={"secondary"}
-								text={"Confirm"}
-								onClick={onConfirm}
-							/>
-						</div>
-					)}
-				</div>
+				!noFooter && (
+					<div className={"modal-footer"}>
+						{onCancel && (
+							<div>
+								<Button
+									variant={"primary"}
+									text={"Cancel"}
+									onClick={onCancel}
+								/>
+							</div>
+						)}
+						{onConfirm && (
+							<div>
+								<Button
+									variant={"secondary"}
+									text={"Confirm"}
+									onClick={onConfirm}
+								/>
+							</div>
+						)}
+					</div>
+				)
 			}
 		>
 			<div>{children}</div>

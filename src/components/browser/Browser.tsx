@@ -9,6 +9,7 @@ import {
 	ConnectionForm,
 	ConnectionFormProps,
 } from "../panes/connection-form/ConnectionForm";
+import { EmptyState } from "../onboarding/EmptyState";
 
 const { TabPane } = Tabs;
 
@@ -24,7 +25,7 @@ type ConnectionFormTab = { type: "connection_form" } & ConnectionFormProps &
 	BaseTab;
 
 interface CreateEditorTabArgs {
-	shellConfig: Ark.ShellProps;
+	shellConfig: Ark.ShellConfig;
 	contextDB: string;
 }
 
@@ -45,20 +46,13 @@ const TAB_PANES = {
 	connection_form: ConnectionForm,
 } as const;
 
-const EmptyState = () => {
-	return <div>This is an empty state!</div>;
-};
-
 export const Browser = (): JSX.Element => {
 	const [tabs, setTabs] = useState<Tab[]>([]);
 	const [activeKey, setActiveKey] = useState<string>();
+	const [untitledCount, setUntitledCount] = useState(0);
 
 	/* onload useEffect */
 	useEffect(() => {}, []);
-
-	const goToFirstTab = useCallback(() => {
-		if (tabs && tabs.length) setActiveKey(tabs[0].id);
-	}, [tabs]);
 
 	const createConnectionFormTab = useCallback(
 		(connectionParams?: {
@@ -90,35 +84,48 @@ export const Browser = (): JSX.Element => {
 		[]
 	);
 
-	const createEditorTab = useCallback((args: CreateEditorTabArgs) => {
-		const id = "e-" + nanoid();
-		setTabs((tabs) => {
-			const title = "Query - " + id;
-			return [
-				...tabs,
-				{
-					type: "editor",
-					title,
-					id: "" + id,
-					closable: true,
-					...args,
-				},
-			];
-		});
-		setActiveKey(() => id);
-	}, []);
+	const createEditorTab = useCallback(
+		(args: CreateEditorTabArgs) => {
+			const id = "e-" + nanoid();
+			setTabs((tabs) => {
+				const title = `Untitled-${
+					untitledCount + 1
+				} ${args.shellConfig.name.slice(0, 24)}...`;
+				return [
+					...tabs,
+					{
+						type: "editor",
+						title,
+						id: "" + id,
+						closable: true,
+						...args,
+					},
+				];
+			});
+			setUntitledCount((count) => (count += 1));
+			setActiveKey(() => id);
+		},
+		[untitledCount]
+	);
 
 	const deleteTab = useCallback(
 		(args: DeleteEditorTabArgs) => {
 			const { id } = args;
 			setTabs((tabs) => {
 				const deleteIdx = tabs.findIndex((tab) => tab.id === id);
+				const nextIdx = deleteIdx + 1;
+				const prevIdx = deleteIdx - 1;
+				if (id === activeKey && nextIdx <= tabs.length - 1)
+					// Shift to next if possible
+					setActiveKey(() => tabs[nextIdx].id);
+				else if (id === activeKey && prevIdx >= 0)
+					// else shift back
+					setActiveKey(() => tabs[prevIdx].id);
 				tabs.splice(deleteIdx, 1);
 				return [...tabs];
 			});
-			if (id !== activeKey) goToFirstTab();
 		},
-		[activeKey, goToFirstTab]
+		[activeKey]
 	);
 
 	/** Register browser event listeners */
@@ -136,6 +143,10 @@ export const Browser = (): JSX.Element => {
 				{
 					event: "browser:create_tab:connection_form",
 					cb: (e, payload) => createConnectionFormTab(payload),
+				},
+				{
+					event: "browser:delete_tab:connection_form",
+					cb: (e, payload) => deleteTab(payload),
 				},
 			]),
 		[createEditorTab, deleteTab, createConnectionFormTab]

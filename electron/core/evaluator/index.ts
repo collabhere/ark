@@ -2,14 +2,14 @@ import AsyncWriter from "@mongosh/async-rewriter2";
 import {
 	Mongo,
 	Database,
-	ShellInternalState,
+	ShellInstanceState,
 	Cursor,
 	ShellApi,
 	ReplicaSet,
 	Shard,
 } from "@mongosh/shell-api";
-import { ConnectOptions as DriverConnectOptions } from "mongodb";
-import { CliServiceProvider } from "@mongosh/service-provider-server";
+import { bson } from "@mongosh/service-provider-core";
+import { CliServiceProvider, MongoClientOptions } from "@mongosh/service-provider-server";
 import { EventEmitter } from "stream";
 import { exportData, MongoExportOptions } from "../../modules/exports";
 
@@ -32,14 +32,15 @@ export interface Evaluator {
 
 interface CreateEvaluatorOptions {
 	uri: string;
+	mongoOptions: MongoClientOptions;
 }
 
 export async function createEvaluator(
 	options: CreateEvaluatorOptions
 ): Promise<Evaluator> {
-	const { uri } = options;
+	const { uri, mongoOptions } = options;
 
-	const provider = await createServiceProvider(uri);
+	const provider = await createServiceProvider(uri, mongoOptions);
 
 	const evaluator: Evaluator = {
 		export: (code, database, options) => {
@@ -59,16 +60,9 @@ export async function createEvaluator(
 	return evaluator;
 }
 
-async function createServiceProvider(
-	uri: string,
-	driverOpts: DriverConnectOptions = {}
-) {
-	return await CliServiceProvider.connect(
-		uri,
-		driverOpts,
-		{},
-		new EventEmitter()
-	);
+async function createServiceProvider(uri: string, driverOpts: MongoClientOptions = {}) {
+	const provider = await CliServiceProvider.connect(uri, driverOpts, {}, new EventEmitter());
+	return provider
 }
 
 function paginateCursor(cursor: Cursor, page: number) {
@@ -91,7 +85,7 @@ async function evaluate(
 ) {
 	const { database, page } = options.params;
 
-	const internalState = new ShellInternalState(serviceProvider);
+	const internalState = new ShellInstanceState(serviceProvider);
 
 	const mongo = new Mongo(
 		internalState,
@@ -111,7 +105,14 @@ async function evaluate(
 
 	const transpiledCodeString = new AsyncWriter().process(code);
 
-	let result = await _evaluate(transpiledCodeString, db, rs, sh, shellApi);
+	let result = await _evaluate(
+		transpiledCodeString,
+		db,
+		rs,
+		sh,
+		shellApi,
+		bson
+	);
 
 	if (result instanceof Cursor) {
 		if (options.mode === "export") {

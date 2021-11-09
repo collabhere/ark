@@ -7,13 +7,15 @@ import { addMongoShellCompletions } from "./mongo-shell-completion";
 interface Intellisense {
     collections: string[];
     database?: string;
+    disableTypeChecking?: boolean;
 }
 
 export async function mountMonaco(monaco: Monaco, intellisense: Intellisense): Promise<void> {
 
     const {
         collections: COLLECTIONS,
-        database: DATABASE
+        database: DATABASE,
+        disableTypeChecking = false
     } = intellisense;
 
     // Compiler options
@@ -23,11 +25,18 @@ export async function mountMonaco(monaco: Monaco, intellisense: Intellisense): P
         moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
         module: monaco.languages.typescript.ModuleKind.CommonJS,
         noEmit: true,
+        noLib: true,
         typeRoots: ["node_modules/@types", "node_modules/@mongosh"],
     });
 
     // Add all of @mongosh/shell-api's definitions along with a custom global.d.ts with editor globals.
     addMongoShellCompletions(monaco);
+
+    // validation settings
+    monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+        onlyVisible: true,
+        noSyntaxValidation: !disableTypeChecking,
+    });
 
     // Completions
     monaco.languages.registerCompletionItemProvider('typescript', {
@@ -37,23 +46,12 @@ export async function mountMonaco(monaco: Monaco, intellisense: Intellisense): P
 
             const { word } = model.getWordUntilPosition(position);
 
-            const code = model.getValueInRange({
-                startLineNumber: 1,
+            const currentLine = model.getValueInRange({
+                startLineNumber: position.lineNumber,
                 startColumn: 1,
                 endLineNumber: position.lineNumber,
                 endColumn: position.column
             });
-
-            const allLines = code.split("\n").map(line => line.replace(/\t/g, '').split(" "));
-            const lastLine = allLines[allLines.length - 1];
-
-            console.log("Position -", position);
-            console.log("Word -", word);
-            console.log("Line -", code);
-            console.log("All segments -", allLines);
-            console.log("Current segment -", lastLine);
-
-            const [command] = lastLine;
 
             const DB_SUGGESTIONS: languages.CompletionItem[] = COLLECTIONS.map(coll => ({
                 label: coll,
@@ -69,7 +67,7 @@ export async function mountMonaco(monaco: Monaco, intellisense: Intellisense): P
                 }
             }));
 
-            if ((/db\.(?!.)/i.test(command))) {
+            if ((/db\.(?!.)/i.test(currentLine))) {
                 suggestions.push(...DB_SUGGESTIONS);
             }
 

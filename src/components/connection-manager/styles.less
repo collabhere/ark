@@ -22,12 +22,15 @@
 
 .CardTitle {
 	display: flex;
+	align-items: center;
+	justify-content: space-between;
 	color: #fff;
 }
 
 .CardTitleSection {
 	display: flex;
-	flex-grow: 1;
+	align-items: center;
+	width: 70%;
 	gap: 10px;
 }
 
@@ -41,10 +44,41 @@
 	margin-top: 20px;
 }
 
+.TrimText {
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
 .FlexFill {
 	flex-grow: 1;
 }
 
 .Header {
 	font-size: 20px;
+}
+
+.CompactCard {
+	display: flex;
+	justify-content: space-evenly;
+	flex-direction: row;
+	background: @primary-tint-8;
+	align-items: center;
+	gap: 4px;
+	padding: 12px;
+}
+
+.CellInfo {
+	min-width: 10%;
+}
+
+.CellInfoTitle {
+	color: @primary-tint-2;
+	font-size: 13px;
+}
+
+.CellInfoTitleContent {
+	display: flex;
+	flex-wrap: wrap;
+	word-wrap: break-word;
 }

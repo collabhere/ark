@@ -19,7 +19,13 @@ export const Sidebar: FC = () => {
 
 	const addItem = useCallback(
 		(item: SidebarItem) => {
-			setItems((items) => [...items, item]);
+			setItems((items) => {
+				if (items.some((i) => i.name === item.name)) {
+					return items;
+				} else {
+					return [...items, item];
+				}
+			});
 			switchConnections(item.id);
 		},
 		[switchConnections]
@@ -46,16 +52,18 @@ export const Sidebar: FC = () => {
 
 	return (
 		<div className="Sidebar">
-			<div className="SidebarSection" onClick={listConnections}>
+			<div className="SidebarItem SidebarHome" onClick={listConnections}>
 				<VscDatabase size="30" />
 			</div>
-			<div className="SidebarSection">
-				{items?.map((conn) => (
-					<div key={conn.id} onClick={() => switchConnections(conn.id)}>
-						{conn.name[0]}
-					</div>
-				))}
-			</div>
+			{items?.map((conn) => (
+				<div
+					className="SidebarItem SidebarConnection"
+					key={conn.id}
+					onClick={() => switchConnections(conn.id)}
+				>
+					{conn.name[0]}
+				</div>
+			))}
 		</div>
 	);
 };

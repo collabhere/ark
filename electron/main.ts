@@ -10,12 +10,7 @@ import { enableDevTools } from "./utils/dev";
 	try {
 		app.allowRendererProcessReuse = true;
 
-		IPC.init();
-
 		await app.whenReady();
-
-		if (process.env.ARK_ENABLE_DEV_TOOLS && process.env.ARK_DEV_TOOLS_PATH)
-			await enableDevTools(process.env.ARK_DEV_TOOLS_PATH);
 
 		const window = Window.createWindow(
 			{
@@ -23,11 +18,17 @@ import { enableDevTools } from "./utils/dev";
 				height: 900,
 				frame: false,
 				webPreferences: {
-					nodeIntegration: true,
 					preload: path.join(__dirname, 'preload')
 				},
 			}
 		);
+
+		IPC.init({
+			window
+		});
+
+		if (process.env.ARK_ENABLE_DEV_TOOLS && process.env.ARK_DEV_TOOLS_PATH)
+			await enableDevTools(process.env.ARK_DEV_TOOLS_PATH);
 
 		const loadURL = process.env.ARK_ENTRY_URL || `file://${path.join(__dirname, "../index.html")}`;
 
