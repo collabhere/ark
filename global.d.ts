@@ -74,10 +74,11 @@ declare global {
 		interface Shell {
 			create: (uri: string, contextDB: string, storedConnectionId: string) => Promise<{ id: string }>;
 			destroy: (uri: string) => Promise<{ id: string }>;
-			eval: (shellId: string, code: string) => Promise<EvalResult>;
+			eval: (shellId: string, code: string, connectionId: string) => Promise<EvalResult>;
 			export: (
 				shellId: string,
 				code: string,
+				connectionId: string,
 				options: ExportCsvOptions | ExportNdjsonOptions
 			) => Promise<void>;
 		}

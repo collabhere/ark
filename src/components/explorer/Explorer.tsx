@@ -6,6 +6,7 @@ import { Resizable } from "re-resizable";
 import { dispatch, listenEffect } from "../../util/events";
 import { CollectionInfo, ListDatabasesResult } from "mongodb";
 import { useTree } from "../../hooks/useTree";
+import { handleErrors } from "../../util/misc";
 
 const dbTreeKey = (dbName: string) => "database;" + dbName;
 const collectionTreeKey = (collectionName: string, dbName: string) =>
@@ -35,7 +36,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 	}, []);
 
 	const addDatabaseNodes = useCallback(
-		(databases: ListDatabasesResult) => {
+		(databases: ListDatabasesResult["databases"]) => {
 			databases.map((db) => addNodeAtEnd(db.name, dbTreeKey(db.name)));
 		},
 		[addNodeAtEnd]
@@ -69,6 +70,9 @@ export const Explorer: FC<ExplorerProps> = () => {
 								return { ...map };
 							});
 						}
+					})
+					.catch((err) => {
+						handleErrors(err);
 					});
 		},
 		[addCollectionNodesToDatabase, currentConnectionId]
@@ -103,6 +107,9 @@ export const Explorer: FC<ExplorerProps> = () => {
 					if (databases && databases.length) {
 						addDatabaseNodes(databases);
 					}
+				})
+				.catch((err) => {
+					handleErrors(err);
 				});
 		}
 		return () => dropTree();

@@ -1,4 +1,5 @@
 import notification, { NotificationInstance } from "antd/lib/notification";
+import { ERRORS } from "./constants";
 
 export const compose =
 	(...fns: any[]) =>
@@ -32,5 +33,16 @@ export const notify = ({
 			getContainer: () => rootElement,
 			className: "notification",
 		});
+	}
+};
+
+export const handleErrors = (err: Error): void => {
+	switch (err.message) {
+		case (ERRORS.AR600, ERRORS.AR601): {
+			notify({
+				description: err.message,
+				type: "error",
+			});
+		}
 	}
 };

@@ -8,7 +8,9 @@ import { stringify } from "querystring";
 import tunnel, { Config } from "tunnel-ssh";
 
 import { ARK_FOLDER_PATH } from "../../utils/constants";
-import * as ObjectUtils from "../../utils/object";
+import { ERRORS } from "../../utils/constants";
+import { MemEntry } from "../../modules/ipc";
+import { Server } from "net";
 
 interface ReplicaSetMember {
 	name: string;
@@ -76,7 +78,7 @@ export interface Connection {
 	listDatabases(
 		dep: Ark.DriverDependency,
 		arg: { id: string }
-	): Promise<ListDatabasesResult>;
+	): Promise<ListDatabasesResult["databases"]>;
 }
 
 export const Connection: Connection = {
@@ -117,8 +119,9 @@ export const Connection: Connection = {
 		if (await diskStore.has(id)) {
 			const config = await diskStore.get(id);
 
+			let server: Server | void;
 			if (config.ssh && config.ssh.host) {
-				const server = await sshTunnel(config.ssh);
+				server = await sshTunnel(config.ssh);
 				if (server) {
 					server.on("close", () => console.log("SSH connection closed"));
 					server.on("error", () => console.log("SSH connection errored"));
@@ -126,19 +129,31 @@ export const Connection: Connection = {
 					throw new Error("Unable to make ssh connection.");
 				}
 			}
+
 			const connectionUri = getConnectionUri(config);
 			const client = new MongoClient(connectionUri);
 			const connection = await client.connect();
 			const databases = await connection.db().admin().listDatabases();
-			memoryStore.save(id, { connection, databases });
+			const connectionDetails: MemEntry = { connection, databases };
+
+			if (config.ssh && server) {
+				connectionDetails.server = server;
+			}
+
+			memoryStore.save(id, connectionDetails);
 		} else {
 			throw new Error("Connection not found!");
 		}
 	},
 	disconnect: async ({ memoryStore }, { id }) => {
-		const client = memoryStore.get(id).connection;
-		if (client) {
-			await client.close();
+		const entry = memoryStore.get(id);
+		if (entry && entry.connection) {
+			await entry.connection.close();
+
+			if (entry.server) {
+				entry.server.close();
+			}
+
 			memoryStore.drop(id);
 		} else {
 			throw new Error("Connection not found!");
@@ -203,14 +218,19 @@ export const Connection: Connection = {
 	delete: async ({ diskStore }, { id }) => {
 		await diskStore.remove(id);
 	},
-	listDatabases: async ({ memoryStore }, { id }) => {
+	listDatabases: async function ({ memoryStore }, { id }) {
 		const entry = memoryStore.get(id);
+
 		if (entry) {
+			if (entry.server && !entry.server.listening) {
+				throw new Error(ERRORS.AR600);
+			}
+
 			const client = entry.connection;
 			const db = client.db().admin();
 			const result = await db.listDatabases({ nameOnly: false });
 			// Incorrect type from mongo driver
-			return (result as any).databases as ListDatabasesResult;
+			return result.databases;
 		} else {
 			throw new Error("Entry not found");
 		}

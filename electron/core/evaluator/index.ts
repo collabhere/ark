@@ -14,6 +14,9 @@ import { EventEmitter } from "stream";
 import { exportData, MongoExportOptions } from "../../modules/exports";
 
 import { _evaluate } from "./_eval";
+import { MemoryStore } from "../stores/memory";
+import { MemEntry } from "../../modules/ipc";
+import { ERRORS } from "../../utils/constants";
 
 export interface EvalResult {
 	result?: Buffer;
@@ -21,36 +24,43 @@ export interface EvalResult {
 }
 
 export interface Evaluator {
-	evaluate(code: string, database: string): Promise<Ark.AnyObject>;
+	evaluate(code: string, database: string, connectionId: string): Promise<Ark.AnyObject>;
 	disconnect(): Promise<void>;
 	export(
 		code: string,
 		database: string,
-		options: Ark.ExportCsvOptions | Ark.ExportNdjsonOptions
+		connectionId: string,
+		options: Ark.ExportCsvOptions | Ark.ExportNdjsonOptions,
 	): Promise<void>;
 }
 
 interface CreateEvaluatorOptions {
 	uri: string;
 	mongoOptions: MongoClientOptions;
+	connectionStore?: MemoryStore<MemEntry>
 }
 
 export async function createEvaluator(
 	options: CreateEvaluatorOptions
 ): Promise<Evaluator> {
-	const { uri, mongoOptions } = options;
+	const { uri, mongoOptions, connectionStore } = options;
 
 	const provider = await createServiceProvider(uri, mongoOptions);
 
 	const evaluator: Evaluator = {
-		export: (code, database, options) => {
-			return evaluate(code, provider, {
-				mode: "export",
-				params: { database, ...options },
-			});
+		export: (code, database, connectionId,  options) => {
+			return evaluate(
+				code,
+				provider,
+				{
+					mode: "export",
+					params: { database, connectionId, ...options },
+				},
+				connectionStore
+			);
 		},
-		evaluate: (code, database) => {
-			return evaluate(code, provider, { mode: "query", params: { database } });
+		evaluate: (code, database, connectionId) => {
+			return evaluate(code, provider, { mode: "query", params: { database, connectionId } }, connectionStore);
 		},
 		disconnect: async () => {
 			await provider.close(true);
@@ -72,6 +82,7 @@ function paginateCursor(cursor: Cursor, page: number) {
 interface MongoEvalOptions {
 	database: string;
 	page?: number;
+	connectionId: string;
 }
 interface MongoQueryOptions {
 	mode: "query";
@@ -81,9 +92,18 @@ interface MongoQueryOptions {
 async function evaluate(
 	code: string,
 	serviceProvider: CliServiceProvider,
-	options: MongoQueryOptions | MongoExportOptions<MongoEvalOptions>
+	options: MongoQueryOptions | MongoExportOptions<MongoEvalOptions>,
+	connectionStore?: MemoryStore<MemEntry>
 ) {
-	const { database, page } = options.params;
+	const { database, page, connectionId } = options.params;
+
+	const connection = connectionStore?.get(connectionId);
+
+	if (!connection) {
+		throw new Error(ERRORS.AR601);
+	} else if (connection && connection.server && !connection.server.listening) {
+		throw new Error(ERRORS.AR600);
+	}
 
 	const internalState = new ShellInstanceState(serviceProvider);
 

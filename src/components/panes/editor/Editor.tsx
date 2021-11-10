@@ -88,7 +88,7 @@ export const Editor: FC<EditorProps> = (props) => {
 			setExecuting(true);
 			shellId
 				? window.ark.shell
-						.eval(shellId, _code)
+						.eval(shellId, _code, storedConnectionId)
 						.then(function ({ result, err }) {
 							if (err) {
 								console.log("exec shell");
@@ -109,7 +109,7 @@ export const Editor: FC<EditorProps> = (props) => {
 						.finally(() => setExecuting(false))
 				: setExecuting(false);
 		},
-		[shellId]
+		[shellId, storedConnectionId]
 	);
 
 	const destroyShell = useCallback(
@@ -151,7 +151,7 @@ export const Editor: FC<EditorProps> = (props) => {
 			const _code = code.replace(/(\/\/.*)|(\n)/g, "");
 			shellId &&
 				window.ark.shell
-					.export(shellId, _code, options)
+					.export(shellId, _code, storedConnectionId, options)
 					.then(() => {
 						console.log("Export complete");
 						notify({
@@ -169,7 +169,7 @@ export const Editor: FC<EditorProps> = (props) => {
 						console.error("exec shell error: ", err);
 					});
 		},
-		[shellId]
+		[shellId, storedConnectionId]
 	);
 
 	const terminateExecution = useCallback(() => {
