@@ -46,7 +46,7 @@ export async function exportData(
 			reject(err);
 		});
 
-		write.on("close", () => {
+		stream.on("end", () => {
 			resolve("");
 		});
 

@@ -21,6 +21,7 @@ import { ResultViewer, ResultViewerProps } from "./ResultViewer/ResultViewer";
 import { Button } from "../../../common/components/Button";
 import { CircularLoading } from "../../../common/components/Loading";
 import { useRefresh } from "../../../hooks/useRefresh";
+import { notify } from "../../../util/misc";
 
 const createDefaultCodeSnippet = (collection: string) => `// Mongo shell
 db.getCollection('${collection}').find({});
@@ -153,8 +154,18 @@ export const Editor: FC<EditorProps> = (props) => {
 					.export(shellId, _code, options)
 					.then(() => {
 						console.log("Export complete");
+						notify({
+							title: "Export complete!",
+							description: `Path: ~/.ark/exports/${options.fileName}`,
+							type: "success",
+						});
 					})
-					.catch(function (err) {
+					.catch((err) => {
+						notify({
+							title: "Export failed!",
+							description: err.message || err,
+							type: "error",
+						});
 						console.error("exec shell error: ", err);
 					});
 		},
