@@ -120,8 +120,8 @@ export const Connection: Connection = {
 			const config = await diskStore.get(id);
 
 			let server: Server | void;
-			if (config.ssh && config.ssh.host) {
-				server = await sshTunnel(config.ssh);
+			if (config.ssh && config.ssh.useSSH) {
+				server = await sshTunnel(config.ssh, config.hosts);
 				if (server) {
 					server.on("close", () => console.log("SSH connection closed"));
 					server.on("error", () => console.log("SSH connection errored"));
@@ -238,20 +238,26 @@ export const Connection: Connection = {
 };
 
 const sshTunnel = async (
-	sshConfig: Ark.StoredConnection["ssh"]
+	sshConfig: Ark.StoredConnection["ssh"],
+	hosts: Array<string>
 ): Promise<ReturnType<typeof tunnel> | void> => {
 	if (!sshConfig) {
 		return;
 	}
 
+	const host = hosts[0].split(":")[0];
+	const port = hosts[0].split(":")[1]
+		? Number(hosts[0].split(":")[1])
+		: undefined;
+
 	const tunnelConfig: Config = {
 		username: sshConfig.username,
 		host: sshConfig.host,
-		port: 22,
-		dstHost: "127.0.0.1",
-		dstPort: 27017,
-		localHost: "127.0.0.1",
-		localPort: 27000,
+		port: Number(sshConfig.port),
+		dstHost: sshConfig.mongodHost || "127.0.0.1",
+		dstPort: Number(sshConfig.mongodPort) || 27017,
+		localHost: host || "127.0.0.1",
+		localPort: port,
 	};
 
 	if (sshConfig.privateKey) {

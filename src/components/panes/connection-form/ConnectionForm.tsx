@@ -18,7 +18,6 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 		"connection" | "authentication" | "ssh" | "tls" | "misc"
 	>("connection");
 
-	const [useSSH, toggleSSH] = useState<boolean>(false);
 	const [sshAuthMethod, toggleAuthMethod] = useState<"password" | "privateKey">(
 		"password"
 	);
@@ -47,6 +46,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 		: {
 				id: "",
 				name: "",
+				protocol: "mongodb",
 				hosts: [],
 				database: "",
 				type: "directConnection" as const,
@@ -55,7 +55,9 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 				options: {
 					tls: false,
 				},
-				ssh: {},
+				ssh: {
+					useSSH: false,
+				},
 		  };
 
 	const [mongoURI, setMongoURI] = useState("");
@@ -339,8 +341,10 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 										<span style={{ margin: "auto" }}>Use SSH Tunnel</span>
 									</div>
 									<Checkbox
-										value={useSSH}
-										onChange={() => toggleSSH((useSSH) => !useSSH)}
+										value={connectionDetails.ssh.useSSH}
+										onChange={() =>
+											editSSHDetails("useSSH", !connectionDetails.ssh.useSSH)
+										}
 									/>
 								</div>
 								<div className="flex-inline">
@@ -352,7 +356,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 											<Input
 												className="Input"
 												value={connectionData?.ssh?.host}
-												disabled={!useSSH}
+												disabled={!connectionData.ssh.useSSH}
 												onChange={(e) => editSSHDetails("host", e.target.value)}
 											/>
 										</div>
@@ -365,8 +369,40 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 											<Input
 												className="Input"
 												value={connectionData?.ssh?.port}
-												disabled={!useSSH}
+												disabled={!connectionData.ssh.useSSH}
 												onChange={(e) => editSSHDetails("port", e.target.value)}
+											/>
+										</div>
+									</div>
+								</div>
+								<div className="flex-inline">
+									<div style={{ flexGrow: 1 }}>
+										<div className="Label">
+											<span style={{ margin: "auto" }}>Mongod host</span>
+										</div>
+										<div className="InputField">
+											<Input
+												className="Input"
+												value={connectionData?.ssh?.mongodHost}
+												disabled={!connectionData.ssh.useSSH}
+												onChange={(e) =>
+													editSSHDetails("mongodHost", e.target.value)
+												}
+											/>
+										</div>
+									</div>
+									<div>
+										<div className="Label">
+											<span style={{ margin: "auto" }}>Mongod port</span>
+										</div>
+										<div className="InputField">
+											<Input
+												className="Input"
+												value={connectionData?.ssh?.mongodPort}
+												disabled={!connectionData.ssh.useSSH}
+												onChange={(e) =>
+													editSSHDetails("mongodPort", e.target.value)
+												}
 											/>
 										</div>
 									</div>
@@ -379,7 +415,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 										<Input
 											className="Input"
 											value={connectionData?.ssh?.username}
-											disabled={!useSSH}
+											disabled={!connectionData.ssh.useSSH}
 											onChange={(e) =>
 												editSSHDetails("username", e.target.value)
 											}
@@ -391,7 +427,10 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 										<span style={{ margin: "auto" }}>Auth Method</span>
 									</div>
 									<div className="InputField">
-										<Dropdown.Button disabled={!useSSH} overlay={sshMenu}>
+										<Dropdown.Button
+											disabled={!connectionData.ssh.useSSH}
+											overlay={sshMenu}
+										>
 											{sshAuthMethod === "password"
 												? "Password"
 												: "Private key"}
@@ -407,7 +446,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 											<Input
 												className="Input"
 												value={connectionData.ssh?.password}
-												disabled={!useSSH}
+												disabled={!connectionData.ssh.useSSH}
 												onChange={(e) =>
 													editSSHDetails("password", e.target.value)
 												}
@@ -424,7 +463,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 											<Input
 												className="Input"
 												value={connectionData?.ssh?.privateKey}
-												disabled={!useSSH}
+												disabled={!connectionData.ssh.useSSH}
 												onChange={(e) =>
 													editSSHDetails("privateKey", e.target.value)
 												}
@@ -441,7 +480,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 											<Input
 												className="Input"
 												value={connectionData?.ssh?.method}
-												disabled={!useSSH}
+												disabled={!connectionData.ssh.useSSH}
 												onChange={(e) =>
 													editSSHDetails("passphrase", e.target.value)
 												}
