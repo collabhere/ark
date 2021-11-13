@@ -27,8 +27,6 @@ export async function exportData(
 		? `${params.fileName}${suffix}`
 		: `${new Date().toISOString()}${suffix}`;
 
-	const write = createWriteStream(`${ARK_FOLDER_PATH}/exports/${fileName}`);
-
 	let transform: Transform;
 	if (params.type === "CSV") {
 		transform = CSVTransform({
@@ -41,15 +39,17 @@ export async function exportData(
 
 	return new Promise((resolve, reject) => {
 		const stream = result._cursor.stream();
+		const write = createWriteStream(`${ARK_FOLDER_PATH}/exports/${fileName}`);
+
+		stream.pipe(transform).pipe(write);
 
 		transform.on("error", (err) => {
 			reject(err);
 		});
 
-		stream.on("end", () => {
+		write.on("close", () => {
+			console.log("Export completed");
 			resolve("");
 		});
-
-		stream.pipe(transform).pipe(write);
 	});
 }

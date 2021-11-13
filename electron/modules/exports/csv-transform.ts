@@ -117,9 +117,5 @@ export const CSVTransform = (options: ImportOptions) => {
 					callback(err);
 				});
 		},
-
-		final() {
-			console.log("Export completed.");
-		},
 	});
 };
