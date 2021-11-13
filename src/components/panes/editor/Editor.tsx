@@ -15,13 +15,13 @@ import {
 	VscPlay,
 } from "react-icons/vsc";
 
-import { dispatch, listenEffect } from "../../../util/events";
+import { dispatch, listenEffect } from "../../../../util/events";
 import { getConnectionUri } from "../../../common/util";
 import { ResultViewer, ResultViewerProps } from "./ResultViewer/ResultViewer";
 import { Button } from "../../../common/components/Button";
 import { CircularLoading } from "../../../common/components/Loading";
 import { useRefresh } from "../../../hooks/useRefresh";
-import { notify } from "../../../util/misc";
+import { notify } from "../../../../util/client";
 
 const createDefaultCodeSnippet = (collection: string) => `// Mongo shell
 db.getCollection('${collection}').find({});

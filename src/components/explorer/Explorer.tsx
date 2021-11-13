@@ -3,10 +3,10 @@ import "./styles.less";
 import React, { FC, useCallback, useEffect, useState } from "react";
 import { Tree } from "antd";
 import { Resizable } from "re-resizable";
-import { dispatch, listenEffect } from "../../util/events";
+import { dispatch, listenEffect } from "../../../util/events";
 import { CollectionInfo, ListDatabasesResult } from "mongodb";
 import { useTree } from "../../hooks/useTree";
-import { handleErrors } from "../../util/misc";
+import { handleErrors } from "../../../util/client";
 
 const dbTreeKey = (dbName: string) => "database;" + dbName;
 const collectionTreeKey = (collectionName: string, dbName: string) =>

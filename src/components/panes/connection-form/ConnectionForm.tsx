@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from "react";
 import { Input, Button, Checkbox, Menu, Dropdown, Upload } from "antd";
-import { dispatch } from "../../../util/events";
+import { dispatch } from "../../../../util/events";
 import "../styles.less";
 import "../../../common/styles/layout.less";
 const { TextArea } = Input;

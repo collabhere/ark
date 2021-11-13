@@ -7,8 +7,8 @@ import mongoUri from "mongodb-uri";
 import { stringify } from "querystring";
 import tunnel, { Config } from "tunnel-ssh";
 
-import { ARK_FOLDER_PATH } from "../../utils/constants";
-import { ERRORS } from "../../utils/constants";
+import { ARK_FOLDER_PATH } from "../../constants";
+import { ERRORS } from "../../../util/constants";
 import { MemEntry } from "../../modules/ipc";
 import { Server } from "net";
 

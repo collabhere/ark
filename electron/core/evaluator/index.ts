@@ -16,7 +16,7 @@ import { exportData, MongoExportOptions } from "../../modules/exports";
 import { _evaluate } from "./_eval";
 import { MemoryStore } from "../stores/memory";
 import { MemEntry } from "../../modules/ipc";
-import { ERRORS } from "../../utils/constants";
+import { ERRORS } from "../../../util/constants";
 
 export interface EvalResult {
 	result?: Buffer;

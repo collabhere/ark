@@ -1,6 +1,6 @@
 import React, { FC } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
-import { dispatch } from "../../util/events";
+import { dispatch } from "../../../util/events";
 
 export enum HOT_KEYS {
 	CONNECTION_TOGGLE = "ctrl+e",

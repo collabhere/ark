@@ -1,6 +1,6 @@
 import { createWriteStream } from "fs";
 import { Transform } from "stream";
-import { ARK_FOLDER_PATH } from "../../utils/constants";
+import { ARK_FOLDER_PATH } from "../../constants";
 import { CSVTransform } from "./csv-transform";
 import { NDJSONTransform } from "./ndjson-transform";
 

@@ -3,7 +3,7 @@ import { useCallback } from "react";
 import { StoredScript } from "../../../electron/modules/ipc";
 import { Dialog } from "../../common/components/Dialog";
 import { CircularLoading } from "../../common/components/Loading";
-import { dispatch } from "../../util/events";
+import { dispatch } from "../../../util/events";
 import { ConnectionsList } from "../connection-manager/ConnectionManager";
 
 interface SelectConnectionForScriptProps {
@@ -18,7 +18,7 @@ export const SelectConnectionForFilePath: FC<SelectConnectionForScriptProps> =
 		const [loading, setLoading] = useState(false);
 		const [connections, setConnections] = useState<Ark.StoredConnection[]>([]);
 
-		const [databaseOptions, setDatabaseOptions] = useState<string[]>([]);
+		const [databaseOptions, setDatabaseOptions] = useState<(string | undefined)[]>([]);
 		const [code, setCode] = useState<string>();
 		const [selectedStoredConnection, setSelectedStoredConnection] =
 			useState<Ark.StoredConnection>();
@@ -67,7 +67,7 @@ export const SelectConnectionForFilePath: FC<SelectConnectionForScriptProps> =
 											.run("connection", "listDatabases", { id })
 											.then((result) => {
 												console.log("LIST RESULT", result);
-												const databases: string[] = [...result].map(
+												const databases: (string | undefined)[] = [...result].map(
 													(database) => {
 														if (typeof database === "string") {
 															if (

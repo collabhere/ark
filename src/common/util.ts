@@ -47,9 +47,7 @@ export const getConnectionUri = ({
 }: Ark.StoredConnection): string => {
 
     const querystring = new URLSearchParams(pick(options, ["authSource"]) as any);
-
     const userpass = username && password ? `${username}:${encodeURIComponent(password)}@` : "";
-
     const hoststring = hosts.join(",");
 
     return `mongodb://${userpass}${hoststring}/${database}?${querystring.toString()}`;

@@ -4,7 +4,7 @@ import path from "path";
 import Window from "./modules/window";
 import IPC from "./modules/ipc";
 
-import { enableDevTools } from "./utils/dev";
+import { enableDevTools } from "../util/dev";
 
 (async function main() {
 	try {
