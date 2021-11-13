@@ -37,13 +37,14 @@ export interface Evaluator {
 interface CreateEvaluatorOptions {
 	uri: string;
 	mongoOptions: MongoClientOptions;
-	connectionStore?: MemoryStore<MemEntry>
 }
 
 export async function createEvaluator(
-	options: CreateEvaluatorOptions
+	options: CreateEvaluatorOptions,
+	DriverDependency: Ark.DriverDependency
 ): Promise<Evaluator> {
-	const { uri, mongoOptions, connectionStore } = options;
+	const { uri, mongoOptions } = options;
+	const { memoryStore } = DriverDependency;
 
 	const provider = await createServiceProvider(uri, mongoOptions);
 
@@ -56,11 +57,11 @@ export async function createEvaluator(
 					mode: "export",
 					params: { database, connectionId, ...options },
 				},
-				connectionStore
+				memoryStore
 			);
 		},
 		evaluate: (code, database, connectionId) => {
-			return evaluate(code, provider, { mode: "query", params: { database, connectionId } }, connectionStore);
+			return evaluate(code, provider, { mode: "query", params: { database, connectionId } }, memoryStore);
 		},
 		disconnect: async () => {
 			await provider.close(true);

@@ -106,11 +106,12 @@ interface IPCInitParams {
 function IPC() {
 	const shells = createMemoryStore<StoredShellValue>();
 
-	const connectionStore = createMemoryStore<MemEntry>();
-	const driver = createDriver({
-		memoryStore: connectionStore,
+	const DriverDependency: Ark.DriverDependency = {
 		diskStore: createDiskStore<Ark.StoredConnection>("connections"),
-	});
+		memoryStore: createMemoryStore<MemEntry>(),
+	};
+	
+	const driver = createDriver(DriverDependency);
 
 	// Stores opened scripts
 	const scriptDiskStore = createDiskStore<StoredScript>("scripts");
@@ -143,11 +144,7 @@ function IPC() {
 								? driverConnection.replicaSetDetails.set
 								: undefined,
 					};
-					const shellExecutor = await createEvaluator({
-						uri,
-						mongoOptions,
-						connectionStore,
-					});
+					const shellExecutor = await createEvaluator({ uri, mongoOptions}, DriverDependency);
 					const shell = {
 						id: nanoid(),
 						executor: shellExecutor,
