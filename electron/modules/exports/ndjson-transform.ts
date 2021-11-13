@@ -20,9 +20,5 @@ export const NDJSONTransform = () => {
 					callback(err);
 				});
 		},
-
-		final() {
-			console.log("Export completed.");
-		},
 	});
 };
