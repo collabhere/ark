@@ -30,7 +30,7 @@ export interface Evaluator {
 		code: string,
 		database: string,
 		connectionId: string,
-		options: Ark.ExportCsvOptions | Ark.ExportNdjsonOptions,
+		options: Ark.ExportCsvOptions | Ark.ExportNdjsonOptions
 	): Promise<void>;
 }
 
@@ -49,7 +49,7 @@ export async function createEvaluator(
 	const provider = await createServiceProvider(uri, mongoOptions);
 
 	const evaluator: Evaluator = {
-		export: (code, database, connectionId,  options) => {
+		export: (code, database, connectionId, options) => {
 			return evaluate(
 				code,
 				provider,

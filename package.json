@@ -3,7 +3,7 @@
 	"version": "0.1.0",
 	"private": true,
 	"homepage": "./",
-	"main": "./build/renderer/main.js",
+	"main": "./build/renderer/electron/main.js",
 	"scripts": {
 		"start": "BROWSER=none ARK_ENTRY_URL=http://localhost:3000 concurrently \"vite\" \"sleep 2 && electron .\"",
 		"build:electron": "tsc --build electron/tsconfig.json -w",

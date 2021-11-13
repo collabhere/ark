@@ -6,7 +6,7 @@ import { Resizable } from "re-resizable";
 import { dispatch, listenEffect } from "../../../util/events";
 import { CollectionInfo, ListDatabasesResult } from "mongodb";
 import { useTree } from "../../hooks/useTree";
-import { handleErrors } from "../../../util/client";
+import { handleErrors } from "../../common/util";
 
 const dbTreeKey = (dbName: string) => "database;" + dbName;
 const collectionTreeKey = (collectionName: string, dbName: string) =>

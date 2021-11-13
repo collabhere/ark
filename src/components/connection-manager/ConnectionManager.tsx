@@ -131,8 +131,14 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 							});
 					},
 				},
+				{
+					event: "connection_manager:disconnect",
+					cb: (e, payload) => {
+						disconnect(payload.connectionId);
+					},
+				},
 			]),
-		[]
+		[disconnect]
 	);
 
 	return isOpen ? (
