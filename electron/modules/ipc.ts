@@ -83,7 +83,7 @@ export type ScriptActionData = (ScriptOpenActionData | ScriptSaveActionData | Sc
 
 export interface MemEntry {
 	connection: MongoClient;
-	databases: ListDatabasesResult;
+	databases: ListDatabasesResult["databases"];
 }
 interface StoredShellValue {
 	id: string;

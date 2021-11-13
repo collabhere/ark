@@ -60,7 +60,7 @@ export interface Connection {
 	/**
 	 * List databases for a cached connection
 	 */
-	listDatabases(dep: Ark.DriverDependency, arg: { id: string }): Promise<ListDatabasesResult>;
+	listDatabases(dep: Ark.DriverDependency, arg: { id: string }): Promise<ListDatabasesResult["databases"]>;
 }
 
 export const Connection: Connection = {
@@ -103,8 +103,8 @@ export const Connection: Connection = {
 			const connectionUri = getConnectionUri(config);
 			const client = new MongoClient(connectionUri);
 			const connection = await client.connect();
-			const databases = await connection.db().admin().listDatabases();
-			memoryStore.save(id, { connection, databases });
+			const listDatabaseResult = await connection.db().admin().listDatabases();
+			memoryStore.save(id, { connection, databases: listDatabaseResult.databases });
 		} else {
 			throw new Error("Connection not found!");
 		}
@@ -185,7 +185,7 @@ export const Connection: Connection = {
 			const db = client.db().admin();
 			const result = await db.listDatabases({ nameOnly: false });
 			// Incorrect type from mongo driver
-			return (result as any).databases as ListDatabasesResult;
+			return result.databases;
 		} else {
 			throw new Error("Entry not found");
 		}

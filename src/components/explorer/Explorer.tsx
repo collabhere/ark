@@ -6,10 +6,46 @@ import { Resizable } from "re-resizable";
 import { dispatch, listenEffect } from "../../util/events";
 import { CollectionInfo, ListDatabasesResult } from "mongodb";
 import { useTree } from "../../hooks/useTree";
+import { VscDatabase, VscFolder, VscListTree } from "react-icons/vsc";
+import { CircularLoading } from "../../common/components/Loading";
+
+type Databases = ListDatabasesResult["databases"];
+type DatabasesWithInformation = (ListDatabasesResult["databases"][0] & {
+	system: boolean;
+})[];
 
 const dbTreeKey = (dbName: string) => "database;" + dbName;
 const collectionTreeKey = (collectionName: string, dbName: string) =>
 	"collection;" + collectionName + ";" + dbName;
+
+const PRE_EXISTING_DATABASE_RGX = /(admin|local|config)/i;
+
+const createDatabaseList = (
+	databases: Databases
+): {
+	system: DatabasesWithInformation;
+	personal: DatabasesWithInformation;
+} => {
+	const personal: DatabasesWithInformation = [];
+	const system: DatabasesWithInformation = [];
+	for (const db of databases) {
+		if (PRE_EXISTING_DATABASE_RGX.test(db.name)) {
+			system.push({
+				...db,
+				system: true,
+			});
+		} else {
+			personal.push({
+				...db,
+				system: false,
+			});
+		}
+	}
+	return {
+		system,
+		personal: personal.sort((a, b) => (a.name > b.name ? 1 : -1)),
+	};
+};
 
 interface CollectionsMap {
 	/* db_name => collection_name[] */
@@ -22,10 +58,19 @@ interface ExplorerProps {}
 export const Explorer: FC<ExplorerProps> = () => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [loading, setLoading] = useState(true);
-	const { tree, addChildrenToNode, createNode, addNodeAtEnd, dropTree } =
-		useTree();
+	const [storedConnection, setStoredConnection] =
+		useState<Ark.StoredConnection>();
+	const {
+		tree,
+		addChildrenToNode,
+		updateNodeProperties,
+		createNode,
+		addNodeAtEnd,
+		dropTree,
+	} = useTree();
 	const [currentConnectionId, setCurrentConnectionId] = useState<string>();
 	const [collectionsMap, setCollectionsMap] = useState<CollectionsMap>({});
+	const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
 
 	const switchConnections = useCallback((args: { connectionId: string }) => {
 		const { connectionId } = args;
@@ -34,11 +79,40 @@ export const Explorer: FC<ExplorerProps> = () => {
 		dispatch("connection_manager:hide");
 	}, []);
 
-	const addDatabaseNodes = useCallback(
-		(databases: ListDatabasesResult) => {
-			databases.map((db) => addNodeAtEnd(db.name, dbTreeKey(db.name)));
+	const setDatabaseNodeLoading = useCallback(
+		(key: string, loading: boolean) => {
+			updateNodeProperties(key, {
+				icon: loading ? <CircularLoading size="small" /> : <VscDatabase />,
+			});
 		},
-		[addNodeAtEnd]
+		[]
+	);
+
+	const addDatabaseNodes = useCallback(
+		(databases: {
+			system: DatabasesWithInformation;
+			personal: DatabasesWithInformation;
+		}) => {
+			const { system, personal } = databases;
+			addNodeAtEnd(
+				"system",
+				"system;",
+				system.map((db) =>
+					createNode(db.name, dbTreeKey(db.name), undefined, {
+						icon: <VscDatabase />,
+					})
+				),
+				{
+					icon: <VscFolder />,
+				}
+			);
+			personal.map((db) =>
+				addNodeAtEnd(db.name, dbTreeKey(db.name), undefined, {
+					icon: <VscDatabase />,
+				})
+			);
+		},
+		[addNodeAtEnd, createNode]
 	);
 
 	const addCollectionNodesToDatabase = useCallback(
@@ -46,7 +120,14 @@ export const Explorer: FC<ExplorerProps> = () => {
 			addChildrenToNode(
 				dbTreeKey(db),
 				collections.map((collection) =>
-					createNode(collection.name, collectionTreeKey(collection.name, db))
+					createNode(
+						collection.name,
+						collectionTreeKey(collection.name, db),
+						undefined,
+						{
+							icon: <VscListTree />,
+						}
+					)
 				)
 			);
 		},
@@ -55,21 +136,22 @@ export const Explorer: FC<ExplorerProps> = () => {
 
 	const addCollectionsToTree = useCallback(
 		(dbName: string) => {
-			currentConnectionId &&
-				window.ark.driver
-					.run("database", "listCollections", {
-						id: currentConnectionId,
-						database: dbName,
-					})
-					.then((collections) => {
-						if (collections && collections.length) {
-							addCollectionNodesToDatabase(dbName, collections);
-							setCollectionsMap((map) => {
-								map[dbName] = collections.map((x) => x.name);
-								return { ...map };
-							});
-						}
-					});
+			return currentConnectionId
+				? window.ark.driver
+						.run("database", "listCollections", {
+							id: currentConnectionId,
+							database: dbName,
+						})
+						.then((collections) => {
+							if (collections && collections.length) {
+								addCollectionNodesToDatabase(dbName, collections);
+								setCollectionsMap((map) => {
+									map[dbName] = collections.map((x) => x.name);
+									return { ...map };
+								});
+							}
+						})
+				: Promise.resolve();
 		},
 		[addCollectionNodesToDatabase, currentConnectionId]
 	);
@@ -95,15 +177,21 @@ export const Explorer: FC<ExplorerProps> = () => {
 	useEffect(() => {
 		setLoading(true);
 		if (currentConnectionId) {
-			window.ark.driver
-				.run("connection", "listDatabases", {
+			Promise.all([
+				window.ark.driver.run("connection", "listDatabases", {
 					id: currentConnectionId,
-				})
-				.then((databases) => {
-					if (databases && databases.length) {
-						addDatabaseNodes(databases);
-					}
-				});
+				}),
+				window.ark.driver.run("connection", "load", {
+					id: currentConnectionId,
+				}),
+			]).then(([databases, storedConnection]) => {
+				if (databases && databases.length) {
+					addDatabaseNodes(createDatabaseList(databases));
+				}
+				if (storedConnection) {
+					setStoredConnection(storedConnection);
+				}
+			});
 		}
 		return () => dropTree();
 	}, [addDatabaseNodes, currentConnectionId, dropTree]);
@@ -137,31 +225,46 @@ export const Explorer: FC<ExplorerProps> = () => {
 			minWidth="20%"
 			minHeight="100%"
 		>
-			<div className="Explorer">
-				<div className={"ExplorerHeader"}>{currentConnectionId}</div>
-				{loading ? (
+			{loading && storedConnection ? (
+				<div className="Explorer">
+					<div className={"ExplorerHeader"}>{storedConnection.name}</div>
 					<Tree
 						checkable={false}
 						draggable={false}
 						focusable={false}
 						selectable={false}
+						showIcon
+						expandedKeys={expandedKeys}
 						className={"ExplorerTree"}
+						onExpand={(keys, info) => {
+							const { expanded, node } = info;
+							if (expanded)
+								setExpandedKeys((keys) => [...keys, node.key as string]);
+							else
+								setExpandedKeys((keys) =>
+									keys.filter((key) => key !== node.key)
+								);
+						}}
 						onDoubleClick={(e, node) => {
 							console.log("Double click node", node);
 							const key = node.key as string;
 							const [type, value, extra] = key.split(";");
 							if (type === "database") {
-								addCollectionsToTree(value);
+								setDatabaseNodeLoading(key, true);
+								addCollectionsToTree(value).then(() => {
+									setDatabaseNodeLoading(key, false);
+									setExpandedKeys((keys) => [...keys, key]);
+								});
 							} else if (type === "collection") {
 								openShellForCollection(value, extra);
 							}
 						}}
 						treeData={tree}
 					/>
-				) : (
-					<p>Loading</p>
-				)}
-			</div>
+				</div>
+			) : (
+				<p>Loading</p>
+			)}
 		</Resizable>
 	) : (
 		<></>

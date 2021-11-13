@@ -1,42 +1,64 @@
 import { DataNode } from "antd/lib/tree";
-import { useCallback, useState } from "react";
+import React, { useCallback, useState } from "react";
 
 const findNodeRecursively = (tree: DataNode[], key: string): DataNode | undefined => {
+    let result;
     for (const node of tree) {
-        if (node.key === key) return node;
-        if (node.children?.length) return findNodeRecursively(node.children, key);
+        if (node.key === key) result = node;
+
+        if (!result && node.children?.length)
+            result = findNodeRecursively(node.children, key);
+
+        if (result) return result;
     }
+    return result;
 }
+
+type NodeProperties = Pick<DataNode, "className" | "icon">;
 
 interface UseTree {
     tree: DataNode[];
     node(key: string): DataNode | undefined;
-    addNodeAtEnd(title: string, key: string, children?: DataNode[]): void;
+    addNodeAtEnd(title: string, key: string, children?: DataNode[], properties?: NodeProperties): void;
     addChildrenToNode(key: string, children: DataNode[]): void;
     removeNode(key: string): void;
-    createNode(title: string, key: string, children?: DataNode[]): DataNode;
+    updateNodeProperties(key: string, properties: NodeProperties): void;
+    createNode(title: string, key: string, children?: DataNode[], properties?: NodeProperties): DataNode;
     dropTree(): void;
 }
 
 export function useTree(): UseTree {
     const [tree, setTree] = useState<DataNode[]>([]);
 
-    const node = useCallback((key) => findNodeRecursively(tree, key), [tree]);
+    const node: UseTree["node"] = useCallback((key) => findNodeRecursively(tree, key), [tree]);
 
-    const addNodeAtEnd = useCallback((title, key, children = []) => {
+    const updateNodeProperties: UseTree["updateNodeProperties"] = useCallback((key, properties: NodeProperties) => {
+        setTree(_tree => {
+            for (const node of _tree) {
+                if (node.key === key) {
+                    Object.assign(node, properties);
+                    return [..._tree];
+                }
+            }
+            return _tree;
+        })
+    }, [])
+
+    const createNode = useCallback((title, key, children = [], properties = {}) => ({
+        title, key, children, ...properties
+    }), []);
+
+    const addNodeAtEnd = useCallback((title, key, children = [], properties = {}) => {
         setTree(tree => [
             ...tree,
-            {
-                title, key, children
-            }
+            createNode(title, key, children, properties)
         ]);
-    }, []);
+    }, [createNode]);
 
     const addChildrenToNode = useCallback((key, children) => {
         setTree(_tree => {
-            const idx = _tree.findIndex((n) => n.key === key);
-            if (idx > -1) {
-                const node = _tree[idx];
+            const node = findNodeRecursively(_tree, key);
+            if (node) {
                 if (node.children?.length) {
                     node.children.push(...children);
                 } else {
@@ -59,9 +81,6 @@ export function useTree(): UseTree {
         });
     }, []);
 
-    const createNode = useCallback((title, key, children) => ({
-        title, key, children
-    }), []);
 
     const dropTree = useCallback(() => {
         setTree([]);
@@ -73,6 +92,7 @@ export function useTree(): UseTree {
         createNode,
         addNodeAtEnd,
         addChildrenToNode,
+        updateNodeProperties,
         removeNode,
         dropTree
     };
