@@ -22,9 +22,9 @@ declare global {
 			name: string;
 			protocol: string;
 			hosts: Array<string>;
-			database: string;
-			username: string;
-			password: string;
+			database?: string;
+			username?: string;
+			password?: string;
 			type: "directConnection" | "replicaSet";
 			options: Pick<
 				MongoClientOptions,

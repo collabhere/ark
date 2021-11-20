@@ -3,6 +3,7 @@ import { Input, Button, Checkbox, Menu, Dropdown, Upload } from "antd";
 import { dispatch } from "../../../common/utils/events";
 import "../styles.less";
 import "../../../common/styles/layout.less";
+import { notify } from "../../../common/utils/misc";
 const { TextArea } = Input;
 export interface ConnectionFormProps {
 	connectionParams?: Ark.StoredConnection;
@@ -78,6 +79,26 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 			});
 	}, [mongoURI]);
 
+	const testURIConnection = useCallback(() => {
+		window.ark.driver
+			.run("connection", "test", {
+				type: "uri",
+				config: {
+					uri: mongoURI,
+					name: "",
+				},
+			})
+			.then((res) => {
+				const notification: Parameters<typeof notify>[0] = {
+					title: "Test connection",
+					description: res.message,
+					type: res.status ? "success" : "error",
+				};
+
+				notify(notification);
+			});
+	}, [mongoURI]);
+
 	const saveAdvancedConnection = useCallback(() => {
 		window.ark.driver
 			.run("connection", "save", {
@@ -94,6 +115,30 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 			})
 			.then((connectionId) => {
 				dispatch("connection_manager:add_connection", { connectionId });
+			});
+	}, [connectionData, host, port]);
+
+	const testAdvancedConnection = useCallback(() => {
+		window.ark.driver
+			.run("connection", "test", {
+				type: "config",
+				config: {
+					...connectionData,
+					hosts:
+						connectionData.type === "directConnection"
+							? [`${host}:${port}`]
+							: connectionData.hosts,
+					name: "",
+				},
+			})
+			.then((res) => {
+				const notification: Parameters<typeof notify>[0] = {
+					title: "Test connection",
+					description: res.message,
+					type: res.status ? "success" : "error",
+				};
+
+				notify(notification);
 			});
 	}, [connectionData, host, port]);
 
@@ -157,7 +202,9 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 							</div>
 							<div className="ButtonGroup">
 								<div>
-									<Button type="text">Test</Button>
+									<Button type="text" onClick={() => testURIConnection()}>
+										Test
+									</Button>
 								</div>
 								<div>
 									<Button onClick={() => saveMongoURI()}>Save</Button>
@@ -536,7 +583,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 							</div>
 							<div className="ButtonGroup">
 								<div>
-									<Button type="text" onClick={() => saveMongoURI()}>
+									<Button type="text" onClick={() => testAdvancedConnection()}>
 										Test
 									</Button>
 								</div>
