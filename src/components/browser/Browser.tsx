@@ -3,7 +3,7 @@ import "./styles.less";
 import { Tabs } from "antd";
 import { nanoid } from "nanoid";
 import React, { useCallback, useEffect, useState } from "react";
-import { dispatch, listenEffect } from "../../../util/events";
+import { dispatch, listenEffect } from "../../common/utils/events";
 import { Editor, EditorProps } from "../panes/editor/Editor";
 import {
 	ConnectionForm,

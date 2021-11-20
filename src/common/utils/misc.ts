@@ -1,7 +1,7 @@
 import notification, { NotificationInstance } from "antd/lib/notification";
-import { ERRORS } from "../../util/constants";
-import { dispatch } from "../../util/events";
-import { pick } from "../../util/misc";
+import { ERRORS } from "../../../util/constants";
+import { dispatch } from "./events";
+import { pick } from "../../../util/misc";
 
 export type PromiseCompleteCallback = (err?: Error, data?: any) => void;
 

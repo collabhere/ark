@@ -15,8 +15,12 @@ import {
 	VscPlay,
 } from "react-icons/vsc";
 
-import { dispatch, listenEffect } from "../../../../util/events";
-import { getConnectionUri, handleErrors, notify } from "../../../common/util";
+import { dispatch, listenEffect } from "../../../common/utils/events";
+import {
+	getConnectionUri,
+	handleErrors,
+	notify,
+} from "../../../common/utils/misc";
 import { ResultViewer, ResultViewerProps } from "./ResultViewer/ResultViewer";
 import { Button } from "../../../common/components/Button";
 import { CircularLoading } from "../../../common/components/Loading";

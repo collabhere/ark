@@ -2,7 +2,7 @@ import "./Button.less";
 
 import React, { FC, useState, useMemo } from "react";
 import { Button as AntButton } from "antd";
-import { PromiseCompleteCallback, asyncEventOverload } from "../util";
+import { PromiseCompleteCallback, asyncEventOverload } from "../utils/misc";
 import { Popover } from "./Popover";
 
 interface PopoverOptions {

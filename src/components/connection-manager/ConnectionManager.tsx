@@ -10,7 +10,7 @@ import {
 	VscGlobe,
 	VscDebugDisconnect,
 } from "react-icons/vsc";
-import { dispatch, listenEffect } from "../../../util/events";
+import { dispatch, listenEffect } from "../../common/utils/events";
 import { Resizable } from "re-resizable";
 import { Button } from "../../common/components/Button";
 

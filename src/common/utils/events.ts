@@ -1,4 +1,4 @@
-import { compose } from "./misc";
+import { compose } from "../../../util/misc";
 
 export const dispatch = <T = unknown>(event: string, payload?: T): void => {
 	console.log(`[event] name=${event} payload=${JSON.stringify(payload)}`);
