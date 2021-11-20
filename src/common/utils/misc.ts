@@ -91,7 +91,8 @@ export const handleErrors = (
 			: undefined;
 
 	switch (error) {
-		case (ERRORS.AR600, ERRORS.AR601): {
+		case ERRORS.AR600:
+		case ERRORS.AR601: {
 			console.log(error);
 			if (connectionId) {
 				dispatch("connection_manager:disconnect", { connectionId });
