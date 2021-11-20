@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from "react";
 import { Input, Button, Checkbox, Menu, Dropdown, Upload } from "antd";
-import { dispatch } from "../../../util/events";
+import { dispatch } from "../../../common/utils/events";
 import "../styles.less";
 import "../../../common/styles/layout.less";
 const { TextArea } = Input;
@@ -18,7 +18,10 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 		"connection" | "authentication" | "ssh" | "tls" | "misc"
 	>("connection");
 
-	const [useSSH, toggleSSH] = useState<boolean>(false);
+	const [sshAuthMethod, toggleAuthMethod] = useState<"password" | "privateKey">(
+		"password"
+	);
+
 	const [host, setHost] = useState<string>(
 		props.connectionParams?.hosts
 			? props.connectionParams?.hosts[0].split(":")[0]
@@ -43,6 +46,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 		: {
 				id: "",
 				name: "",
+				protocol: "mongodb",
 				hosts: [],
 				database: "",
 				type: "directConnection" as const,
@@ -50,6 +54,9 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 				password: "",
 				options: {
 					tls: false,
+				},
+				ssh: {
+					useSSH: false,
 				},
 		  };
 
@@ -94,14 +101,33 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 		key: keyof T,
 		value: T[keyof T]
 	) {
-		if (key && typeof value === "string") {
-			setConnectionData((conn) => ({ ...conn, [key]: value }));
-		}
 		if (key && value) {
 			setConnectionData((conn) => ({ ...conn, [key]: value }));
 		}
 	},
 	[]);
+
+	const editSSHDetails = useCallback(
+		function <T extends Ark.StoredConnection["ssh"]>(
+			key: keyof T,
+			value: T[keyof T]
+		) {
+			if (key && value) {
+				editConnection("ssh", {
+					...connectionData.ssh,
+					[key]: value,
+				});
+			}
+		},
+		[connectionData.ssh, editConnection]
+	);
+
+	const sshMenu = (
+		<Menu onClick={(e) => toggleAuthMethod(e.key as typeof sshAuthMethod)}>
+			<Menu.Item key="password">Password</Menu.Item>
+			<Menu.Item key="privateKey">Private key</Menu.Item>
+		</Menu>
+	);
 
 	const menu = (
 		<Menu onClick={(e) => editConnection("type", e.key)}>
@@ -315,8 +341,10 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 										<span style={{ margin: "auto" }}>Use SSH Tunnel</span>
 									</div>
 									<Checkbox
-										value={useSSH}
-										onChange={() => toggleSSH((useSSH) => !useSSH)}
+										value={connectionDetails.ssh.useSSH}
+										onChange={() =>
+											editSSHDetails("useSSH", !connectionDetails.ssh.useSSH)
+										}
 									/>
 								</div>
 								<div className="flex-inline">
@@ -328,7 +356,8 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 											<Input
 												className="Input"
 												value={connectionData?.ssh?.host}
-												disabled={!useSSH}
+												disabled={!connectionData.ssh.useSSH}
+												onChange={(e) => editSSHDetails("host", e.target.value)}
 											/>
 										</div>
 									</div>
@@ -340,7 +369,40 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 											<Input
 												className="Input"
 												value={connectionData?.ssh?.port}
-												disabled={!useSSH}
+												disabled={!connectionData.ssh.useSSH}
+												onChange={(e) => editSSHDetails("port", e.target.value)}
+											/>
+										</div>
+									</div>
+								</div>
+								<div className="flex-inline">
+									<div style={{ flexGrow: 1 }}>
+										<div className="Label">
+											<span style={{ margin: "auto" }}>Mongod host</span>
+										</div>
+										<div className="InputField">
+											<Input
+												className="Input"
+												value={connectionData?.ssh?.mongodHost}
+												disabled={!connectionData.ssh.useSSH}
+												onChange={(e) =>
+													editSSHDetails("mongodHost", e.target.value)
+												}
+											/>
+										</div>
+									</div>
+									<div>
+										<div className="Label">
+											<span style={{ margin: "auto" }}>Mongod port</span>
+										</div>
+										<div className="InputField">
+											<Input
+												className="Input"
+												value={connectionData?.ssh?.mongodPort}
+												disabled={!connectionData.ssh.useSSH}
+												onChange={(e) =>
+													editSSHDetails("mongodPort", e.target.value)
+												}
 											/>
 										</div>
 									</div>
@@ -353,7 +415,10 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 										<Input
 											className="Input"
 											value={connectionData?.ssh?.username}
-											disabled={!useSSH}
+											disabled={!connectionData.ssh.useSSH}
+											onChange={(e) =>
+												editSSHDetails("username", e.target.value)
+											}
 										/>
 									</div>
 								</div>
@@ -362,37 +427,67 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 										<span style={{ margin: "auto" }}>Auth Method</span>
 									</div>
 									<div className="InputField">
-										<Input
-											className="Input"
-											value={connectionData?.ssh?.method}
-											disabled={!useSSH}
-										/>
+										<Dropdown.Button
+											disabled={!connectionData.ssh.useSSH}
+											overlay={sshMenu}
+										>
+											{sshAuthMethod === "password"
+												? "Password"
+												: "Private key"}
+										</Dropdown.Button>
 									</div>
 								</div>
-								<div>
-									<div className="Label">
-										<span style={{ margin: "auto" }}>Private Key</span>
+								{sshAuthMethod === "password" && (
+									<div>
+										<div className="Label">
+											<span style={{ margin: "auto" }}>Password</span>
+										</div>
+										<div className="InputField">
+											<Input
+												className="Input"
+												value={connectionData.ssh?.password}
+												disabled={!connectionData.ssh.useSSH}
+												onChange={(e) =>
+													editSSHDetails("password", e.target.value)
+												}
+											/>
+										</div>
 									</div>
-									<div className="InputField">
-										<Input
-											className="Input"
-											value={connectionData?.ssh?.privateKey}
-											disabled={!useSSH}
-										/>
+								)}
+								{sshAuthMethod === "privateKey" && (
+									<div>
+										<div className="Label">
+											<span style={{ margin: "auto" }}>Private Key</span>
+										</div>
+										<div className="InputField">
+											<Input
+												className="Input"
+												value={connectionData?.ssh?.privateKey}
+												disabled={!connectionData.ssh.useSSH}
+												onChange={(e) =>
+													editSSHDetails("privateKey", e.target.value)
+												}
+											/>
+										</div>
 									</div>
-								</div>
-								<div>
-									<div className="Label">
-										<span style={{ margin: "auto" }}>Passphrase</span>
+								)}
+								{sshAuthMethod === "privateKey" && (
+									<div>
+										<div className="Label">
+											<span style={{ margin: "auto" }}>Passphrase</span>
+										</div>
+										<div className="InputField">
+											<Input
+												className="Input"
+												value={connectionData?.ssh?.method}
+												disabled={!connectionData.ssh.useSSH}
+												onChange={(e) =>
+													editSSHDetails("passphrase", e.target.value)
+												}
+											/>
+										</div>
 									</div>
-									<div className="InputField">
-										<Input
-											className="Input"
-											value={connectionData?.ssh?.method}
-											disabled={!useSSH}
-										/>
-									</div>
-								</div>
+								)}
 							</div>
 						)}
 						{form === "tls" && (

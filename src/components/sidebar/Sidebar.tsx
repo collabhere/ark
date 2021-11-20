@@ -1,7 +1,7 @@
 import "./styles.less";
 import { VscDatabase } from "react-icons/vsc";
 import React, { FC, useCallback, useEffect, useState } from "react";
-import { dispatch, listenEffect } from "../../util/events";
+import { dispatch, listenEffect } from "../../common/utils/events";
 
 type SidebarItem = Pick<Ark.StoredConnection, "id" | "name">;
 

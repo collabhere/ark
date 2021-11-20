@@ -15,8 +15,12 @@ import {
 	VscPlay,
 } from "react-icons/vsc";
 
-import { dispatch, listenEffect } from "../../../util/events";
-import { getConnectionUri } from "../../../common/util";
+import { dispatch, listenEffect } from "../../../common/utils/events";
+import {
+	getConnectionUri,
+	handleErrors,
+	notify,
+} from "../../../common/utils/misc";
 import { ResultViewer, ResultViewerProps } from "./ResultViewer/ResultViewer";
 import { Button } from "../../../common/components/Button";
 import { CircularLoading } from "../../../common/components/Loading";
@@ -87,7 +91,7 @@ export const Editor: FC<EditorProps> = (props) => {
 			setExecuting(true);
 			shellId
 				? window.ark.shell
-						.eval(shellId, _code)
+						.eval(shellId, _code, storedConnectionId)
 						.then(function ({ result, err }) {
 							if (err) {
 								console.log("exec shell");
@@ -104,11 +108,12 @@ export const Editor: FC<EditorProps> = (props) => {
 						})
 						.catch(function (err) {
 							console.error("exec shell error: ", err);
+							handleErrors(err, storedConnectionId);
 						})
 						.finally(() => setExecuting(false))
 				: setExecuting(false);
 		},
-		[shellId]
+		[shellId, storedConnectionId]
 	);
 
 	const destroyShell = useCallback(
@@ -150,15 +155,25 @@ export const Editor: FC<EditorProps> = (props) => {
 			const _code = code.replace(/(\/\/.*)|(\n)/g, "");
 			shellId &&
 				window.ark.shell
-					.export(shellId, _code, options)
+					.export(shellId, _code, storedConnectionId, options)
 					.then(() => {
 						console.log("Export complete");
+						notify({
+							title: "Export complete!",
+							description: `Path: ~/.ark/exports/${options.fileName}`,
+							type: "success",
+						});
 					})
-					.catch(function (err) {
+					.catch((err) => {
+						notify({
+							title: "Export failed!",
+							description: err.message || err,
+							type: "error",
+						});
 						console.error("exec shell error: ", err);
 					});
 		},
-		[shellId]
+		[shellId, storedConnectionId]
 	);
 
 	const terminateExecution = useCallback(() => {

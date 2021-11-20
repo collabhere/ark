@@ -11,8 +11,5 @@
 		"isolatedModules": true
 		// "noEmit": false
 	},
-	"include": [
-		"./**/*.ts",
-		"../global.d.ts"
-	]
+	"include": ["./**/*.ts", "../global.d.ts", "../util/**/*.ts"]
 }

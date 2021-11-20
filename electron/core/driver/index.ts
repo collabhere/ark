@@ -4,22 +4,12 @@ import type { MemEntry } from "../../modules/ipc";
 import { Connection } from "./connection";
 import { Database } from "./database";
 
-interface CreateDriverParams {
-    memoryStore: MemoryStore<MemEntry>;
-    diskStore: DiskStore<Ark.StoredConnection>;
-}
-
 export interface DriverModules {
     connection: Connection;
     database: Database;
 }
 
-export function createDriver(params: CreateDriverParams) {
-    const {
-        diskStore,
-        memoryStore
-    } = params;
-
+export function createDriver(DriverDependency: Ark.DriverDependency) {
     const modules: DriverModules = {
         connection: Connection,
         database: Database
@@ -31,11 +21,6 @@ export function createDriver(params: CreateDriverParams) {
 
             if (!module) {
                 throw new Error("Library (" + type + ") not found.");
-            }
-
-            const DriverDependency: Ark.DriverDependency = {
-                diskStore,
-                memoryStore
             }
 
             const method = module[func];
