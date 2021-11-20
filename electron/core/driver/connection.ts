@@ -40,6 +40,17 @@ export interface Connection {
 	 */
 	list(dep: Ark.DriverDependency): Promise<Ark.StoredConnection[]>;
 	/**
+	 *
+	 * Test connections.
+	 */
+	// test(
+	// 	dep: Ark.DriverDependency,
+	// 	arg: {
+	// 		type: "config" | "uri";
+	// 		config: Ark.StoredConnection | URIConfiguration;
+	// 	}
+	// ): Promise<boolean>;
+	/**
 	 * Load a single stored connection from disk.
 	 */
 	load(
@@ -47,18 +58,14 @@ export interface Connection {
 		arg: { id: string }
 	): Promise<Ark.StoredConnection>;
 	/**
-	 * Save a connection using just a uri
+	 * Save a connection using a URI or granular configurations
 	 */
 	save(
 		dep: Ark.DriverDependency,
-		arg: { type: "uri"; config: URIConfiguration }
-	): Promise<string>;
-	/**
-	 * Save a connection using granular configurations
-	 */
-	save(
-		dep: Ark.DriverDependency,
-		arg: { type: "config"; config: Ark.StoredConnection }
+		arg: {
+			type: "config" | "uri";
+			config: Ark.StoredConnection | URIConfiguration;
+		}
 	): Promise<string>;
 	/**
 	 * Delete a stored conneection from disk.
@@ -85,20 +92,11 @@ export const Connection: Connection = {
 	info: async ({ memoryStore }, { id }) => {
 		const client = memoryStore.get(id).connection;
 		if (client) {
-			const admin = client.db().admin();
-			const serverStatus = await admin.serverStatus();
-
+			const replSet = await getReplicaSetDetails(client);
 			const result: GetConnectionResult = {};
 
-			const replSet = serverStatus.repl;
-
 			if (replSet) {
-				const replSetStatus = await admin.replSetGetStatus();
-				const members = replSetStatus.members;
-				result.replicaSetDetails = {
-					members,
-					set: replSetStatus.set,
-				};
+				result.replicaSetDetails = replSet;
 			}
 
 			return result;
@@ -172,6 +170,15 @@ export const Connection: Connection = {
 					(record) => `${record.name}:${record.port || 27017}`
 				);
 
+				if (hosts && hosts.length > 0) {
+					const client = new MongoClient(config.uri);
+					const replicaSetDetails = await getReplicaSetDetails(client);
+
+					if (replicaSetDetails) {
+						options.replicaSet = replicaSetDetails.set;
+					}
+				}
+
 				options.tls = true;
 				options.tlsCertificateFile = `${ARK_FOLDER_PATH}/certs/ark.crt`;
 				options.authSource = "admin";
@@ -198,19 +205,25 @@ export const Connection: Connection = {
 
 			if (!config.options.tls) {
 				const { tls: _, tlsCertificateFile: __, ...formattedOptions } = options;
-
-				await diskStore.set(id, {
-					...config,
-					options: { ...formattedOptions },
-					id,
-				});
+				config.options = { ...formattedOptions };
 			} else if (config.options.tls && !config.options.tlsCertificateFile) {
 				config.options.tlsCertificateFile = `${ARK_FOLDER_PATH}/certs/ark.crt`;
-				await diskStore.set(id, {
-					...config,
-					id,
-				});
 			}
+
+			if (config.hosts && config.hosts.length > 0) {
+				const uri = getConnectionUri(config);
+				const client = new MongoClient(uri);
+				const replicaSetDetails = await getReplicaSetDetails(client);
+
+				if (replicaSetDetails) {
+					config.options.replicaSet = replicaSetDetails.set;
+				}
+			}
+
+			await diskStore.set(id, {
+				...config,
+				id,
+			});
 
 			return id;
 		}
@@ -311,3 +324,21 @@ function isURITypeConfig(
 	if (type === "uri") return true;
 	return false;
 }
+
+const getReplicaSetDetails = async (
+	client: MongoClient
+): Promise<GetConnectionResult["replicaSetDetails"] | void> => {
+	const connection = await client.connect();
+	const admin = connection.db().admin();
+	const serverStatus = await admin.serverStatus();
+	const replSet = serverStatus.repl;
+
+	if (replSet) {
+		const replSetStatus = await admin.replSetGetStatus();
+		const members = replSetStatus.members;
+		return {
+			members,
+			set: replSetStatus.set,
+		};
+	}
+};

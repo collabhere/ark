@@ -28,7 +28,12 @@ declare global {
 			type: "directConnection" | "replicaSet";
 			options: Pick<
 				MongoClientOptions,
-				"authSource" | "retryWrites" | "tls" | "tlsCertificateFile" | "w"
+				| "authSource"
+				| "retryWrites"
+				| "tls"
+				| "tlsCertificateFile"
+				| "w"
+				| "replicaSet"
 			>;
 			ssh: {
 				useSSH?: boolean;
