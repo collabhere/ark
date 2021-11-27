@@ -4,6 +4,7 @@ import { dispatch } from "../../../common/utils/events";
 import "../styles.less";
 import "../../../common/styles/layout.less";
 import { notify } from "../../../common/utils/misc";
+import { parse } from "mongodb-uri";
 const { TextArea } = Input;
 export interface ConnectionFormProps {
 	connectionParams?: Ark.StoredConnection;
@@ -22,6 +23,10 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 	const [sshAuthMethod, toggleAuthMethod] = useState<"password" | "privateKey">(
 		"password"
 	);
+
+	const [tlsAuthMethod, toggleTlsAuthMethod] = useState<
+		"CACertificate" | "self-signed"
+	>("self-signed");
 
 	const [host, setHost] = useState<string>(
 		props.connectionParams?.hosts
@@ -58,6 +63,9 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 				},
 				ssh: {
 					useSSH: false,
+					mongodHost: "127.0.0.1",
+					port: "22",
+					mongodPort: "27017",
 				},
 		  };
 
@@ -65,88 +73,178 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 	const [connectionData, setConnectionData] =
 		useState<Ark.StoredConnection>(connectionDetails);
 
-	const saveMongoURI = useCallback(() => {
-		window.ark.driver
-			.run("connection", "save", {
-				type: "uri",
-				config: {
-					uri: mongoURI,
-					name: "Test Connection " + new Date().valueOf(),
-				},
-			})
-			.then((connectionId) => {
-				dispatch("connection_manager:add_connection", { connectionId });
+	const validateUri = useCallback((uri: string) => {
+		try {
+			const parsedUri = parse(uri);
+			if (
+				parsedUri &&
+				parsedUri.scheme.includes("mongodb") &&
+				parsedUri.hosts.every((elem) => !!elem.host && !!elem.port)
+			) {
+				return true;
+			}
+
+			notify({
+				type: "error",
+				description: "Invalid URI format",
 			});
-	}, [mongoURI]);
+
+			return false;
+		} catch (err) {
+			console.log(err);
+			notify({
+				type: "error",
+				description:
+					err && (err as Error).message ? (err as Error).message : "Ivalid URI",
+			});
+
+			return false;
+		}
+	}, []);
+
+	const saveMongoURI = useCallback(() => {
+		if (validateUri(mongoURI)) {
+			window.ark.driver
+				.run("connection", "save", {
+					type: "uri",
+					config: {
+						uri: mongoURI,
+						name: "Test Connection " + new Date().valueOf(),
+					},
+				})
+				.then((connectionId) => {
+					dispatch("connection_manager:add_connection", { connectionId });
+				});
+		}
+	}, [mongoURI, validateUri]);
 
 	const testURIConnection = useCallback(() => {
-		window.ark.driver
-			.run("connection", "test", {
-				type: "uri",
-				config: {
-					uri: mongoURI,
-					name: "",
-				},
-			})
-			.then((res) => {
-				const notification: Parameters<typeof notify>[0] = {
-					title: "Test connection",
-					description: res.message,
-					type: res.status ? "success" : "error",
-				};
+		if (validateUri(mongoURI)) {
+			window.ark.driver
+				.run("connection", "test", {
+					type: "uri",
+					config: {
+						uri: mongoURI,
+						name: "",
+					},
+				})
+				.then((res) => {
+					const notification: Parameters<typeof notify>[0] = {
+						title: "Test connection",
+						description: res.message,
+						type: res.status ? "success" : "error",
+					};
 
-				notify(notification);
+					notify(notification);
+				});
+		}
+	}, [mongoURI, validateUri]);
+
+	const validateAdvancedConfig = useCallback(() => {
+		const error: Partial<Parameters<typeof notify>[0]> = {};
+		if (!connectionData.type) {
+			error.description = "Invalid connection type.";
+		} else if (!connectionData.hosts || !(!!host && !isNaN(Number(port)))) {
+			error.description = "Invalid hosts config.";
+		} else if (
+			connectionData.options.tls &&
+			tlsAuthMethod === "CACertificate" &&
+			!connectionData.options.tlsCertificateFile
+		) {
+			error.description = "Specify the TLS certificate file to be used";
+		} else if (connectionData.ssh.useSSH) {
+			if (
+				!connectionData.ssh.host ||
+				!connectionData.ssh.port ||
+				isNaN(Number(connectionData.ssh.port))
+			) {
+				error.description = "Incorrect host or port format.";
+			} else if (
+				!connectionData.ssh.mongodHost ||
+				!connectionData.ssh.mongodPort ||
+				isNaN(Number(connectionData.ssh.mongodPort))
+			) {
+				error.description = "Incorrect mongod host or port.";
+			} else if (!connectionData.ssh.username) {
+				error.description = "Invalid username.";
+			} else if (
+				(sshAuthMethod === "password" && !connectionData.ssh.password) ||
+				(sshAuthMethod === "privateKey" && !connectionData.ssh.privateKey)
+			) {
+				error.description =
+					"Either the password or the private key must be specified.";
+			}
+
+			if (error.description) {
+				error.title = "Invalid SSH config";
+			}
+		}
+
+		if (error.description) {
+			notify({
+				title: error.title || "Configuration error.",
+				description: error.description || "",
+				type: "error",
 			});
-	}, [mongoURI]);
+
+			return false;
+		}
+
+		return true;
+	}, [connectionData, host, port, sshAuthMethod, tlsAuthMethod]);
 
 	const saveAdvancedConnection = useCallback(() => {
-		window.ark.driver
-			.run("connection", "save", {
-				type: "config",
-				config: {
-					...connectionData,
-					hosts:
-						connectionData.type === "directConnection"
-							? [`${host}:${port}`]
-							: connectionData.hosts,
-					name:
-						connectionData.name || "Test Connection " + new Date().valueOf(),
-				},
-			})
-			.then((connectionId) => {
-				dispatch("connection_manager:add_connection", { connectionId });
-			});
-	}, [connectionData, host, port]);
+		if (validateAdvancedConfig()) {
+			window.ark.driver
+				.run("connection", "save", {
+					type: "config",
+					config: {
+						...connectionData,
+						hosts:
+							connectionData.type === "directConnection"
+								? [`${host}:${port}`]
+								: connectionData.hosts,
+						name:
+							connectionData.name || "Test Connection " + new Date().valueOf(),
+					},
+				})
+				.then((connectionId) => {
+					dispatch("connection_manager:add_connection", { connectionId });
+				});
+		}
+	}, [connectionData, host, port, validateAdvancedConfig]);
 
 	const testAdvancedConnection = useCallback(() => {
-		window.ark.driver
-			.run("connection", "test", {
-				type: "config",
-				config: {
-					...connectionData,
-					hosts:
-						connectionData.type === "directConnection"
-							? [`${host}:${port}`]
-							: connectionData.hosts,
-					name: "",
-				},
-			})
-			.then((res) => {
-				const notification: Parameters<typeof notify>[0] = {
-					title: "Test connection",
-					description: res.message,
-					type: res.status ? "success" : "error",
-				};
+		if (validateAdvancedConfig()) {
+			window.ark.driver
+				.run("connection", "test", {
+					type: "config",
+					config: {
+						...connectionData,
+						hosts:
+							connectionData.type === "directConnection"
+								? [`${host}:${port}`]
+								: connectionData.hosts,
+						name: "",
+					},
+				})
+				.then((res) => {
+					const notification: Parameters<typeof notify>[0] = {
+						title: "Test connection",
+						description: res.message,
+						type: res.status ? "success" : "error",
+					};
 
-				notify(notification);
-			});
-	}, [connectionData, host, port]);
+					notify(notification);
+				});
+		}
+	}, [connectionData, host, port, validateAdvancedConfig]);
 
 	const editConnection = useCallback(function <T extends Ark.StoredConnection>(
 		key: keyof T,
 		value: T[keyof T]
 	) {
-		if (key && value) {
+		if (key && value !== undefined) {
 			setConnectionData((conn) => ({ ...conn, [key]: value }));
 		}
 	},
@@ -157,7 +255,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 			key: keyof T,
 			value: T[keyof T]
 		) {
-			if (key && value) {
+			if (key && value !== undefined) {
 				editConnection("ssh", {
 					...connectionData.ssh,
 					[key]: value,
@@ -167,10 +265,17 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 		[connectionData.ssh, editConnection]
 	);
 
-	const sshMenu = (
+	const sshAuthMenu = (
 		<Menu onClick={(e) => toggleAuthMethod(e.key as typeof sshAuthMethod)}>
 			<Menu.Item key="password">Password</Menu.Item>
 			<Menu.Item key="privateKey">Private key</Menu.Item>
+		</Menu>
+	);
+
+	const tlsAuthMenu = (
+		<Menu onClick={(e) => toggleTlsAuthMethod(e.key as typeof tlsAuthMethod)}>
+			<Menu.Item key="self-signed">Self-signed certificate</Menu.Item>
+			<Menu.Item key="CACertificate">CA Certificate</Menu.Item>
 		</Menu>
 	);
 
@@ -390,7 +495,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 									<Checkbox
 										value={connectionDetails.ssh.useSSH}
 										onChange={() =>
-											editSSHDetails("useSSH", !connectionDetails.ssh.useSSH)
+											editSSHDetails("useSSH", !connectionData.ssh.useSSH)
 										}
 									/>
 								</div>
@@ -471,12 +576,14 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 								</div>
 								<div>
 									<div className="Label">
-										<span style={{ margin: "auto" }}>Auth Method</span>
+										<span style={{ margin: "auto" }}>
+											Authentication Method
+										</span>
 									</div>
 									<div className="InputField">
 										<Dropdown.Button
 											disabled={!connectionData.ssh.useSSH}
-											overlay={sshMenu}
+											overlay={sshAuthMenu}
 										>
 											{sshAuthMethod === "password"
 												? "Password"
@@ -553,16 +660,35 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 										}
 									/>
 								</div>
-								<div className="flex-inline">
+								<div>
 									<div className="Label">
-										<span style={{ margin: "auto" }}>CA Certificate</span>
+										<span style={{ margin: "auto" }}>
+											Authentication Method
+										</span>
 									</div>
 									<div className="InputField">
-										<Upload {...props}>
-											<Button>Upload File</Button>
-										</Upload>
+										<Dropdown.Button
+											disabled={!connectionData.options.tls}
+											overlay={tlsAuthMenu}
+										>
+											{tlsAuthMethod === "self-signed"
+												? "Self-signed certificate"
+												: "CA certificate"}
+										</Dropdown.Button>
 									</div>
 								</div>
+								{tlsAuthMethod === "CACertificate" && (
+									<div className="flex-inline">
+										<div className="Label">
+											<span style={{ margin: "auto" }}>CA Certificate</span>
+										</div>
+										<div className="InputField">
+											<Upload {...props}>
+												<Button>Upload File</Button>
+											</Upload>
+										</div>
+									</div>
+								)}
 							</div>
 						)}
 						{form === "misc" && (
