@@ -34,6 +34,7 @@ declare global {
 				| "tlsCertificateFile"
 				| "w"
 				| "replicaSet"
+				| "authMechanism"
 			>;
 			ssh: {
 				useSSH?: boolean;

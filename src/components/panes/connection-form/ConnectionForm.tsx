@@ -6,6 +6,7 @@ import "../../../common/styles/layout.less";
 import { notify } from "../../../common/utils/misc";
 import { parse } from "mongodb-uri";
 const { TextArea } = Input;
+
 export interface ConnectionFormProps {
 	connectionParams?: Ark.StoredConnection;
 	mode?: "edit" | "clone";
@@ -60,6 +61,8 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 				password: "",
 				options: {
 					tls: false,
+					authMechanism:
+						"SCRAM-SHA-1" as Ark.StoredConnection["options"]["authMechanism"],
 				},
 				ssh: {
 					useSSH: false,
@@ -279,6 +282,21 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 		</Menu>
 	);
 
+	const authMechanismMenu = (
+		<Menu
+			onClick={(e) =>
+				editConnection("options", {
+					...connectionData.options,
+					authMechanism:
+						e.key as Ark.StoredConnection["options"]["authMechanism"],
+				})
+			}
+		>
+			<Menu.Item key={"SCRAM-SHA-1"}>SCRAM-SHA-1</Menu.Item>
+			<Menu.Item key={"SCRAM-SHA-256"}>SCRAM-SHA-256</Menu.Item>
+		</Menu>
+	);
+
 	const menu = (
 		<Menu onClick={(e) => editConnection("type", e.key)}>
 			<Menu.Item key="directConnection">Direct Connection</Menu.Item>
@@ -482,6 +500,19 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 												}
 											/>
 										</div>
+									</div>
+								</div>
+
+								<div>
+									<div className="Label">
+										<span style={{ margin: "auto" }}>
+											Authentication Mechanism
+										</span>
+									</div>
+									<div className="InputField">
+										<Dropdown.Button overlay={authMechanismMenu}>
+											{connectionData.options.authMechanism}
+										</Dropdown.Button>
 									</div>
 								</div>
 							</div>

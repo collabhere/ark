@@ -358,10 +358,19 @@ const getConnectionConfig = async ({
 		const id = config.id || nanoid();
 
 		if (!config.options.tls) {
-			const { tls: _, tlsCertificateFile: __, ...formattedOptions } = options;
+			const {
+				tls: _,
+				tlsCertificateFile: __,
+				...formattedOptions
+			} = config.options;
 			config.options = { ...formattedOptions };
 		} else if (config.options.tls && !config.options.tlsCertificateFile) {
 			config.options.tlsCertificateFile = `${ARK_FOLDER_PATH}/certs/ark.crt`;
+		}
+
+		if (!config.username) {
+			const { authMechanism: _, ...opts } = config.options;
+			config.options = { ...opts };
 		}
 
 		if (config.hosts && config.hosts.length > 0) {
