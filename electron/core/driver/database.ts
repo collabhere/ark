@@ -11,6 +11,11 @@ export const Database: Database = {
     ) => {
         const entry = memoryStore.get(id);
         if (entry) {
+
+            if (entry.server && !entry.server.listening) {
+                throw new Error("SSH tunnel closed! Unable to process request.");
+            }
+
             const client = entry.connection;
             const db = client.db(database);
             const cursor = await db.listCollections({}, { nameOnly: false, dbName: database });

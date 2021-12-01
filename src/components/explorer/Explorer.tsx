@@ -3,11 +3,12 @@ import "./styles.less";
 import React, { FC, useCallback, useEffect, useState } from "react";
 import { Tree } from "antd";
 import { Resizable } from "re-resizable";
-import { dispatch, listenEffect } from "../../util/events";
+import { dispatch, listenEffect } from "../../common/utils/events";
 import { CollectionInfo, ListDatabasesResult } from "mongodb";
 import { useTree } from "../../hooks/useTree";
 import { VscDatabase, VscFolder, VscListTree } from "react-icons/vsc";
 import { CircularLoading } from "../../common/components/Loading";
+import { handleErrors } from "../../common/utils/misc";
 
 type Databases = ListDatabasesResult["databases"];
 type DatabasesWithInformation = (ListDatabasesResult["databases"][0] & {
@@ -151,6 +152,9 @@ export const Explorer: FC<ExplorerProps> = () => {
 								});
 							}
 						})
+						.catch((err) => {
+							handleErrors(err);
+						})
 				: Promise.resolve();
 		},
 		[addCollectionNodesToDatabase, currentConnectionId]
@@ -184,14 +188,18 @@ export const Explorer: FC<ExplorerProps> = () => {
 				window.ark.driver.run("connection", "load", {
 					id: currentConnectionId,
 				}),
-			]).then(([databases, storedConnection]) => {
-				if (databases && databases.length) {
-					addDatabaseNodes(createDatabaseList(databases));
-				}
-				if (storedConnection) {
-					setStoredConnection(storedConnection);
-				}
-			});
+			])
+				.then(([databases, storedConnection]) => {
+					if (databases && databases.length) {
+						addDatabaseNodes(createDatabaseList(databases));
+					}
+					if (storedConnection) {
+						setStoredConnection(storedConnection);
+					}
+				})
+				.catch((err) => {
+					handleErrors(err);
+				});
 		}
 		return () => dropTree();
 	}, [addDatabaseNodes, currentConnectionId, dropTree]);

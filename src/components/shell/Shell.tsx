@@ -4,7 +4,6 @@ import React, { FC, useCallback, useEffect, useState } from "react";
 import Monaco from "@monaco-editor/react";
 import { KeyMod, KeyCode, editor } from "monaco-editor";
 import { mountMonaco } from "./monaco";
-import { Button } from "../../common/components/Button";
 
 export enum MONACO_COMMANDS {
 	CLONE_SHELL,

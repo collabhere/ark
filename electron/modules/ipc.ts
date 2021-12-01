@@ -10,6 +10,7 @@ import { createDriver, DriverModules } from "../core/driver";
 import { createMemoryStore } from "../core/stores/memory";
 import { createDiskStore } from "../core/stores/disk";
 import { MongoClient, ListDatabasesResult } from "mongodb";
+import { Server } from "net";
 
 interface RunCommandInput {
 	library: keyof DriverModules;
@@ -20,6 +21,7 @@ interface RunCommandInput {
 interface InvokeJS {
 	code: string;
 	shell: string;
+	connectionId: string;
 }
 
 interface ExportData extends InvokeJS {
@@ -79,11 +81,16 @@ export interface ScriptOpenActionData {
 	params: { storedConnectionId?: string; fileLocation?: string; };
 }
 
-export type ScriptActionData = (ScriptOpenActionData | ScriptSaveActionData | ScriptSaveAsActionData | ScriptDeleteActionData)
+export type ScriptActionData =
+	| ScriptOpenActionData
+	| ScriptSaveActionData
+	| ScriptSaveAsActionData
+	| ScriptDeleteActionData;
 
 export interface MemEntry {
 	connection: MongoClient;
 	databases: ListDatabasesResult["databases"];
+	server?: Server;
 }
 interface StoredShellValue {
 	id: string;
@@ -99,10 +106,12 @@ interface IPCInitParams {
 function IPC() {
 	const shells = createMemoryStore<StoredShellValue>();
 
-	const driver = createDriver({
+	const DriverDependency: Ark.DriverDependency = {
+		diskStore: createDiskStore<Ark.StoredConnection>("connections"),
 		memoryStore: createMemoryStore<MemEntry>(),
-		diskStore: createDiskStore<Ark.StoredConnection>("connections")
-	});
+	};
+
+	const driver = createDriver(DriverDependency);
 
 	// Stores opened scripts
 	const scriptDiskStore = createDiskStore<StoredScript>("scripts");
@@ -129,12 +138,13 @@ function IPC() {
 					const driverConnection = await driver.run("connection", "info", { id: storedConnectionId });
 					const mongoOptions = {
 						...storedConnection.options,
-						replicaSet: driverConnection.replicaSetDetails && driverConnection.replicaSetDetails.set ? driverConnection.replicaSetDetails.set : undefined
+						replicaSet:
+							driverConnection.replicaSetDetails &&
+								driverConnection.replicaSetDetails.set
+								? driverConnection.replicaSetDetails.set
+								: undefined,
 					};
-					const shellExecutor = await createEvaluator({
-						uri,
-						mongoOptions,
-					});
+					const shellExecutor = await createEvaluator({ uri, mongoOptions }, DriverDependency);
 					const shell = {
 						id: nanoid(),
 						executor: shellExecutor,
@@ -157,7 +167,8 @@ function IPC() {
 					if (!shell) throw new Error("Invalid shell");
 					const result = await shell.executor.evaluate(
 						data.code,
-						shell.database
+						shell.database,
+						data.connectionId
 					);
 					return { result: bson.serialize(result) };
 				} catch (err) {
@@ -171,7 +182,7 @@ function IPC() {
 				try {
 					const shell = shells.get(data.shell);
 					if (!shell) throw new Error("Invalid shell");
-					await shell.executor.export(data.code, shell.database, data.options);
+					await shell.executor.export(data.code, shell.database, data.connectionId, data.options);
 					return;
 				} catch (err) {
 					console.error("`shell_export` error");

@@ -12,25 +12,25 @@ import { enableDevTools } from "./utils/dev";
 
 		await app.whenReady();
 
-		const window = Window.createWindow(
-			{
-				width: 1400,
-				height: 900,
-				frame: false,
-				webPreferences: {
-					preload: path.join(__dirname, 'preload')
-				},
-			}
-		);
+		const window = Window.createWindow({
+			width: 1400,
+			height: 900,
+			frame: false,
+			webPreferences: {
+				preload: path.join(__dirname, "preload"),
+			},
+		});
 
 		IPC.init({
-			window
+			window,
 		});
 
 		if (process.env.ARK_ENABLE_DEV_TOOLS && process.env.ARK_DEV_TOOLS_PATH)
 			await enableDevTools(process.env.ARK_DEV_TOOLS_PATH);
 
-		const loadURL = process.env.ARK_ENTRY_URL || `file://${path.join(__dirname, "../index.html")}`;
+		const loadURL =
+			process.env.ARK_ENTRY_URL ||
+			`file://${path.join(__dirname, "../index.html")}`;
 
 		await window.loadURL(loadURL);
 	} catch (e) {
