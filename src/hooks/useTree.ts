@@ -14,16 +14,17 @@ const findNodeRecursively = (tree: DataNode[], key: string): DataNode | undefine
     return result;
 }
 
-type NodeProperties = Pick<DataNode, "className" | "icon">;
+type NodeProperties = Pick<DataNode, "className" | "icon" | "disabled" | "children">;
+
 
 interface UseTree {
     tree: DataNode[];
     node(key: string): DataNode | undefined;
-    addNodeAtEnd(title: string, key: string, children?: DataNode[], properties?: NodeProperties): void;
+    addNodeAtEnd(title: React.ReactNode, key: string, children?: DataNode[], properties?: NodeProperties): void;
     addChildrenToNode(key: string, children: DataNode[]): void;
     removeNode(key: string): void;
     updateNodeProperties(key: string, properties: NodeProperties): void;
-    createNode(title: string, key: string, children?: DataNode[], properties?: NodeProperties): DataNode;
+    createNode(title: React.ReactNode, key: string, children?: DataNode[], properties?: NodeProperties): DataNode;
     dropTree(): void;
 }
 
@@ -44,18 +45,21 @@ export function useTree(): UseTree {
         })
     }, [])
 
-    const createNode = useCallback((title, key, children = [], properties = {}) => ({
-        title, key, children, ...properties
+    const createNode: UseTree["createNode"] = useCallback((title, key, children = [], properties = {}) => ({
+        title,
+        key,
+        children,
+        ...properties
     }), []);
 
-    const addNodeAtEnd = useCallback((title, key, children = [], properties = {}) => {
+    const addNodeAtEnd: UseTree["addNodeAtEnd"] = useCallback((title, key, children = [], properties = {}) => {
         setTree(tree => [
             ...tree,
             createNode(title, key, children, properties)
         ]);
     }, [createNode]);
 
-    const addChildrenToNode = useCallback((key, children) => {
+    const addChildrenToNode: UseTree["addChildrenToNode"] = useCallback((key, children) => {
         setTree(_tree => {
             const node = findNodeRecursively(_tree, key);
             if (node) {
@@ -70,7 +74,7 @@ export function useTree(): UseTree {
         });
     }, []);
 
-    const removeNode = useCallback((key) => {
+    const removeNode: UseTree["removeNode"] = useCallback((key) => {
         setTree(_tree => {
             const idx = _tree.findIndex((n) => n.key === key);
             if (idx > -1) {
@@ -82,7 +86,7 @@ export function useTree(): UseTree {
     }, []);
 
 
-    const dropTree = useCallback(() => {
+    const dropTree: UseTree["dropTree"] = useCallback(() => {
         setTree([]);
     }, []);
 

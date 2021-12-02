@@ -1,14 +1,24 @@
 import "./styles.less";
 
 import React, { FC, useCallback, useEffect, useState } from "react";
-import { Tree } from "antd";
+import { Dropdown, Menu, Tree } from "antd";
 import { Resizable } from "re-resizable";
 import { dispatch, listenEffect } from "../../common/utils/events";
 import { CollectionInfo, ListDatabasesResult } from "mongodb";
 import { useTree } from "../../hooks/useTree";
-import { VscDatabase, VscFolder, VscListTree } from "react-icons/vsc";
+import {
+	VscDatabase,
+	VscFolder,
+	VscListTree,
+	VscKebabVertical,
+	VscRefresh,
+} from "react-icons/vsc";
 import { CircularLoading } from "../../common/components/Loading";
-import { handleErrors } from "../../common/utils/misc";
+import { handleErrors, notify } from "../../common/utils/misc";
+import { Button } from "../../common/components/Button";
+import { DangerousActionPrompt } from "../dialogs/DangerousActionPrompt";
+import { TextInputPrompt } from "../dialogs/TextInputPrompt";
+import { useRefresh } from "../../hooks/useRefresh";
 
 type Databases = ListDatabasesResult["databases"];
 type DatabasesWithInformation = (ListDatabasesResult["databases"][0] & {
@@ -48,19 +58,48 @@ const createDatabaseList = (
 	};
 };
 
-interface CollectionsMap {
-	/* db_name => collection_name[] */
-	[k: string]: string[];
+interface CreateMenuItem {
+	item: string;
+	cb: () => void;
+	danger?: boolean;
 }
+const createContextMenu = (items: CreateMenuItem[]) => (
+	<Menu>
+		{items.map((menuItem, i) => (
+			<Menu.Item danger={menuItem.danger} key={i} onClick={() => menuItem.cb()}>
+				<a>{menuItem.item}</a>
+			</Menu.Item>
+		))}
+	</Menu>
+);
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface ExplorerProps {}
 
 export const Explorer: FC<ExplorerProps> = () => {
 	const [isOpen, setIsOpen] = useState(false);
-	const [loading, setLoading] = useState(true);
 	const [storedConnection, setStoredConnection] =
 		useState<Ark.StoredConnection>();
+	const [currentConnectionId, setCurrentConnectionId] = useState<string>();
+	const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
+	const [createCollectionDialogInfo, setCreateCollectionDialogInfo] = useState({
+		database: "",
+		visible: false,
+	});
+	const [dropCollectionDialogInfo, setDropCollectionDialogInfo] = useState({
+		visible: false,
+		database: "",
+		collection: "",
+	});
+	const [createDatabaseDialogInfo, setCreateDatabaseDialogInfo] = useState({
+		visible: false,
+	});
+	const [dropDatabaseDialogInfo, setDropDatabaseDialogInfo] = useState({
+		visible: false,
+		database: "",
+	});
+
+	const [refToken, refresh] = useRefresh();
 	const {
 		tree,
 		addChildrenToNode,
@@ -69,9 +108,6 @@ export const Explorer: FC<ExplorerProps> = () => {
 		addNodeAtEnd,
 		dropTree,
 	} = useTree();
-	const [currentConnectionId, setCurrentConnectionId] = useState<string>();
-	const [collectionsMap, setCollectionsMap] = useState<CollectionsMap>({});
-	const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
 
 	const switchConnections = useCallback((args: { connectionId: string }) => {
 		const { connectionId } = args;
@@ -84,9 +120,33 @@ export const Explorer: FC<ExplorerProps> = () => {
 		(key: string, loading: boolean) => {
 			updateNodeProperties(key, {
 				icon: loading ? <CircularLoading size="small" /> : <VscDatabase />,
+				disabled: loading,
 			});
 		},
-		[]
+		[updateNodeProperties]
+	);
+
+	const openShell = useCallback(
+		(db: string, collection?: string) => {
+			currentConnectionId &&
+				Promise.all([
+					window.ark.driver.run("connection", "load", {
+						id: currentConnectionId,
+					}),
+					window.ark.driver.run("database", "listCollections", {
+						id: currentConnectionId,
+						database: db,
+					}),
+				]).then(([storedConnection, collections]) => {
+					dispatch("browser:create_tab:editor", {
+						shellConfig: { ...storedConnection, collection },
+						contextDB: db,
+						collections: collections.map((col) => col.name),
+						storedConnectionId: currentConnectionId,
+					});
+				});
+		},
+		[currentConnectionId]
 	);
 
 	const addDatabaseNodes = useCallback(
@@ -95,25 +155,67 @@ export const Explorer: FC<ExplorerProps> = () => {
 			personal: DatabasesWithInformation;
 		}) => {
 			const { system, personal } = databases;
+
+			const createOverlay = (db) =>
+				createContextMenu([
+					{ item: "Open shell", cb: () => openShell(db.name) },
+					{
+						item: "Create collection",
+						cb: () => {
+							setCreateCollectionDialogInfo({
+								database: db.name,
+								visible: true,
+							});
+						},
+					},
+					{ item: "Current operations", cb: () => {} },
+					{ item: "Statistics", cb: () => {} },
+
+					{
+						danger: true,
+						item: "Drop database",
+						cb: () => {
+							setDropDatabaseDialogInfo({
+								database: db.name,
+								visible: true,
+							});
+						},
+					},
+				]);
+
 			addNodeAtEnd(
 				"system",
-				"system;",
+				"folder;system",
 				system.map((db) =>
-					createNode(db.name, dbTreeKey(db.name), undefined, {
-						icon: <VscDatabase />,
-					})
+					createNode(
+						<Dropdown overlay={createOverlay(db)} trigger={["contextMenu"]}>
+							<span>{db.name}</span>
+						</Dropdown>,
+						dbTreeKey(db.name),
+						undefined,
+						{
+							icon: <VscDatabase />,
+						}
+					)
 				),
 				{
 					icon: <VscFolder />,
 				}
 			);
 			personal.map((db) =>
-				addNodeAtEnd(db.name, dbTreeKey(db.name), undefined, {
-					icon: <VscDatabase />,
-				})
+				addNodeAtEnd(
+					<Dropdown overlay={createOverlay(db)} trigger={["contextMenu"]}>
+						<span>{db.name}</span>
+					</Dropdown>,
+					dbTreeKey(db.name),
+					undefined,
+					{
+						icon: <VscDatabase />,
+					}
+				)
 			);
 		},
-		[addNodeAtEnd, createNode]
+		[addNodeAtEnd, createNode, openShell]
 	);
 
 	const addCollectionNodesToDatabase = useCallback(
@@ -122,7 +224,29 @@ export const Explorer: FC<ExplorerProps> = () => {
 				dbTreeKey(db),
 				collections.map((collection) =>
 					createNode(
-						collection.name,
+						<Dropdown
+							overlay={createContextMenu([
+								{
+									item: "Open shell",
+									cb: () => openShell(db, collection.name),
+								},
+								{ item: "Indexes", cb: () => {} },
+								{
+									danger: true,
+									item: "Drop collection",
+									cb: () => {
+										setDropCollectionDialogInfo({
+											database: db,
+											collection: collection.name,
+											visible: true,
+										});
+									},
+								},
+							])}
+							trigger={["contextMenu"]}
+						>
+							<span>{collection.name}</span>
+						</Dropdown>,
 						collectionTreeKey(collection.name, db),
 						undefined,
 						{
@@ -132,7 +256,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 				)
 			);
 		},
-		[addChildrenToNode, createNode]
+		[addChildrenToNode, createNode, openShell]
 	);
 
 	const addCollectionsToTree = useCallback(
@@ -146,10 +270,6 @@ export const Explorer: FC<ExplorerProps> = () => {
 						.then((collections) => {
 							if (collections && collections.length) {
 								addCollectionNodesToDatabase(dbName, collections);
-								setCollectionsMap((map) => {
-									map[dbName] = collections.map((x) => x.name);
-									return { ...map };
-								});
 							}
 						})
 						.catch((err) => {
@@ -160,26 +280,8 @@ export const Explorer: FC<ExplorerProps> = () => {
 		[addCollectionNodesToDatabase, currentConnectionId]
 	);
 
-	const openShellForCollection = useCallback(
-		(collection: string, db: string) => {
-			currentConnectionId &&
-				window.ark.driver
-					.run("connection", "load", { id: currentConnectionId })
-					.then((storedConnection) => {
-						dispatch("browser:create_tab:editor", {
-							shellConfig: { ...storedConnection, collection },
-							contextDB: db,
-							collections: collectionsMap[db] ? collectionsMap[db] : [],
-							storedConnectionId: currentConnectionId,
-						});
-					});
-		},
-		[collectionsMap, currentConnectionId]
-	);
-
 	/* Load base tree */
 	useEffect(() => {
-		setLoading(true);
 		if (currentConnectionId) {
 			Promise.all([
 				window.ark.driver.run("connection", "listDatabases", {
@@ -201,8 +303,11 @@ export const Explorer: FC<ExplorerProps> = () => {
 					handleErrors(err);
 				});
 		}
-		return () => dropTree();
-	}, [addDatabaseNodes, currentConnectionId, dropTree]);
+		return () => {
+			dropTree();
+			setStoredConnection(undefined);
+		};
+	}, [addDatabaseNodes, currentConnectionId, dropTree, refToken]);
 
 	/** Register explorer event listeners */
 	useEffect(
@@ -217,7 +322,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 					cb: (e, payload) => switchConnections(payload),
 				},
 			]),
-		[switchConnections]
+		[switchConnections, refToken]
 	);
 
 	return isOpen ? (
@@ -233,46 +338,315 @@ export const Explorer: FC<ExplorerProps> = () => {
 			minWidth="20%"
 			minHeight="100%"
 		>
-			{loading && storedConnection ? (
-				<div className="Explorer">
-					<div className={"ExplorerHeader"}>{storedConnection.name}</div>
-					<Tree
-						checkable={false}
-						draggable={false}
-						focusable={false}
-						selectable={false}
-						showIcon
-						expandedKeys={expandedKeys}
-						className={"ExplorerTree"}
-						onExpand={(keys, info) => {
-							const { expanded, node } = info;
-							if (expanded)
-								setExpandedKeys((keys) => [...keys, node.key as string]);
-							else
-								setExpandedKeys((keys) =>
-									keys.filter((key) => key !== node.key)
-								);
-						}}
-						onDoubleClick={(e, node) => {
-							console.log("Double click node", node);
-							const key = node.key as string;
-							const [type, value, extra] = key.split(";");
-							if (type === "database") {
-								setDatabaseNodeLoading(key, true);
-								addCollectionsToTree(value).then(() => {
-									setDatabaseNodeLoading(key, false);
-									setExpandedKeys((keys) => [...keys, key]);
-								});
-							} else if (type === "collection") {
-								openShellForCollection(value, extra);
+			<div className="Explorer">
+				{storedConnection ? (
+					<>
+						<div className={"ExplorerHeader"}>
+							<div className={"ExplorerHeaderTitle"}>
+								{storedConnection.name}
+							</div>
+							<div className={"ExplorerHeaderMenu"}>
+								<Button
+									icon={<VscRefresh />}
+									size="small"
+									variant="primary"
+									popoverOptions={{
+										hover: {
+											content: "Refresh",
+										},
+									}}
+									onClick={() => refresh()}
+								/>
+								<Dropdown
+									overlay={
+										<Menu>
+											<Menu.Item
+												key={1}
+												onClick={() =>
+													setCreateDatabaseDialogInfo({ visible: true })
+												}
+											>
+												<a>Create database</a>
+											</Menu.Item>
+											<Menu.Item key={2} onClick={() => {}}>
+												<a>Server Info</a>
+											</Menu.Item>
+											<Menu.Item
+												danger
+												key={3}
+												onClick={() => {
+													dispatch("connection_manager:disconnect", {
+														connectionId: currentConnectionId,
+													});
+													dispatch("connection_manager:toggle");
+													dispatch("explorer:hide");
+												}}
+											>
+												<a>Disconnect</a>
+											</Menu.Item>
+										</Menu>
+									}
+									trigger={["click"]}
+								>
+									<Button
+										icon={<VscKebabVertical />}
+										size="small"
+										variant="primary"
+									/>
+								</Dropdown>
+							</div>
+						</div>
+						<Tree
+							checkable={false}
+							draggable={false}
+							focusable={false}
+							selectable={false}
+							showIcon
+							defaultExpandedKeys={[]}
+							expandedKeys={expandedKeys}
+							className={"ExplorerTree"}
+							onExpand={(keys, info) => {
+								const { expanded, node } = info;
+								if (expanded)
+									setExpandedKeys((keys) => [...keys, node.key as string]);
+								else
+									setExpandedKeys((keys) =>
+										keys.filter((key) => key !== node.key)
+									);
+							}}
+							onDoubleClick={(e, node) => {
+								const key = node.key as string;
+								const [type, value, extra] = key.split(";");
+								if (type === "database") {
+									if (node.children && node.children.length) {
+										updateNodeProperties(key, { children: [] });
+									}
+									setDatabaseNodeLoading(key, true);
+									addCollectionsToTree(value).then(() => {
+										setExpandedKeys((keys) => [...keys, key]);
+										setDatabaseNodeLoading(key, false);
+									});
+								} else if (type === "collection") {
+									openShell(extra, value);
+								}
+							}}
+							treeData={tree}
+						/>
+					</>
+				) : (
+					<div className="ExplorerLoading">
+						<CircularLoading />
+					</div>
+				)}
+				{/* Dialogs */}
+				<>
+					{dropDatabaseDialogInfo.visible && (
+						<DangerousActionPrompt
+							confirmButtonText="Drop"
+							title={"Dropping '" + dropDatabaseDialogInfo.database + "'"}
+							prompt={
+								"Are you sure you would like to drop the database '" +
+								dropDatabaseDialogInfo.database +
+								"'?"
 							}
-						}}
-						treeData={tree}
-					/>
-				</div>
-			) : (
-				<p>Loading</p>
-			)}
+							onCancel={() => {
+								setDropDatabaseDialogInfo({
+									database: "",
+									visible: false,
+								});
+							}}
+							dangerousActionCallback={(err, result) => {
+								if (err) {
+									console.error(err);
+									notify({
+										title: "Database action",
+										description: "An error occured while dropping the database",
+										type: "error",
+									});
+								} else if (result) {
+									if (result.ok) {
+										notify({
+											title: "Database action",
+											description: "Successfully dropped database",
+											type: "success",
+										});
+									} else if (!result.ok) {
+										notify({
+											title: "Database action",
+											description: "Unable to drop the database",
+											type: "error",
+										});
+									}
+								}
+								setDropDatabaseDialogInfo({
+									database: "",
+									visible: false,
+								});
+								refresh();
+							}}
+							dangerousAction={() => {
+								if (currentConnectionId)
+									return window.ark.driver.run("database", "dropDatabase", {
+										id: currentConnectionId,
+										database: dropDatabaseDialogInfo.database,
+									});
+								else return Promise.resolve({ ok: false });
+							}}
+						/>
+					)}
+					{dropCollectionDialogInfo.visible && (
+						<DangerousActionPrompt
+							confirmButtonText="Drop"
+							title={"Dropping '" + dropCollectionDialogInfo.collection + "'"}
+							prompt={
+								"Are you sure you would like to drop the collection '" +
+								dropCollectionDialogInfo.collection +
+								"' from database '" +
+								dropCollectionDialogInfo.database +
+								"'?"
+							}
+							onCancel={() => {
+								setDropCollectionDialogInfo({
+									collection: "",
+									database: "",
+									visible: false,
+								});
+							}}
+							dangerousActionCallback={(err, result) => {
+								if (err) {
+									console.error(err);
+									notify({
+										title: "Database action",
+										description:
+											"An error occured while dropping the collection",
+										type: "error",
+									});
+								} else if (result) {
+									if (result.ok) {
+										notify({
+											title: "Database action",
+											description: "Successfully dropped collection",
+											type: "success",
+										});
+									} else if (!result.ok) {
+										notify({
+											title: "Database action",
+											description: "Unable to drop the collection",
+											type: "error",
+										});
+									}
+								}
+								setDropCollectionDialogInfo({
+									collection: "",
+									database: "",
+									visible: false,
+								});
+								refresh();
+							}}
+							dangerousAction={() => {
+								if (currentConnectionId)
+									return window.ark.driver.run("database", "dropCollection", {
+										id: currentConnectionId,
+										database: dropCollectionDialogInfo.database,
+										collection: dropCollectionDialogInfo.collection,
+									});
+								else return Promise.resolve({ ok: false });
+							}}
+						/>
+					)}
+					{createDatabaseDialogInfo.visible && (
+						<TextInputPrompt
+							confirmButtonText="Create"
+							title={"Creating database"}
+							inputs={[
+								{ label: "Database Name", key: "db_name" },
+								{ label: "Collection Name", key: "col_name" },
+							]}
+							onCancel={() => {
+								setCreateDatabaseDialogInfo({
+									visible: false,
+								});
+							}}
+							onConfirmCallback={(err) => {
+								if (err) {
+									notify({
+										title: "Database action",
+										description: "Error occured while creating database",
+										type: "error",
+									});
+								} else {
+									notify({
+										title: "Database action",
+										description: "Successfully created database",
+										type: "success",
+									});
+								}
+								setCreateDatabaseDialogInfo({ visible: false });
+								refresh();
+							}}
+							onConfirm={(inputs) => {
+								const dbName = inputs["db_name"];
+								const colName = inputs["col_name"];
+								if (currentConnectionId) {
+									return window.ark.driver.run("database", "createDatabase", {
+										id: currentConnectionId,
+										database: dbName,
+										collection: colName,
+									});
+								} else {
+									return Promise.reject(new Error("Invalid connection"));
+								}
+							}}
+						/>
+					)}
+					{createCollectionDialogInfo.visible && (
+						<TextInputPrompt
+							confirmButtonText="Create"
+							title={"Creating collection"}
+							inputs={[{ label: "Collection Name", key: "col_name" }]}
+							onCancel={() => {
+								setCreateCollectionDialogInfo({
+									database: "",
+									visible: false,
+								});
+							}}
+							onConfirmCallback={(err) => {
+								if (err) {
+									notify({
+										title: "Database action",
+										description: "Error occured while creating collection",
+										type: "error",
+									});
+								} else {
+									notify({
+										title: "Database action",
+										description: "Successfully created collection",
+										type: "success",
+									});
+								}
+								setCreateCollectionDialogInfo({
+									database: "",
+									visible: false,
+								});
+								refresh();
+							}}
+							onConfirm={(inputs) => {
+								const dbName = createCollectionDialogInfo.database;
+								const colName = inputs["col_name"];
+								if (currentConnectionId) {
+									return window.ark.driver.run("database", "createDatabase", {
+										id: currentConnectionId,
+										database: dbName,
+										collection: colName,
+									});
+								} else {
+									return Promise.reject(new Error("Invalid connection"));
+								}
+							}}
+						/>
+					)}
+				</>
+			</div>
 		</Resizable>
 	) : (
 		<></>
