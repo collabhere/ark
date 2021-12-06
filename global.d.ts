@@ -24,6 +24,8 @@ declare global {
 			hosts: Array<string>;
 			database?: string;
 			username?: string;
+			key?: string;
+			iv?: string;
 			password?: string;
 			type: "directConnection" | "replicaSet";
 			options: Pick<

@@ -11,6 +11,7 @@ import { ARK_FOLDER_PATH } from "../../utils/constants";
 import { ERRORS } from "../../../util/constants";
 import { MemEntry } from "../../modules/ipc";
 import { Server } from "net";
+import * as crypto from "crypto";
 
 interface ReplicaSetMember {
 	name: string;
@@ -127,6 +128,11 @@ export const Connection: Connection = {
 					throw new Error("Unable to make ssh connection.");
 				}
 			}
+
+			config.password =
+				config.password && config.key && config.iv
+					? decrypt(config.password, config.key, config.iv)
+					: config.password;
 
 			const connectionUri = getConnectionUri(config);
 			const client = new MongoClient(connectionUri);
@@ -308,6 +314,29 @@ const getReplicaSetDetails = async (
 	}
 };
 
+const encrypt = (password: string) => {
+	const iv = crypto.randomBytes(16);
+	const key = crypto.randomBytes(32);
+
+	const cipher = crypto.createCipheriv("aes-256-cbc", Buffer.from(key), iv);
+	return {
+		pwd: Buffer.concat([cipher.update(password), cipher.final()]).toString(
+			"hex"
+		),
+		key: key.toString("hex"),
+		iv: iv.toString("hex"),
+	};
+};
+
+const decrypt = (password: string, key: string, iv: string) => {
+	const decipher = crypto.createDecipheriv(
+		"aes-256-cbc",
+		Buffer.from(key, "hex"),
+		Buffer.from(iv, "hex")
+	);
+	return decipher.update(password, "hex", "utf8") + decipher.final("utf8");
+};
+
 const getConnectionConfig = async ({
 	type,
 	config,
@@ -342,6 +371,10 @@ const getConnectionConfig = async ({
 			);
 		}
 
+		const encryption = parsedUri.password
+			? encrypt(parsedUri.password)
+			: undefined;
+
 		return {
 			id,
 			protocol: parsedUri.scheme,
@@ -349,7 +382,9 @@ const getConnectionConfig = async ({
 			type: hosts.length > 1 ? "replicaSet" : "directConnection",
 			hosts: hosts,
 			username: parsedUri.username,
-			password: parsedUri.password,
+			password: encryption?.pwd,
+			key: encryption?.key,
+			iv: encryption?.iv,
 			database: parsedUri.database,
 			options: { ...parsedUri.options, ...options },
 			ssh: { useSSH: false },
@@ -382,6 +417,12 @@ const getConnectionConfig = async ({
 				config.options.replicaSet = replicaSetDetails.set;
 			}
 		}
+
+		const encryption = config.password ? encrypt(config.password) : undefined;
+
+		config.password = encryption?.pwd;
+		config.key = encryption?.key;
+		config.iv = encryption?.iv;
 
 		return {
 			...config,
