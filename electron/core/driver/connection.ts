@@ -408,16 +408,6 @@ const getConnectionConfig = async ({
 			config.options = { ...opts };
 		}
 
-		if (config.hosts && config.hosts.length > 0) {
-			const uri = getConnectionUri(config);
-			const client = new MongoClient(uri);
-			const replicaSetDetails = await getReplicaSetDetails(client);
-
-			if (replicaSetDetails) {
-				config.options.replicaSet = replicaSetDetails.set;
-			}
-		}
-
 		const encryption = config.password ? encrypt(config.password) : undefined;
 
 		config.password = encryption?.pwd;

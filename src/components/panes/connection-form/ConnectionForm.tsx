@@ -18,7 +18,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 	);
 
 	const [form, setForm] = useState<
-		"connection" | "authentication" | "ssh" | "tls" | "misc"
+		"connection" | "authentication" | "ssh" | "tls"
 	>("connection");
 
 	const [sshAuthMethod, toggleAuthMethod] = useState<"password" | "privateKey">(
@@ -373,12 +373,6 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 							>
 								<span>TLS</span>
 							</div>
-							<div
-								className="AdvancedFormHeader"
-								onClick={() => setForm("misc")}
-							>
-								<span>Misc</span>
-							</div>
 						</div>
 						{form === "connection" && (
 							<div className="Form">
@@ -720,18 +714,6 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 										</div>
 									</div>
 								)}
-							</div>
-						)}
-						{form === "misc" && (
-							<div className="Form">
-								<div>
-									<div className="Label">
-										<span style={{ margin: "auto" }}>Default Database</span>
-									</div>
-									<div className="InputField">
-										<Input className="Input" value={connectionData?.username} />
-									</div>
-								</div>
 							</div>
 						)}
 						<div className="ButtonGroupAdvanced">
