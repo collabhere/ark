@@ -2,8 +2,11 @@ import "./styles.less";
 import { VscDatabase } from "react-icons/vsc";
 import React, { FC, useCallback, useEffect, useState } from "react";
 import { dispatch, listenEffect } from "../../common/utils/events";
+import { UploadFile } from "antd/lib/upload/interface";
 
-type SidebarItem = Pick<Ark.StoredConnection, "id" | "name" | "icon">;
+type SidebarItem = Pick<Ark.StoredConnection, "id" | "name"> & {
+	icon: UploadFile<Blob>;
+};
 
 export const Sidebar: FC = () => {
 	const [items, setItems] = useState<SidebarItem[]>([]);

@@ -2,9 +2,7 @@ import { ListDatabasesResult, MongoClient, MongoClientOptions } from "mongodb";
 import type { SrvRecord } from "dns";
 import { promises as netPromises } from "dns";
 import { nanoid } from "nanoid";
-import { URL } from "url";
 import mongoUri from "mongodb-uri";
-import { stringify } from "querystring";
 import tunnel, { Config } from "tunnel-ssh";
 
 import { ARK_FOLDER_PATH } from "../../utils/constants";
@@ -13,6 +11,7 @@ import { MemEntry } from "../../modules/ipc";
 import { Server } from "net";
 import * as crypto from "crypto";
 import fs from "fs";
+import { UploadFile } from "antd/lib/upload/interface";
 
 interface ReplicaSetMember {
 	name: string;
@@ -67,6 +66,7 @@ export interface Connection {
 		arg: {
 			type: "config" | "uri";
 			config: Ark.StoredConnection | URIConfiguration;
+			icon?: UploadFile<Blob>;
 		}
 	): Promise<string>;
 	copyIcon(
@@ -76,6 +76,12 @@ export interface Connection {
 			name: string;
 		}
 	): Promise<void>;
+	fetchIcon(
+		dep: Ark.DriverDependency,
+		arg: {
+			id: string;
+		}
+	): Promise<UploadFile<Blob>>;
 	/**
 	 * Delete a stored conneection from disk.
 	 */
@@ -180,14 +186,23 @@ export const Connection: Connection = {
 			throw new Error("Connection not found!");
 		}
 	},
-	save: async ({ diskStore }, connectionArgs) => {
+	save: async ({ diskStore, iconStore }, connectionArgs) => {
 		const config = await getConnectionConfig(connectionArgs);
+
+		if (config.icon && connectionArgs.icon) {
+			await iconStore.set(config.id, connectionArgs.icon);
+		} else {
+			await iconStore.remove(config.id);
+		}
 
 		await diskStore.set(config.id, {
 			...config,
 		});
 
 		return config.id;
+	},
+	fetchIcon: async ({ iconStore }, connectionArgs) => {
+		return await iconStore.get(connectionArgs.id);
 	},
 	test: async (_, connectionArgs) => {
 		try {
@@ -216,8 +231,9 @@ export const Connection: Connection = {
 			};
 		}
 	},
-	delete: async ({ diskStore }, { id }) => {
+	delete: async ({ diskStore, iconStore }, { id }) => {
 		await diskStore.remove(id);
+		await iconStore.remove(id);
 	},
 	listDatabases: async function ({ memoryStore }, { id }) {
 		const entry = memoryStore.get(id);

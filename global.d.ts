@@ -17,6 +17,7 @@ declare global {
 		interface DriverDependency {
 			memoryStore: MemoryStore<MemEntry>;
 			diskStore: DiskStore<StoredConnection>;
+			iconStore: DiskStore<UploadFile<Blob>>;
 		}
 		interface StoredConnection {
 			id: string;
@@ -28,7 +29,7 @@ declare global {
 			key?: string;
 			iv?: string;
 			password?: string;
-			icon?: UploadFile<Blob> | null;
+			icon?: boolean;
 			type: "directConnection" | "replicaSet";
 			options: Pick<
 				MongoClientOptions,

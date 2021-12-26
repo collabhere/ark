@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Input, Button, Checkbox, Menu, Dropdown, Upload } from "antd";
 import { dispatch } from "../../../common/utils/events";
 import "../styles.less";
@@ -6,6 +6,7 @@ import "../../../common/styles/layout.less";
 import { notify } from "../../../common/utils/misc";
 import { parse } from "mongodb-uri";
 import { RcFile } from "antd/lib/upload";
+import { UploadFile } from "antd/lib/upload/interface";
 const { TextArea } = Input;
 
 export interface ConnectionFormProps {
@@ -36,13 +37,14 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 			: ""
 	);
 
+	const [icon, setIcon] = useState<UploadFile<Blob>>();
+
 	const [port, setPort] = useState<string>(
 		props.connectionParams?.hosts
 			? props.connectionParams?.hosts[0].split(":")[1]
 			: ""
 	);
 
-	// const [useSSH, toggleSSH] = useState<boolean>(false);
 	const connectionDetails = props.connectionParams
 		? {
 				...props.connectionParams,
@@ -76,6 +78,18 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 	const [mongoURI, setMongoURI] = useState("");
 	const [connectionData, setConnectionData] =
 		useState<Ark.StoredConnection>(connectionDetails);
+
+	useEffect(() => {
+		if (connectionData.id && connectionData.icon) {
+			window.ark.driver
+				.run("connection", "fetchIcon", { id: connectionData.id })
+				.then((icon) => {
+					if (icon && icon.name) {
+						setIcon(icon);
+					}
+				});
+		}
+	}, [connectionData.icon, connectionData.id]);
 
 	const validateUri = useCallback((uri: string) => {
 		try {
@@ -211,12 +225,13 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 						name:
 							connectionData.name || "Test Connection " + new Date().valueOf(),
 					},
+					icon: icon,
 				})
 				.then((connectionId) => {
 					dispatch("connection_manager:add_connection", { connectionId });
 				});
 		}
-	}, [connectionData, host, port, validateAdvancedConfig]);
+	}, [connectionData, host, icon, port, validateAdvancedConfig]);
 
 	const testAdvancedConnection = useCallback(() => {
 		if (validateAdvancedConfig()) {
@@ -752,12 +767,15 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 											maxCount={1}
 											listType="picture"
 											onChange={(e) => {
-												const val = e.file.status === "removed" ? null : e.file;
-												editConnection("icon", val);
+												if (e.file.status === "removed") {
+													editConnection("icon", false);
+													setIcon(undefined);
+												} else {
+													editConnection("icon", true);
+													setIcon(e.file);
+												}
 											}}
-											fileList={
-												connectionData.icon ? [connectionData.icon] : []
-											}
+											fileList={icon && connectionData.icon ? [icon] : []}
 										>
 											<Button>Upload Icon</Button>
 										</Upload>

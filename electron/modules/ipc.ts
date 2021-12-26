@@ -11,6 +11,7 @@ import { createMemoryStore } from "../core/stores/memory";
 import { createDiskStore } from "../core/stores/disk";
 import { MongoClient, ListDatabasesResult } from "mongodb";
 import { Server } from "net";
+import { UploadFile } from "antd/lib/upload/interface";
 
 interface RunCommandInput {
 	library: keyof DriverModules;
@@ -109,6 +110,7 @@ function IPC() {
 	const DriverDependency: Ark.DriverDependency = {
 		diskStore: createDiskStore<Ark.StoredConnection>("connections"),
 		memoryStore: createMemoryStore<MemEntry>(),
+		iconStore: createDiskStore<UploadFile<Blob>>("icons"),
 	};
 	
 	const driver = createDriver(DriverDependency);

@@ -30,7 +30,10 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 
 	const connect = useCallback((id: string) => {
 		window.ark.driver.run("connection", "connect", { id }).then(() =>
-			window.ark.driver.run("connection", "load", { id }).then((connection) => {
+			Promise.all([
+				window.ark.driver.run("connection", "load", { id }),
+				window.ark.driver.run("connection", "fetchIcon", { id }),
+			]).then(([connection, icon]) => {
 				const managed: ManagedConnection = { ...connection, active: true };
 				setConnections((connections) => [
 					...connections.filter((conn) => conn.id !== managed.id),
@@ -39,7 +42,7 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 				dispatch("sidebar:add_item", {
 					id: connection.id,
 					name: connection.name,
-					icon: connection.icon,
+					icon: connection.icon ? icon : undefined,
 				});
 			})
 		);
