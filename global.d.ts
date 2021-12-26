@@ -10,6 +10,7 @@ import type {
 	ScriptOpenActionData,
 } from "./electron/modules/ipc";
 import type { DiskStore } from "./electron/core/stores/disk";
+import { UploadFile } from "antd/lib/upload/interface";
 
 declare global {
 	namespace Ark {
@@ -27,6 +28,7 @@ declare global {
 			key?: string;
 			iv?: string;
 			password?: string;
+			icon?: UploadFile<Blob> | null;
 			type: "directConnection" | "replicaSet";
 			options: Pick<
 				MongoClientOptions,

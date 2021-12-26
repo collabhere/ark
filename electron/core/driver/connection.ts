@@ -12,6 +12,7 @@ import { ERRORS } from "../../../util/constants";
 import { MemEntry } from "../../modules/ipc";
 import { Server } from "net";
 import * as crypto from "crypto";
+import fs from "fs";
 
 interface ReplicaSetMember {
 	name: string;
@@ -68,6 +69,13 @@ export interface Connection {
 			config: Ark.StoredConnection | URIConfiguration;
 		}
 	): Promise<string>;
+	copyIcon(
+		dep: Ark.DriverDependency,
+		arg: {
+			path: string;
+			name: string;
+		}
+	): Promise<void>;
 	/**
 	 * Delete a stored conneection from disk.
 	 */
@@ -113,6 +121,15 @@ export const Connection: Connection = {
 		const config = await diskStore.get(id);
 		const uri = getConnectionUri(config);
 		return { ...config, uri };
+	},
+	copyIcon: async ({}, { path, name }) => {
+		const destinationPath = `${ARK_FOLDER_PATH}/icons`;
+		if (!fs.existsSync(destinationPath)) {
+			await fs.promises.mkdir(destinationPath);
+		}
+
+		const destination = `${destinationPath}/${name}`;
+		await fs.promises.copyFile(path, destination);
 	},
 	connect: async ({ diskStore, memoryStore }, { id }) => {
 		if (await diskStore.has(id)) {

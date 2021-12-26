@@ -5,6 +5,7 @@ import "../styles.less";
 import "../../../common/styles/layout.less";
 import { notify } from "../../../common/utils/misc";
 import { parse } from "mongodb-uri";
+import { RcFile } from "antd/lib/upload";
 const { TextArea } = Input;
 
 export interface ConnectionFormProps {
@@ -18,7 +19,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 	);
 
 	const [form, setForm] = useState<
-		"connection" | "authentication" | "ssh" | "tls"
+		"connection" | "authentication" | "ssh" | "tls" | "misc"
 	>("connection");
 
 	const [sshAuthMethod, toggleAuthMethod] = useState<"password" | "privateKey">(
@@ -304,6 +305,20 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 		</Menu>
 	);
 
+	const beforeIconUpload = (file: RcFile): Promise<RcFile> => {
+		return new Promise((resolve, reject) => {
+			if (file.type === "image/png" && file.size <= 1500) {
+				dispatch("connection_manager:copy_icon", {
+					name: file.name,
+					path: file.path,
+				});
+				resolve(file);
+			} else {
+				reject("Invalid file type or size.");
+			}
+		});
+	};
+
 	return (
 		<div className="UriContainer">
 			<div className="FieldContainer">
@@ -372,6 +387,12 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 								onClick={() => setForm("tls")}
 							>
 								<span>TLS</span>
+							</div>
+							<div
+								className="AdvancedFormHeader"
+								onClick={() => setForm("misc")}
+							>
+								<span>Misc</span>
 							</div>
 						</div>
 						{form === "connection" && (
@@ -714,6 +735,34 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 										</div>
 									</div>
 								)}
+							</div>
+						)}
+						{form === "misc" && (
+							<div className="Form Gap">
+								<div className="flex-inline">
+									<div className="Label">
+										<span style={{ margin: "auto" }}>Icon</span>
+									</div>
+									<div className="InputField">
+										<Upload
+											customRequest={(options) =>
+												options.onSuccess && options.onSuccess("ok")
+											}
+											beforeUpload={beforeIconUpload}
+											maxCount={1}
+											listType="picture"
+											onChange={(e) => {
+												const val = e.file.status === "removed" ? null : e.file;
+												editConnection("icon", val);
+											}}
+											fileList={
+												connectionData.icon ? [connectionData.icon] : []
+											}
+										>
+											<Button>Upload Icon</Button>
+										</Upload>
+									</div>
+								</div>
 							</div>
 						)}
 						<div className="ButtonGroupAdvanced">

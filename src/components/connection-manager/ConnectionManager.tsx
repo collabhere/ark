@@ -39,6 +39,7 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 				dispatch("sidebar:add_item", {
 					id: connection.id,
 					name: connection.name,
+					icon: connection.icon,
 				});
 			})
 		);
@@ -129,6 +130,15 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 									connection,
 								]);
 							});
+					},
+				},
+				{
+					event: "connection_manager:copy_icon",
+					cb: (e, payload) => {
+						window.ark.driver.run("connection", "copyIcon", {
+							name: payload.name,
+							path: payload.path,
+						});
 					},
 				},
 				{
