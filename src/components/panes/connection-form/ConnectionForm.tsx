@@ -322,7 +322,10 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 
 	const beforeIconUpload = (file: RcFile): Promise<RcFile> => {
 		return new Promise((resolve, reject) => {
-			if (file.type === "image/png" && file.size <= 1500) {
+			if (
+				(file.type === "image/png" || file.type === "image/svg") &&
+				file.size <= 1500
+			) {
 				dispatch("connection_manager:copy_icon", {
 					name: file.name,
 					path: file.path,
