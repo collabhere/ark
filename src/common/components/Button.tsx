@@ -5,6 +5,11 @@ import { Button as AntButton } from "antd";
 import { PromiseCompleteCallback, asyncEventOverload } from "../utils/misc";
 import { Popover } from "./Popover";
 
+export interface PromiseButtonMouseEventHandler {
+	promise: (e: React.MouseEvent) => Promise<void>;
+	callback: PromiseCompleteCallback;
+}
+
 interface PopoverOptions {
 	content?: React.ReactNode;
 	title?: string;
@@ -20,12 +25,7 @@ interface ButtonProps {
 		hover?: PopoverOptions;
 		click?: PopoverOptions;
 	};
-	onClick?:
-		| ((e: React.MouseEvent) => void)
-		| {
-				promise: (e: React.MouseEvent) => Promise<void>;
-				callback: PromiseCompleteCallback;
-		  };
+	onClick?: ((e: React.MouseEvent) => void) | PromiseButtonMouseEventHandler;
 }
 
 export const Button: FC<ButtonProps> = (props) => {

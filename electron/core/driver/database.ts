@@ -2,6 +2,10 @@
 import { CollectionInfo } from "mongodb";
 export interface Database {
     listCollections(dep: Ark.DriverDependency, arg: { id: string; database?: string; }): Promise<CollectionInfo[]>;
+    createDatabase(dep: Ark.DriverDependency, arg: { id: string; database: string; collection: string; }): Promise<{ db: string; }>;
+    dropDatabase(dep: Ark.DriverDependency, arg: { id: string; database?: string; }): Promise<{ ok: boolean; }>;
+    createCollection(dep: Ark.DriverDependency, arg: { id: string; database: string; collection: string; }): Promise<{ collection: string; }>;
+    dropCollection(dep: Ark.DriverDependency, arg: { id: string; database: string; collection: string; }): Promise<{ ok: boolean; }>;
 }
 
 export const Database: Database = {
@@ -24,5 +28,61 @@ export const Database: Database = {
         } else {
             throw new Error("Entry not found");
         }
-    }
+    },
+    createDatabase: async (
+        { memoryStore },
+        { id, database, collection }
+    ) => {
+        const entry = memoryStore.get(id);
+        if (entry) {
+            const client = entry.connection;
+            const db = client.db(database);
+            await db.createCollection(collection);
+            return { db: db.databaseName };
+        } else {
+            throw new Error("Entry not found");
+        }
+    },
+    dropDatabase: async (
+        { memoryStore },
+        { id, database }
+    ) => {
+        const entry = memoryStore.get(id);
+        if (entry) {
+            const client = entry.connection;
+            const db = client.db(database);
+            const result = await db.dropDatabase();
+            return { ok: result };
+        } else {
+            throw new Error("Entry not found");
+        }
+    },
+    createCollection: async (
+        { memoryStore },
+        { id, database, collection }
+    ) => {
+        const entry = memoryStore.get(id);
+        if (entry) {
+            const client = entry.connection;
+            const db = client.db(database);
+            const result = await db.createCollection(collection);
+            return { collection };
+        } else {
+            throw new Error("Entry not found");
+        }
+    },
+    dropCollection: async (
+        { memoryStore },
+        { id, database, collection }
+    ) => {
+        const entry = memoryStore.get(id);
+        if (entry) {
+            const client = entry.connection;
+            const db = client.db(database);
+            const result = await db.dropCollection(collection);
+            return { ok: result };
+        } else {
+            throw new Error("Entry not found");
+        }
+    },
 };

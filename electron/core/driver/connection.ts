@@ -160,8 +160,8 @@ export const Connection: Connection = {
 			const connectionUri = getConnectionUri(config);
 			const client = new MongoClient(connectionUri);
 			const connection = await client.connect();
-			const databases = await connection.db().admin().listDatabases();
-			const connectionDetails: MemEntry = { connection, databases };
+			const listDatabaseResult = await connection.db().admin().listDatabases();
+			const connectionDetails: MemEntry = { connection, databases: listDatabaseResult.databases };
 
 			if (config.ssh && server) {
 				connectionDetails.server = server;

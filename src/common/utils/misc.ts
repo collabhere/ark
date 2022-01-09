@@ -7,18 +7,20 @@ export type PromiseCompleteCallback = (err?: Error, data?: any) => void;
 
 export type OneKey<K extends string, V = any> = {
 	[P in K]: Record<P, V> & Partial<Record<Exclude<K, P>, never>> extends infer O
-		? { [Q in keyof O]: O[Q] }
-		: never;
+	? { [Q in keyof O]: O[Q] }
+	: never;
 }[K];
+
+export type EventOverloadMethod =
+	| ((...args) => void)
+	| {
+		promise: (...args) => Promise<any>;
+		callback: PromiseCompleteCallback;
+	}
 
 export const asyncEventOverload = (
 	loadingFn: (val: boolean) => void,
-	fn:
-		| ((...args) => void)
-		| {
-				promise: (...args) => Promise<any>;
-				callback: PromiseCompleteCallback;
-		  },
+	fn: EventOverloadMethod,
 	...args: any[]
 ): Promise<void> => {
 	if (typeof fn === "function") {
@@ -87,8 +89,8 @@ export const handleErrors = (
 		err instanceof Error
 			? err.message
 			: typeof err === "string"
-			? err
-			: undefined;
+				? err
+				: undefined;
 
 	switch (error) {
 		case ERRORS.AR600:

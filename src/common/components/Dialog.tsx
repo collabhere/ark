@@ -1,12 +1,15 @@
-import React, { ReactNode } from "react";
+import React, { ReactNode, useState } from "react";
 import { Modal } from "antd";
 import "./Dialog.less";
 import { Button } from "./Button";
+import { EventOverloadMethod } from "../utils/misc";
 
 interface ModalProps {
 	size: "small" | "large";
+	variant?: "regular" | "danger";
 	title?: string | JSX.Element;
-	onConfirm?: () => void;
+	confirmButtonText?: string;
+	onConfirm?: EventOverloadMethod;
 	onCancel?: () => void;
 	onClose?: () => void;
 	children?: ReactNode;
@@ -16,6 +19,8 @@ interface ModalProps {
 export function Dialog({
 	size,
 	title,
+	variant,
+	confirmButtonText,
 	onConfirm,
 	onCancel,
 	children,
@@ -27,7 +32,6 @@ export function Dialog({
 	return rootElement ? (
 		<Modal
 			title={<span className={"modal-title"}>{title}</span>}
-			onOk={onConfirm}
 			centered
 			getContainer={rootElement}
 			onCancel={onCancel}
@@ -49,8 +53,8 @@ export function Dialog({
 						{onConfirm && (
 							<div>
 								<Button
-									variant={"secondary"}
-									text={"Confirm"}
+									variant={variant === "danger" ? "danger" : "secondary"}
+									text={confirmButtonText || "Confirm"}
 									onClick={onConfirm}
 								/>
 							</div>

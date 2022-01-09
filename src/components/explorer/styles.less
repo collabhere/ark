@@ -11,6 +11,9 @@
 }
 
 .ExplorerHeader {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
 	padding: 10px;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -22,6 +25,54 @@
 	text-align: left;
 }
 
+.ContextMenu {
+	background-clip: padding-box;
+	background-color: #fff;
+	border-radius: 4px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+	left: 0px;
+	list-style-type: none;
+	margin: 0;
+	outline: none;
+	padding: 0;
+	position: absolute;
+	text-align: left;
+	top: 0px;
+	overflow: hidden;
+	-webkit-box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.ContextMenu li {
+	clear: both;
+	color: rgba(0, 0, 0, 0.65);
+	cursor: pointer;
+	font-size: 14px;
+	font-weight: normal;
+	line-height: 22px;
+	margin: 0;
+	padding: 5px 12px;
+	transition: all 0.3s;
+	white-space: nowrap;
+	-webkit-transition: all 0.3s;
+}
+
+.ExplorerHeaderTitle {
+	display: flex;
+	flex-grow: 1;
+}
+
+.ExplorerHeaderMenu {
+	display: flex;
+	padding: 4px;
+}
+
 .ExplorerTree {
 	overflow-y: auto;
+}
+
+.ExplorerLoading {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	height: 100%;
 }

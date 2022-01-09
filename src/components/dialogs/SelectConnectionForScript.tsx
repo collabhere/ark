@@ -69,26 +69,9 @@ export const SelectConnectionForFilePath: FC<SelectConnectionForScriptProps> =
 										return window.ark.driver
 											.run("connection", "listDatabases", { id })
 											.then((result) => {
-												console.log("LIST RESULT", result);
-												const databases: (string | undefined)[] = [
-													...result,
-												].map((database) => {
-													if (typeof database === "string") {
-														if (
-															database !== "local" &&
-															database !== "admin" &&
-															database !== "config"
-														)
-															return database;
-													} else {
-														if (
-															database.name !== "local" &&
-															database.name !== "admin" &&
-															database.name !== "config"
-														)
-															return database.name;
-													}
-												});
+												const databases: string[] = result.map(
+													(database) => database.name
+												);
 												setDatabaseOptions(databases);
 												setCode(storedCode);
 												setSelectedStoredConnection(connection);
@@ -116,7 +99,11 @@ export const SelectConnectionForFilePath: FC<SelectConnectionForScriptProps> =
 		return (
 			<Dialog
 				size="large"
-				title="Select a connection"
+				title={
+					databaseOptions && databaseOptions.length
+						? "Select a database"
+						: "Select a connection"
+				}
 				onCancel={onCancel}
 				onClose={onClose}
 				noFooter
@@ -125,7 +112,6 @@ export const SelectConnectionForFilePath: FC<SelectConnectionForScriptProps> =
 					<CircularLoading />
 				) : databaseOptions && databaseOptions.length ? (
 					<div>
-						Select a database{" "}
 						{databaseOptions.map((option) => (
 							<button key={option} onClick={() => openShell(option)}>
 								{option}

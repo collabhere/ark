@@ -90,7 +90,7 @@ export type ScriptActionData =
 
 export interface MemEntry {
 	connection: MongoClient;
-	databases: ListDatabasesResult;
+	databases: ListDatabasesResult["databases"];
 	server?: Server;
 }
 interface StoredShellValue {
@@ -112,7 +112,7 @@ function IPC() {
 		memoryStore: createMemoryStore<MemEntry>(),
 		iconStore: createDiskStore<UploadFile<Blob>>("icons"),
 	};
-	
+
 	const driver = createDriver(DriverDependency);
 
 	// Stores opened scripts
@@ -142,11 +142,11 @@ function IPC() {
 						...storedConnection.options,
 						replicaSet:
 							driverConnection.replicaSetDetails &&
-							driverConnection.replicaSetDetails.set
+								driverConnection.replicaSetDetails.set
 								? driverConnection.replicaSetDetails.set
 								: undefined,
 					};
-					const shellExecutor = await createEvaluator({ uri, mongoOptions}, DriverDependency);
+					const shellExecutor = await createEvaluator({ uri, mongoOptions }, DriverDependency);
 					const shell = {
 						id: nanoid(),
 						executor: shellExecutor,
