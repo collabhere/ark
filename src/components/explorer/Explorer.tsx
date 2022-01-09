@@ -19,15 +19,11 @@ import { Button } from "../../common/components/Button";
 import { DangerousActionPrompt } from "../dialogs/DangerousActionPrompt";
 import { TextInputPrompt } from "../dialogs/TextInputPrompt";
 
-const dbTreeKey = (dbName: string) => "database;" + dbName;
-const collectionTreeKey = (collectionName: string, dbName: string) =>
-	"collection;" + collectionName + ";" + dbName;
-
-const PRE_EXISTING_DATABASE_RGX = /(admin|local|config)/i;
-
 type Databases = ListDatabasesResult["databases"];
 type DatabasesWithInformation = (ListDatabasesResult["databases"][0] & {
 	system: boolean;
+	collections?: CollectionInfo[];
+	key: string;
 })[];
 interface DatabaseList {
 	system: DatabasesWithInformation;
@@ -39,18 +35,30 @@ type CachedTrees = Record<
 	{ dbList: DatabaseList; connection: Ark.StoredConnection }
 >;
 
+const dbTreeKey = (dbName: string) => "database:" + dbName;
+const collectionTreeKey = (collectionName: string, dbName: string) =>
+	"collection:" + collectionName + ";" + dbName;
+const readKey = (key: string) => {
+	const [type, rhs] = key.split(":");
+	const [value, ctx] = rhs.split(";");
+	return { type, value, ctx };
+};
+const isSystemDatabase = (name: string) => /(admin|local|config)/i.test(name);
+
 const createDatabaseList = (databases: Databases): DatabaseList => {
 	const personal: DatabasesWithInformation = [];
 	const system: DatabasesWithInformation = [];
 	for (const db of databases) {
-		if (PRE_EXISTING_DATABASE_RGX.test(db.name)) {
+		if (isSystemDatabase(db.name)) {
 			system.push({
 				...db,
+				key: dbTreeKey(db.name),
 				system: true,
 			});
 		} else {
 			personal.push({
 				...db,
+				key: dbTreeKey(db.name),
 				system: false,
 			});
 		}
@@ -102,14 +110,8 @@ export const Explorer: FC<ExplorerProps> = () => {
 	});
 	const [cachedConnections, setCachedConnections] = useState<CachedTrees>({});
 
-	const {
-		tree,
-		addChildrenToNode,
-		updateNodeProperties,
-		createNode,
-		addNodeAtEnd,
-		dropTree,
-	} = useTree();
+	const { tree, updateNodeProperties, createNode, addNodeAtEnd, dropTree } =
+		useTree();
 
 	const updateCachedConnection = useCallback(
 		(storedConnection: Ark.StoredConnection, dbList: DatabaseList) => {
@@ -126,6 +128,23 @@ export const Explorer: FC<ExplorerProps> = () => {
 			);
 		},
 		[storedConnectionId]
+	);
+
+	const updateCachedConnectionDBListEntry = useCallback(
+		(dbName: string, collections: CollectionInfo[]) => {
+			if (storedConnectionId && cachedConnections[storedConnectionId]) {
+				const cacheEntry = cachedConnections[storedConnectionId];
+				const dbType = isSystemDatabase(dbName) ? "system" : "personal";
+				const list = cacheEntry.dbList[dbType];
+				const idx = list.findIndex((db) => db.name === dbName);
+
+				if (idx > -1) {
+					list[idx].collections = collections;
+					updateCachedConnection(cacheEntry.connection, cacheEntry.dbList);
+				}
+			}
+		},
+		[cachedConnections, storedConnectionId, updateCachedConnection]
 	);
 
 	const switchConnections = useCallback((args: { connectionId: string }) => {
@@ -168,7 +187,47 @@ export const Explorer: FC<ExplorerProps> = () => {
 		[storedConnectionId]
 	);
 
-	const addDatabaseNodes = useCallback(
+	const setCollectionListToTree = useCallback(
+		(db: string, collections: CollectionInfo[]) => {
+			const children = collections.map((collection) => {
+				return createNode(
+					<Dropdown
+						overlay={createContextMenu([
+							{
+								item: "Open shell",
+								cb: () => openShell(db, collection.name),
+							},
+							{ item: "Indexes", cb: () => {} },
+							{
+								danger: true,
+								item: "Drop collection",
+								cb: () => {
+									setDropCollectionDialogInfo({
+										database: db,
+										collection: collection.name,
+										visible: true,
+									});
+								},
+							},
+						])}
+						trigger={["contextMenu"]}
+					>
+						<span>{collection.name}</span>
+					</Dropdown>,
+					collectionTreeKey(collection.name, db),
+					[],
+					{
+						icon: <VscListTree />,
+					}
+				);
+			});
+
+			return children;
+		},
+		[createNode, openShell]
+	);
+
+	const setDatabaseListToTree = useCallback(
 		(databases: {
 			system: DatabasesWithInformation;
 			personal: DatabasesWithInformation;
@@ -189,7 +248,6 @@ export const Explorer: FC<ExplorerProps> = () => {
 					},
 					{ item: "Current operations", cb: () => {} },
 					{ item: "Statistics", cb: () => {} },
-
 					{
 						danger: true,
 						item: "Drop database",
@@ -202,83 +260,40 @@ export const Explorer: FC<ExplorerProps> = () => {
 					},
 				]);
 
-			addNodeAtEnd(
-				"system",
-				"folder;system",
-				system.map((db) =>
-					createNode(
-						<Dropdown overlay={createOverlay(db)} trigger={["contextMenu"]}>
-							<span>{db.name}</span>
-						</Dropdown>,
-						dbTreeKey(db.name),
-						undefined,
-						{
-							icon: <VscDatabase />,
-						}
-					)
-				),
-				{
-					icon: <VscFolder />,
-				}
-			);
-			personal.map((db) =>
-				addNodeAtEnd(
+			const systemNodes = system.map((db) =>
+				createNode(
 					<Dropdown overlay={createOverlay(db)} trigger={["contextMenu"]}>
 						<span>{db.name}</span>
 					</Dropdown>,
-					dbTreeKey(db.name),
-					undefined,
+					db.key,
+					setCollectionListToTree(db.name, db.collections || []),
 					{
 						icon: <VscDatabase />,
 					}
 				)
 			);
+
+			addNodeAtEnd("system", "folder;system", systemNodes, {
+				icon: <VscFolder />,
+			});
+
+			for (const db of personal) {
+				addNodeAtEnd(
+					<Dropdown overlay={createOverlay(db)} trigger={["contextMenu"]}>
+						<span>{db.name}</span>
+					</Dropdown>,
+					db.key,
+					setCollectionListToTree(db.name, db.collections || []),
+					{
+						icon: <VscDatabase />,
+					}
+				);
+			}
 		},
-		[addNodeAtEnd, createNode, openShell]
+		[setCollectionListToTree, addNodeAtEnd, createNode, openShell]
 	);
 
-	const addCollectionNodesToDatabase = useCallback(
-		(db: string, collections: CollectionInfo[]) => {
-			addChildrenToNode(
-				dbTreeKey(db),
-				collections.map((collection) =>
-					createNode(
-						<Dropdown
-							overlay={createContextMenu([
-								{
-									item: "Open shell",
-									cb: () => openShell(db, collection.name),
-								},
-								{ item: "Indexes", cb: () => {} },
-								{
-									danger: true,
-									item: "Drop collection",
-									cb: () => {
-										setDropCollectionDialogInfo({
-											database: db,
-											collection: collection.name,
-											visible: true,
-										});
-									},
-								},
-							])}
-							trigger={["contextMenu"]}
-						>
-							<span>{collection.name}</span>
-						</Dropdown>,
-						collectionTreeKey(collection.name, db),
-						undefined,
-						{
-							icon: <VscListTree />,
-						}
-					)
-				)
-			);
-		},
-		[addChildrenToNode, createNode, openShell]
-	);
-
-	const addCollectionsToTree = useCallback(
+	const fetchAndCacheCollections = useCallback(
 		(dbName: string) => {
 			return storedConnectionId
 				? window.ark.driver
@@ -288,7 +303,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 						})
 						.then((collections) => {
 							if (collections && collections.length) {
-								addCollectionNodesToDatabase(dbName, collections);
+								updateCachedConnectionDBListEntry(dbName, collections);
 							}
 						})
 						.catch((err) => {
@@ -296,10 +311,10 @@ export const Explorer: FC<ExplorerProps> = () => {
 						})
 				: Promise.resolve();
 		},
-		[addCollectionNodesToDatabase, storedConnectionId]
+		[storedConnectionId, updateCachedConnectionDBListEntry]
 	);
 
-	const addDBListToCache = useCallback(
+	const fetchAndCacheDatabases = useCallback(
 		(storedConnectionId: string) => {
 			return Promise.all([
 				window.ark.driver.run("connection", "listDatabases", {
@@ -323,11 +338,11 @@ export const Explorer: FC<ExplorerProps> = () => {
 	const refresh = useCallback(() => {
 		if (storedConnectionId) {
 			setStoredConnectionId(undefined);
-			addDBListToCache(storedConnectionId).then(() => {
+			fetchAndCacheDatabases(storedConnectionId).then(() => {
 				setStoredConnectionId(storedConnectionId);
 			});
 		}
-	}, [addDBListToCache, storedConnectionId]);
+	}, [fetchAndCacheDatabases, storedConnectionId]);
 
 	/* Load base tree */
 	useEffect(() => {
@@ -337,18 +352,17 @@ export const Explorer: FC<ExplorerProps> = () => {
 			storedConnectionIdRef.current !== storedConnectionId
 		) {
 			if (cachedConnections && cachedConnections[storedConnectionId]) {
-				dropTree();
-				addDatabaseNodes(cachedConnections[storedConnectionId].dbList);
+				setDatabaseListToTree(cachedConnections[storedConnectionId].dbList);
 			} else {
-				addDBListToCache(storedConnectionId);
+				fetchAndCacheDatabases(storedConnectionId);
 			}
 		}
 		return () => {
 			dropTree();
 		};
 	}, [
-		addDBListToCache,
-		addDatabaseNodes,
+		fetchAndCacheDatabases,
+		setDatabaseListToTree,
 		cachedConnections,
 		dropTree,
 		storedConnectionId,
@@ -462,18 +476,21 @@ export const Explorer: FC<ExplorerProps> = () => {
 							}}
 							onDoubleClick={(e, node) => {
 								const key = node.key as string;
-								const [type, value, extra] = key.split(";");
+								const { type, value, ctx } = readKey(key);
 								if (type === "database") {
+									const db = value;
 									if (node.children && node.children.length) {
 										updateNodeProperties(key, { children: [] });
 									}
 									setDatabaseNodeLoading(key, true);
-									addCollectionsToTree(value).then(() => {
+									fetchAndCacheCollections(db).then(() => {
 										setExpandedKeys((keys) => [...keys, key]);
 										setDatabaseNodeLoading(key, false);
 									});
 								} else if (type === "collection") {
-									openShell(extra, value);
+									const db = ctx;
+									const collection = value;
+									openShell(db, collection);
 								}
 							}}
 							treeData={tree}
