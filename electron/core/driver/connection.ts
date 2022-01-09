@@ -69,6 +69,9 @@ export interface Connection {
 			icon?: UploadFile<Blob>;
 		}
 	): Promise<string>;
+	/**
+	 * Copy an icon while it's being addded to a connection.
+	 */
 	copyIcon(
 		dep: Ark.DriverDependency,
 		arg: {
@@ -76,6 +79,9 @@ export interface Connection {
 			name: string;
 		}
 	): Promise<void>;
+	/**
+	 * Fetch an icon from disk to show on the connection-form.
+	 */
 	fetchIcon(
 		dep: Ark.DriverDependency,
 		arg: {
@@ -161,7 +167,10 @@ export const Connection: Connection = {
 			const client = new MongoClient(connectionUri);
 			const connection = await client.connect();
 			const listDatabaseResult = await connection.db().admin().listDatabases();
-			const connectionDetails: MemEntry = { connection, databases: listDatabaseResult.databases };
+			const connectionDetails: MemEntry = {
+				connection,
+				databases: listDatabaseResult.databases,
+			};
 
 			if (config.ssh && server) {
 				connectionDetails.server = server;

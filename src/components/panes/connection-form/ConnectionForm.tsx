@@ -89,7 +89,9 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 					}
 				});
 		}
-	}, [connectionData.icon, connectionData.id]);
+		/* We just need the icon fetched during the initial render.
+		Subsequent updates are being handled within the component */
+	}, []);
 
 	const validateUri = useCallback((uri: string) => {
 		try {
@@ -320,21 +322,31 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 		</Menu>
 	);
 
-	const beforeIconUpload = (file: RcFile): Promise<RcFile> => {
-		return new Promise((resolve, reject) => {
-			if (
-				(file.type === "image/png" || file.type === "image/svg") &&
-				file.size <= 1500
-			) {
-				dispatch("connection_manager:copy_icon", {
-					name: file.name,
-					path: file.path,
-				});
-				resolve(file);
-			} else {
-				reject("Invalid file type or size.");
-			}
+	const beforeIconUpload = (file: RcFile): RcFile | string => {
+		let description: string;
+		if (
+			file.type !== "image/png" &&
+			file.type !== "image/svg" &&
+			file.type !== "image/jpeg"
+		) {
+			description = "Only PNG, SVG, and JPEG types are supported!";
+		} else if (file.size >= 10000) {
+			description = "File size must be less than 10KBs";
+		} else {
+			dispatch("connection_manager:copy_icon", {
+				name: file.name,
+				path: file.path,
+			});
+			return file;
+		}
+
+		notify({
+			title: "Validation failed",
+			type: "error",
+			description: description,
 		});
+
+		return Upload.LIST_IGNORE;
 	};
 
 	return (
