@@ -1,6 +1,6 @@
 import "./styles.less";
 
-import React, { FC, useCallback, useEffect, useState } from "react";
+import React, { FC, useCallback, useEffect, useRef, useState } from "react";
 import { Dropdown, Menu, Tree } from "antd";
 import { Resizable } from "re-resizable";
 import { dispatch, listenEffect } from "../../common/utils/events";
@@ -18,12 +18,6 @@ import { handleErrors, notify } from "../../common/utils/misc";
 import { Button } from "../../common/components/Button";
 import { DangerousActionPrompt } from "../dialogs/DangerousActionPrompt";
 import { TextInputPrompt } from "../dialogs/TextInputPrompt";
-import { useRefresh } from "../../hooks/useRefresh";
-
-type Databases = ListDatabasesResult["databases"];
-type DatabasesWithInformation = (ListDatabasesResult["databases"][0] & {
-	system: boolean;
-})[];
 
 const dbTreeKey = (dbName: string) => "database;" + dbName;
 const collectionTreeKey = (collectionName: string, dbName: string) =>
@@ -31,12 +25,21 @@ const collectionTreeKey = (collectionName: string, dbName: string) =>
 
 const PRE_EXISTING_DATABASE_RGX = /(admin|local|config)/i;
 
-const createDatabaseList = (
-	databases: Databases
-): {
+type Databases = ListDatabasesResult["databases"];
+type DatabasesWithInformation = (ListDatabasesResult["databases"][0] & {
+	system: boolean;
+})[];
+interface DatabaseList {
 	system: DatabasesWithInformation;
 	personal: DatabasesWithInformation;
-} => {
+}
+
+type CachedTrees = Record<
+	string,
+	{ dbList: DatabaseList; connection: Ark.StoredConnection }
+>;
+
+const createDatabaseList = (databases: Databases): DatabaseList => {
 	const personal: DatabasesWithInformation = [];
 	const system: DatabasesWithInformation = [];
 	for (const db of databases) {
@@ -78,9 +81,8 @@ interface ExplorerProps {}
 
 export const Explorer: FC<ExplorerProps> = () => {
 	const [isOpen, setIsOpen] = useState(false);
-	const [storedConnection, setStoredConnection] =
-		useState<Ark.StoredConnection>();
-	const [currentConnectionId, setCurrentConnectionId] = useState<string>();
+	const [storedConnectionId, setStoredConnectionId] = useState<string>();
+	const storedConnectionIdRef = useRef(storedConnectionId);
 	const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
 	const [createCollectionDialogInfo, setCreateCollectionDialogInfo] = useState({
 		database: "",
@@ -98,8 +100,8 @@ export const Explorer: FC<ExplorerProps> = () => {
 		visible: false,
 		database: "",
 	});
+	const [cachedConnections, setCachedConnections] = useState<CachedTrees>({});
 
-	const [refToken, refresh] = useRefresh();
 	const {
 		tree,
 		addChildrenToNode,
@@ -109,10 +111,27 @@ export const Explorer: FC<ExplorerProps> = () => {
 		dropTree,
 	} = useTree();
 
+	const updateCachedConnection = useCallback(
+		(storedConnection: Ark.StoredConnection, dbList: DatabaseList) => {
+			setCachedConnections((map) =>
+				storedConnectionId
+					? {
+							...map,
+							[storedConnectionId]: {
+								dbList,
+								connection: storedConnection,
+							},
+					  }
+					: map
+			);
+		},
+		[storedConnectionId]
+	);
+
 	const switchConnections = useCallback((args: { connectionId: string }) => {
 		const { connectionId } = args;
 		setIsOpen(true);
-		setCurrentConnectionId(connectionId);
+		setStoredConnectionId(connectionId);
 		dispatch("connection_manager:hide");
 	}, []);
 
@@ -128,13 +147,13 @@ export const Explorer: FC<ExplorerProps> = () => {
 
 	const openShell = useCallback(
 		(db: string, collection?: string) => {
-			currentConnectionId &&
+			storedConnectionId &&
 				Promise.all([
 					window.ark.driver.run("connection", "load", {
-						id: currentConnectionId,
+						id: storedConnectionId,
 					}),
 					window.ark.driver.run("database", "listCollections", {
-						id: currentConnectionId,
+						id: storedConnectionId,
 						database: db,
 					}),
 				]).then(([storedConnection, collections]) => {
@@ -142,11 +161,11 @@ export const Explorer: FC<ExplorerProps> = () => {
 						shellConfig: { ...storedConnection, collection },
 						contextDB: db,
 						collections: collections.map((col) => col.name),
-						storedConnectionId: currentConnectionId,
+						storedConnectionId: storedConnectionId,
 					});
 				});
 		},
-		[currentConnectionId]
+		[storedConnectionId]
 	);
 
 	const addDatabaseNodes = useCallback(
@@ -261,10 +280,10 @@ export const Explorer: FC<ExplorerProps> = () => {
 
 	const addCollectionsToTree = useCallback(
 		(dbName: string) => {
-			return currentConnectionId
+			return storedConnectionId
 				? window.ark.driver
 						.run("database", "listCollections", {
-							id: currentConnectionId,
+							id: storedConnectionId,
 							database: dbName,
 						})
 						.then((collections) => {
@@ -277,37 +296,63 @@ export const Explorer: FC<ExplorerProps> = () => {
 						})
 				: Promise.resolve();
 		},
-		[addCollectionNodesToDatabase, currentConnectionId]
+		[addCollectionNodesToDatabase, storedConnectionId]
 	);
+
+	const addDBListToCache = useCallback(
+		(storedConnectionId: string) => {
+			return Promise.all([
+				window.ark.driver.run("connection", "listDatabases", {
+					id: storedConnectionId,
+				}),
+				window.ark.driver.run("connection", "load", {
+					id: storedConnectionId,
+				}),
+			]).then(([databases, storedConnection]) => {
+				if (databases && databases.length && storedConnection) {
+					updateCachedConnection(
+						storedConnection,
+						createDatabaseList(databases)
+					);
+				}
+			});
+		},
+		[updateCachedConnection]
+	);
+
+	const refresh = useCallback(() => {
+		if (storedConnectionId) {
+			setStoredConnectionId(undefined);
+			addDBListToCache(storedConnectionId).then(() => {
+				setStoredConnectionId(storedConnectionId);
+			});
+		}
+	}, [addDBListToCache, storedConnectionId]);
 
 	/* Load base tree */
 	useEffect(() => {
-		if (currentConnectionId) {
-			Promise.all([
-				window.ark.driver.run("connection", "listDatabases", {
-					id: currentConnectionId,
-				}),
-				window.ark.driver.run("connection", "load", {
-					id: currentConnectionId,
-				}),
-			])
-				.then(([databases, storedConnection]) => {
-					if (databases && databases.length) {
-						addDatabaseNodes(createDatabaseList(databases));
-					}
-					if (storedConnection) {
-						setStoredConnection(storedConnection);
-					}
-				})
-				.catch((err) => {
-					handleErrors(err);
-				});
+		if (
+			storedConnectionId &&
+			storedConnectionIdRef &&
+			storedConnectionIdRef.current !== storedConnectionId
+		) {
+			if (cachedConnections && cachedConnections[storedConnectionId]) {
+				dropTree();
+				addDatabaseNodes(cachedConnections[storedConnectionId].dbList);
+			} else {
+				addDBListToCache(storedConnectionId);
+			}
 		}
 		return () => {
 			dropTree();
-			setStoredConnection(undefined);
 		};
-	}, [addDatabaseNodes, currentConnectionId, dropTree, refToken]);
+	}, [
+		addDBListToCache,
+		addDatabaseNodes,
+		cachedConnections,
+		dropTree,
+		storedConnectionId,
+	]);
 
 	/** Register explorer event listeners */
 	useEffect(
@@ -322,7 +367,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 					cb: (e, payload) => switchConnections(payload),
 				},
 			]),
-		[switchConnections, refToken]
+		[switchConnections]
 	);
 
 	return isOpen ? (
@@ -339,11 +384,12 @@ export const Explorer: FC<ExplorerProps> = () => {
 			minHeight="100%"
 		>
 			<div className="Explorer">
-				{storedConnection ? (
+				{storedConnectionId && cachedConnections[storedConnectionId] ? (
 					<>
 						<div className={"ExplorerHeader"}>
 							<div className={"ExplorerHeaderTitle"}>
-								{storedConnection.name}
+								{cachedConnections[storedConnectionId] &&
+									cachedConnections[storedConnectionId].connection.name}
 							</div>
 							<div className={"ExplorerHeaderMenu"}>
 								<Button
@@ -376,7 +422,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 												key={3}
 												onClick={() => {
 													dispatch("connection_manager:disconnect", {
-														connectionId: currentConnectionId,
+														connectionId: storedConnectionId,
 													});
 													dispatch("connection_manager:toggle");
 													dispatch("explorer:hide");
@@ -485,9 +531,9 @@ export const Explorer: FC<ExplorerProps> = () => {
 								refresh();
 							}}
 							dangerousAction={() => {
-								if (currentConnectionId)
+								if (storedConnectionId)
 									return window.ark.driver.run("database", "dropDatabase", {
-										id: currentConnectionId,
+										id: storedConnectionId,
 										database: dropDatabaseDialogInfo.database,
 									});
 								else return Promise.resolve({ ok: false });
@@ -544,9 +590,9 @@ export const Explorer: FC<ExplorerProps> = () => {
 								refresh();
 							}}
 							dangerousAction={() => {
-								if (currentConnectionId)
+								if (storedConnectionId)
 									return window.ark.driver.run("database", "dropCollection", {
-										id: currentConnectionId,
+										id: storedConnectionId,
 										database: dropCollectionDialogInfo.database,
 										collection: dropCollectionDialogInfo.collection,
 									});
@@ -587,9 +633,9 @@ export const Explorer: FC<ExplorerProps> = () => {
 							onConfirm={(inputs) => {
 								const dbName = inputs["db_name"];
 								const colName = inputs["col_name"];
-								if (currentConnectionId) {
+								if (storedConnectionId) {
 									return window.ark.driver.run("database", "createDatabase", {
-										id: currentConnectionId,
+										id: storedConnectionId,
 										database: dbName,
 										collection: colName,
 									});
@@ -633,9 +679,9 @@ export const Explorer: FC<ExplorerProps> = () => {
 							onConfirm={(inputs) => {
 								const dbName = createCollectionDialogInfo.database;
 								const colName = inputs["col_name"];
-								if (currentConnectionId) {
+								if (storedConnectionId) {
 									return window.ark.driver.run("database", "createDatabase", {
-										id: currentConnectionId,
+										id: storedConnectionId,
 										database: dbName,
 										collection: colName,
 									});

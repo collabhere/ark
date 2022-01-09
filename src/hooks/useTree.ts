@@ -85,7 +85,6 @@ export function useTree(): UseTree {
         });
     }, []);
 
-
     const dropTree: UseTree["dropTree"] = useCallback(() => {
         setTree([]);
     }, []);
