@@ -2,8 +2,11 @@ import "./styles.less";
 import { VscDatabase } from "react-icons/vsc";
 import React, { FC, useCallback, useEffect, useState } from "react";
 import { dispatch, listenEffect } from "../../common/utils/events";
+import { UploadFile } from "antd/lib/upload/interface";
 
-type SidebarItem = Pick<Ark.StoredConnection, "id" | "name">;
+type SidebarItem = Pick<Ark.StoredConnection, "id" | "name"> & {
+	icon: UploadFile<Blob>;
+};
 
 export const Sidebar: FC = () => {
 	const [items, setItems] = useState<SidebarItem[]>([]);
@@ -50,6 +53,13 @@ export const Sidebar: FC = () => {
 		[addItem, removeItem]
 	);
 
+	const calculateInitials = (name: string) => {
+		const splitName = name.split(" ");
+		return splitName.length > 1
+			? `${splitName[0][0]}${splitName[1][0]}`.toUpperCase()
+			: `${splitName[0]}${splitName[1]}`.toUpperCase();
+	};
+
 	return (
 		<div className="Sidebar">
 			<div className="SidebarItem SidebarHome" onClick={listConnections}>
@@ -61,7 +71,11 @@ export const Sidebar: FC = () => {
 					key={conn.id}
 					onClick={() => switchConnections(conn.id)}
 				>
-					{conn.name[0]}
+					{conn.icon && conn.icon.name ? (
+						<img src={`ark://icons/${conn.icon.name}`} width={30} height={30} />
+					) : (
+						calculateInitials(conn.name)
+					)}
 				</div>
 			))}
 		</div>

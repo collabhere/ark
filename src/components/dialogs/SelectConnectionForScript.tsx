@@ -41,6 +41,7 @@ export const SelectConnectionForFilePath: FC<SelectConnectionForScriptProps> =
 					dispatch("sidebar:add_item", {
 						id: selectedStoredConnection.id,
 						name: selectedStoredConnection.name,
+						icon: selectedStoredConnection.icon,
 					});
 
 					onClose && onClose(selectedStoredConnection);

@@ -2,15 +2,16 @@ import { ListDatabasesResult, MongoClient, MongoClientOptions } from "mongodb";
 import type { SrvRecord } from "dns";
 import { promises as netPromises } from "dns";
 import { nanoid } from "nanoid";
-import { URL } from "url";
 import mongoUri from "mongodb-uri";
-import { stringify } from "querystring";
 import tunnel, { Config } from "tunnel-ssh";
 
 import { ARK_FOLDER_PATH } from "../../utils/constants";
 import { ERRORS } from "../../../util/constants";
 import { MemEntry } from "../../modules/ipc";
 import { Server } from "net";
+import * as crypto from "crypto";
+import fs from "fs";
+import { UploadFile } from "antd/lib/upload/interface";
 
 interface ReplicaSetMember {
 	name: string;
@@ -40,6 +41,17 @@ export interface Connection {
 	 */
 	list(dep: Ark.DriverDependency): Promise<Ark.StoredConnection[]>;
 	/**
+	 *
+	 * Test connections.
+	 */
+	test(
+		dep: Ark.DriverDependency,
+		arg: {
+			type: "config" | "uri";
+			config: Ark.StoredConnection | URIConfiguration;
+		}
+	): Promise<{ status: boolean; message: string }>;
+	/**
 	 * Load a single stored connection from disk.
 	 */
 	load(
@@ -47,19 +59,29 @@ export interface Connection {
 		arg: { id: string }
 	): Promise<Ark.StoredConnection>;
 	/**
-	 * Save a connection using just a uri
+	 * Save a connection using a URI or granular configurations
 	 */
 	save(
 		dep: Ark.DriverDependency,
-		arg: { type: "uri"; config: URIConfiguration }
+		arg: {
+			type: "config" | "uri";
+			config: Ark.StoredConnection | URIConfiguration;
+			icon?: UploadFile<Blob>;
+		}
 	): Promise<string>;
-	/**
-	 * Save a connection using granular configurations
-	 */
-	save(
+	copyIcon(
 		dep: Ark.DriverDependency,
-		arg: { type: "config"; config: Ark.StoredConnection }
-	): Promise<string>;
+		arg: {
+			path: string;
+			name: string;
+		}
+	): Promise<void>;
+	fetchIcon(
+		dep: Ark.DriverDependency,
+		arg: {
+			id: string;
+		}
+	): Promise<UploadFile<Blob>>;
 	/**
 	 * Delete a stored conneection from disk.
 	 */
@@ -85,20 +107,11 @@ export const Connection: Connection = {
 	info: async ({ memoryStore }, { id }) => {
 		const client = memoryStore.get(id).connection;
 		if (client) {
-			const admin = client.db().admin();
-			const serverStatus = await admin.serverStatus();
-
+			const replSet = await getReplicaSetDetails(client);
 			const result: GetConnectionResult = {};
 
-			const replSet = serverStatus.repl;
-
 			if (replSet) {
-				const replSetStatus = await admin.replSetGetStatus();
-				const members = replSetStatus.members;
-				result.replicaSetDetails = {
-					members,
-					set: replSetStatus.set,
-				};
+				result.replicaSetDetails = replSet;
 			}
 
 			return result;
@@ -115,6 +128,15 @@ export const Connection: Connection = {
 		const uri = getConnectionUri(config);
 		return { ...config, uri };
 	},
+	copyIcon: async ({}, { path, name }) => {
+		const destinationPath = `${ARK_FOLDER_PATH}/icons`;
+		if (!fs.existsSync(destinationPath)) {
+			await fs.promises.mkdir(destinationPath);
+		}
+
+		const destination = `${destinationPath}/${name}`;
+		await fs.promises.copyFile(path, destination);
+	},
 	connect: async ({ diskStore, memoryStore }, { id }) => {
 		if (await diskStore.has(id)) {
 			const config = await diskStore.get(id);
@@ -129,6 +151,11 @@ export const Connection: Connection = {
 					throw new Error("Unable to make ssh connection.");
 				}
 			}
+
+			config.password =
+				config.password && config.key && config.iv
+					? decrypt(config.password, config.key, config.iv)
+					: config.password;
 
 			const connectionUri = getConnectionUri(config);
 			const client = new MongoClient(connectionUri);
@@ -159,64 +186,54 @@ export const Connection: Connection = {
 			throw new Error("Connection not found!");
 		}
 	},
-	save: async ({ diskStore }, { type, config }) => {
-		const options: MongoClientOptions = {};
-		let hosts: Array<string>;
+	save: async ({ diskStore, iconStore }, connectionArgs) => {
+		const config = await getConnectionConfig(connectionArgs);
 
-		if (isURITypeConfig(type, config)) {
-			const id = nanoid();
-			const parsedUri = mongoUri.parse(config.uri);
-			if (parsedUri.scheme.includes("+srv")) {
-				const hostdetails = parsedUri.hosts[0];
-				hosts = (await lookupSRV(`_mongodb._tcp.${hostdetails.host}`)).map(
-					(record) => `${record.name}:${record.port || 27017}`
-				);
-
-				options.tls = true;
-				options.tlsCertificateFile = `${ARK_FOLDER_PATH}/certs/ark.crt`;
-				options.authSource = "admin";
-			} else {
-				hosts = parsedUri.hosts.map(
-					(host) => `${host.host}:${host.port || 27017}`
-				);
-			}
-
-			await diskStore.set(id, {
-				id,
-				protocol: parsedUri.scheme,
-				name: config.name,
-				type: hosts.length > 1 ? "replicaSet" : "directConnection",
-				hosts: hosts,
-				username: parsedUri.username,
-				password: parsedUri.password,
-				database: parsedUri.database,
-				options: { ...parsedUri.options, ...options },
-			});
-			return id;
+		if (config.icon && connectionArgs.icon) {
+			await iconStore.set(config.id, connectionArgs.icon);
 		} else {
-			const id = config.id || nanoid();
+			await iconStore.remove(config.id);
+		}
 
-			if (!config.options.tls) {
-				const { tls: _, tlsCertificateFile: __, ...formattedOptions } = options;
+		await diskStore.set(config.id, {
+			...config,
+		});
 
-				await diskStore.set(id, {
-					...config,
-					options: { ...formattedOptions },
-					id,
-				});
-			} else if (config.options.tls && !config.options.tlsCertificateFile) {
-				config.options.tlsCertificateFile = `${ARK_FOLDER_PATH}/certs/ark.crt`;
-				await diskStore.set(id, {
-					...config,
-					id,
-				});
+		return config.id;
+	},
+	fetchIcon: async ({ iconStore }, connectionArgs) => {
+		return await iconStore.get(connectionArgs.id);
+	},
+	test: async (_, connectionArgs) => {
+		try {
+			const config = await getConnectionConfig(connectionArgs);
+			if (config.ssh && config.ssh.useSSH) {
+				await sshTunnel(config.ssh, config.hosts);
 			}
 
-			return id;
+			const connectionUri = getConnectionUri(config);
+			const client = new MongoClient(connectionUri);
+			await client.connect();
+
+			return {
+				status: true,
+				message: "Connection Successful",
+			};
+		} catch (err) {
+			return {
+				status: false,
+				message:
+					err && err instanceof Error
+						? err.message
+						: typeof err === "string"
+						? err
+						: "",
+			};
 		}
 	},
-	delete: async ({ diskStore }, { id }) => {
+	delete: async ({ diskStore, iconStore }, { id }) => {
 		await diskStore.remove(id);
+		await iconStore.remove(id);
 	},
 	listDatabases: async function ({ memoryStore }, { id }) {
 		const entry = memoryStore.get(id);
@@ -311,3 +328,128 @@ function isURITypeConfig(
 	if (type === "uri") return true;
 	return false;
 }
+
+const getReplicaSetDetails = async (
+	client: MongoClient
+): Promise<GetConnectionResult["replicaSetDetails"] | void> => {
+	const connection = await client.connect();
+	const admin = connection.db().admin();
+	const serverStatus = await admin.serverStatus();
+	const replSet = serverStatus.repl;
+
+	if (replSet) {
+		const replSetStatus = await admin.replSetGetStatus();
+		const members = replSetStatus.members;
+		return {
+			members,
+			set: replSetStatus.set,
+		};
+	}
+};
+
+const encrypt = (password: string) => {
+	const iv = crypto.randomBytes(16);
+	const key = crypto.randomBytes(32);
+
+	const cipher = crypto.createCipheriv("aes-256-cbc", Buffer.from(key), iv);
+	return {
+		pwd: Buffer.concat([cipher.update(password), cipher.final()]).toString(
+			"hex"
+		),
+		key: key.toString("hex"),
+		iv: iv.toString("hex"),
+	};
+};
+
+const decrypt = (password: string, key: string, iv: string) => {
+	const decipher = crypto.createDecipheriv(
+		"aes-256-cbc",
+		Buffer.from(key, "hex"),
+		Buffer.from(iv, "hex")
+	);
+	return decipher.update(password, "hex", "utf8") + decipher.final("utf8");
+};
+
+const getConnectionConfig = async ({
+	type,
+	config,
+}: Parameters<Connection["save"]>[1]): Promise<Ark.StoredConnection> => {
+	const options: MongoClientOptions = {};
+	let hosts: Array<string>;
+
+	if (isURITypeConfig(type, config)) {
+		const id = nanoid();
+		const parsedUri = mongoUri.parse(config.uri);
+		if (parsedUri.scheme.includes("+srv")) {
+			const hostdetails = parsedUri.hosts[0];
+			hosts = (await lookupSRV(`_mongodb._tcp.${hostdetails.host}`)).map(
+				(record) => `${record.name}:${record.port || 27017}`
+			);
+
+			if (hosts && hosts.length > 0) {
+				const client = new MongoClient(config.uri);
+				const replicaSetDetails = await getReplicaSetDetails(client);
+
+				if (replicaSetDetails) {
+					options.replicaSet = replicaSetDetails.set;
+				}
+			}
+
+			options.tls = true;
+			options.tlsCertificateFile = `${ARK_FOLDER_PATH}/certs/ark.crt`;
+			options.authSource = "admin";
+		} else {
+			hosts = parsedUri.hosts.map(
+				(host) => `${host.host}:${host.port || 27017}`
+			);
+		}
+
+		const encryption = parsedUri.password
+			? encrypt(parsedUri.password)
+			: undefined;
+
+		return {
+			id,
+			protocol: parsedUri.scheme,
+			name: config.name,
+			type: hosts.length > 1 ? "replicaSet" : "directConnection",
+			hosts: hosts,
+			username: parsedUri.username,
+			password: encryption?.pwd,
+			key: encryption?.key,
+			iv: encryption?.iv,
+			database: parsedUri.database,
+			options: { ...parsedUri.options, ...options },
+			ssh: { useSSH: false },
+		};
+	} else {
+		const id = config.id || nanoid();
+
+		if (!config.options.tls) {
+			const {
+				tls: _,
+				tlsCertificateFile: __,
+				...formattedOptions
+			} = config.options;
+			config.options = { ...formattedOptions };
+		} else if (config.options.tls && !config.options.tlsCertificateFile) {
+			config.options.tlsCertificateFile = `${ARK_FOLDER_PATH}/certs/ark.crt`;
+		}
+
+		if (!config.username) {
+			const { authMechanism: _, ...opts } = config.options;
+			config.options = { ...opts };
+		}
+
+		const encryption = config.password ? encrypt(config.password) : undefined;
+
+		config.password = encryption?.pwd;
+		config.key = encryption?.key;
+		config.iv = encryption?.iv;
+
+		return {
+			...config,
+			id,
+		};
+	}
+};

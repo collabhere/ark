@@ -1,16 +1,23 @@
-import { app } from "electron";
+import { app, protocol } from "electron";
 import path from "path";
 
 import Window from "./modules/window";
 import IPC from "./modules/ipc";
 
 import { enableDevTools } from "./utils/dev";
+import { ARK_FOLDER_PATH } from "./utils/constants";
 
 (async function main() {
 	try {
 		app.allowRendererProcessReuse = true;
 
 		await app.whenReady();
+
+		protocol.registerFileProtocol("ark", (request, callback) => {
+			console.log(request.url);
+			const url = request.url.slice(5);
+			callback({ path: `${ARK_FOLDER_PATH}${url}` });
+		});
 
 		const window = Window.createWindow({
 			width: 1400,

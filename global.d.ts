@@ -10,25 +10,38 @@ import type {
 	ScriptOpenActionData,
 } from "./electron/modules/ipc";
 import type { DiskStore } from "./electron/core/stores/disk";
+import { UploadFile } from "antd/lib/upload/interface";
 
 declare global {
 	namespace Ark {
 		interface DriverDependency {
 			memoryStore: MemoryStore<MemEntry>;
 			diskStore: DiskStore<StoredConnection>;
+			iconStore: DiskStore<UploadFile<Blob>>;
 		}
 		interface StoredConnection {
 			id: string;
 			name: string;
 			protocol: string;
 			hosts: Array<string>;
-			database: string;
-			username: string;
-			password: string;
+			database?: string;
+			username?: string;
+			key?: string;
+			iv?: string;
+			password?: string;
+			icon?: boolean;
 			type: "directConnection" | "replicaSet";
 			options: Pick<
 				MongoClientOptions,
-				"authSource" | "retryWrites" | "tls" | "tlsCertificateFile" | "w"
+				| "authSource"
+				| "retryWrites"
+				| "tls"
+				| "tlsCertificateFile"
+				| "w"
+				| "replicaSet"
+				| "authMechanism"
+				| "tlsCertificateKeyFilePassword"
+				| "tlsCAFile"
 			>;
 			ssh: {
 				useSSH?: boolean;
