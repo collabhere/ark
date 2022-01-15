@@ -3,10 +3,11 @@ import {
 	Mongo,
 	Database,
 	ShellInstanceState,
-	Cursor,
 	ShellApi,
 	ReplicaSet,
 	Shard,
+	AggregationCursor,
+	Cursor
 } from "@mongosh/shell-api";
 import { bson } from "@mongosh/service-provider-core";
 import { CliServiceProvider, MongoClientOptions } from "@mongosh/service-provider-server";
@@ -76,8 +77,13 @@ async function createServiceProvider(uri: string, driverOpts: MongoClientOptions
 	return provider
 }
 
-function paginateCursor(cursor: Cursor, page: number) {
+function paginateFindCursor(cursor: Cursor, page: number) {
 	return cursor.limit(50).skip((page - 1) * 50);
+}
+
+
+function paginateAggregationCursor(cursor: AggregationCursor, page: number) {
+	return cursor;
 }
 
 interface MongoEvalOptions {
@@ -135,11 +141,15 @@ async function evaluate(
 		bson
 	);
 
-	if (result instanceof Cursor) {
-		if (options.mode === "export") {
-			return await exportData(result, options);
-		} else {
-			result = await paginateCursor(result, page || 1).toArray();
+	if (options.mode === "export") {
+		return await exportData(result, options);
+	} else {
+		if (result instanceof AggregationCursor) {
+			result = await paginateAggregationCursor(result, page || 1).toArray();
+		} else if (result instanceof Cursor) {
+			result = await paginateFindCursor(result, page || 1).toArray();
+		} else if ('toArray' in result) {
+			result = result.toArray();
 		}
 	}
 
