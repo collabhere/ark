@@ -10,6 +10,7 @@ import {
 	ConnectionFormProps,
 } from "../panes/connection-form/ConnectionForm";
 import { EmptyState } from "../onboarding/EmptyState";
+import { DraggableTabs } from "./DraggableTabs";
 
 const { TabPane } = Tabs;
 
@@ -155,7 +156,7 @@ export const Browser = (): JSX.Element => {
 	return (
 		<div className="Browser">
 			{tabs && tabs.length ? (
-				<Tabs
+				<DraggableTabs
 					hideAdd
 					type="editable-card"
 					activeKey={activeKey}
@@ -193,7 +194,7 @@ export const Browser = (): JSX.Element => {
 							</TabPane>
 						);
 					})}
-				</Tabs>
+				</DraggableTabs>
 			) : (
 				<EmptyState />
 			)}
