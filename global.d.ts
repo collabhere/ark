@@ -60,7 +60,7 @@ declare global {
 		}
 
 		type AnyObject = Record<string, unknown> | Record<string, unknown>[];
-		type BSONTypes = ObjectId | Date | string | number | boolean | BSONArray | BSONDocument;
+		type BSONTypes = ObjectId | Date | string | number | boolean | BSONArray | BSONDocument | Record<string, any>;
 		type BSONDocument = {
 			_id: ObjectId;
 			[k: string]: BSONTypes;
@@ -138,6 +138,7 @@ declare global {
 				title?: string,
 				buttonLabel?: string
 			) => Promise<{ path: string }>;
+			copyText(text: string): void;
 			scripts: Scripts;
 			driver: Driver;
 			shell: Shell;
