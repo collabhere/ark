@@ -79,7 +79,8 @@ declare global {
 			| number
 			| boolean
 			| BSONArray
-			| BSONDocument;
+			| BSONDocument
+			| Record<string, any>;
 
 		type BSONDocument = {
 			_id: ObjectId;
@@ -158,6 +159,7 @@ declare global {
 				title?: string,
 				buttonLabel?: string
 			) => Promise<{ path: string }>;
+			copyText(text: string): void;
 			scripts: Scripts;
 			driver: Driver;
 			shell: Shell;

@@ -177,7 +177,6 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 							<Button
 								shape="round"
 								icon={<VscAdd />}
-								size="middle"
 								text="Create"
 								variant="primary"
 								onClick={() => openCreateConnection()}

@@ -24,7 +24,7 @@ import { ARK_FOLDER_PATH } from "./utils/constants";
 			height: 900,
 			frame: false,
 			webPreferences: {
-				preload: path.join(__dirname, "preload"),
+				preload: path.join(__dirname, "preload")
 			},
 		});
 

@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require("electron");
+const { contextBridge, ipcRenderer, clipboard } = require("electron");
 
 const invoke = (command: string, args?: any) =>
 	ipcRenderer.invoke(command, args).then((result) => {
@@ -12,6 +12,7 @@ const invoke = (command: string, args?: any) =>
 const arkContext: Ark.Context = {
 	browseForFile: (title, buttonLabel) => invoke("browse_fs", { type: "file", title, buttonLabel }),
 	browseForDirs: (title, buttonLabel) => invoke("browse_fs", { type: "dir", title, buttonLabel }),
+	copyText: (text) => clipboard.writeText(text),
 	scripts: {
 		open: (params) => invoke("script_actions", { action: "open", params }),
 		save: (params) => invoke("script_actions", { action: "save", params }),
