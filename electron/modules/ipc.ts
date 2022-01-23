@@ -11,6 +11,7 @@ import { createMemoryStore } from "../core/stores/memory";
 import { createDiskStore } from "../core/stores/disk";
 import { MongoClient, ListDatabasesResult } from "mongodb";
 import { Server } from "net";
+import { UploadFile } from "antd/lib/upload/interface";
 
 interface RunCommandInput {
 	library: keyof DriverModules;
@@ -89,7 +90,7 @@ export type ScriptActionData =
 
 export interface MemEntry {
 	connection: MongoClient;
-	databases: ListDatabasesResult;
+	databases: ListDatabasesResult["databases"];
 	server?: Server;
 }
 interface StoredShellValue {
@@ -109,8 +110,9 @@ function IPC() {
 	const DriverDependency: Ark.DriverDependency = {
 		diskStore: createDiskStore<Ark.StoredConnection>("connections"),
 		memoryStore: createMemoryStore<MemEntry>(),
+		iconStore: createDiskStore<UploadFile<Blob>>("icons"),
 	};
-	
+
 	const driver = createDriver(DriverDependency);
 
 	// Stores opened scripts
@@ -140,11 +142,11 @@ function IPC() {
 						...storedConnection.options,
 						replicaSet:
 							driverConnection.replicaSetDetails &&
-							driverConnection.replicaSetDetails.set
+								driverConnection.replicaSetDetails.set
 								? driverConnection.replicaSetDetails.set
 								: undefined,
 					};
-					const shellExecutor = await createEvaluator({ uri, mongoOptions}, DriverDependency);
+					const shellExecutor = await createEvaluator({ uri, mongoOptions }, DriverDependency);
 					const shell = {
 						id: nanoid(),
 						executor: shellExecutor,

@@ -21,10 +21,11 @@ import {
 	handleErrors,
 	notify,
 } from "../../../common/utils/misc";
-import { ResultViewer, ResultViewerProps } from "./ResultViewer/ResultViewer";
+import { ResultViewer, ResultViewerProps } from "./ResultViewer";
 import { Button } from "../../../common/components/Button";
 import { CircularLoading } from "../../../common/components/Loading";
 import { useRefresh } from "../../../hooks/useRefresh";
+import { bsonTest } from "../../../../util/misc";
 
 const createDefaultCodeSnippet = (collection: string) => `// Mongo shell
 db.getCollection('${collection}').find({});
@@ -99,11 +100,16 @@ export const Editor: FC<EditorProps> = (props) => {
 								// setTextResult(msg + "<br/>" + html);
 								return;
 							}
-							const json = deserialize(result ? result : Buffer.from([]));
-							console.log("RESULT", json);
+
+							const bson = deserialize(result ? result : Buffer.from([]));
+
+							const bsonArray: Ark.BSONArray = bsonTest(bson)
+								? Object.values(bson)
+								: [bson];
+
 							setCurrentResult({
-								type: "json",
-								json,
+								type: "tree",
+								bson: bsonArray,
 							});
 						})
 						.catch(function (err) {
