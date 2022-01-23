@@ -85,6 +85,14 @@ export const Editor: FC<EditorProps> = (props) => {
 		setCode(_code);
 	}, []);
 
+	const switchViews = useCallback((type: "tree" | "json") => {
+		setCurrentResult((currentResult) => ({
+			...currentResult,
+			type: type,
+			bson: currentResult?.bson || [],
+		}));
+	}, []);
+
 	const exec = useCallback(
 		(code) => {
 			const _code = code.replace(/(\/\/.*)|(\n)/g, "");
@@ -108,7 +116,7 @@ export const Editor: FC<EditorProps> = (props) => {
 								: [bson];
 
 							setCurrentResult({
-								type: "tree",
+								type: "json",
 								bson: bsonArray,
 							});
 						})
@@ -410,6 +418,7 @@ export const Editor: FC<EditorProps> = (props) => {
 				<ResultViewer
 					{...currentResult}
 					code={code}
+					switchViews={switchViews}
 					onExport={(params) => exportData(params.code, params.options)}
 				/>
 			)}

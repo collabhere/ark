@@ -10,13 +10,17 @@ import "./styles.less";
 import { TreeViewer } from "./TreeViewer";
 import { JSONViewer } from "./JSONViewer";
 
-export type ResultViewerProps = (
-	| { type: "json"; bson: Ark.BSONArray }
-	| { type: "tree"; bson: Ark.BSONArray }
-) & { code?: string; onExport?: (params?: any) => void };
+export type ResultViewerProps = {
+	type: "json" | "tree";
+	bson: Ark.BSONArray;
+} & {
+	code?: string;
+	onExport?: (params?: any) => void;
+	switchViews?: (type: "tree" | "json") => void;
+};
 
 export const ResultViewer: FC<ResultViewerProps> = (props) => {
-	const { code, type, onExport } = props;
+	const { code, type, onExport, switchViews } = props;
 	const [exportDialog, toggleExportDialog] = useState<boolean>(false);
 	const [exportOptions, setExportOptions] = useState<
 		Ark.ExportNdjsonOptions | Ark.ExportCsvOptions
@@ -82,7 +86,7 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 						<span>
 							<Button
 								icon={<VscListTree color={"#fff"} />}
-								onClick={() => {}}
+								onClick={() => switchViews && switchViews("tree")}
 								popoverOptions={{
 									hover: { content: "Switch to Tree View" },
 								}}
@@ -93,7 +97,7 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 						<span>
 							<Button
 								icon={<VscJson color={"#fff"} />}
-								onClick={() => {}}
+								onClick={() => switchViews && switchViews("json")}
 								popoverOptions={{
 									hover: { content: "Switch to JSON View" },
 								}}
