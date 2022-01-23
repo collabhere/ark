@@ -59,8 +59,28 @@ declare global {
 			};
 		}
 
-		type AnyObject = Record<string, unknown> | Record<string, unknown>[];
-		type BSONTypes = ObjectId | Date | string | number | boolean | BSONArray | BSONDocument;
+		type AllElements =
+			| { [K: string]: AllElements }
+			| Date
+			| Array<{ [K: string]: AllElements }>
+			| string
+			| number
+			| boolean
+			| ObjectId;
+
+		type AnyObject =
+			| Record<string, AllElements>
+			| Record<string, AllElements>[];
+
+		type BSONTypes =
+			| ObjectId
+			| Date
+			| string
+			| number
+			| boolean
+			| BSONArray
+			| BSONDocument;
+
 		type BSONDocument = {
 			_id: ObjectId;
 			[k: string]: BSONTypes;

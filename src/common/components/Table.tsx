@@ -5,7 +5,7 @@ import type {
 	TablePaginationConfig,
 } from "antd/lib/table/interface";
 
-import { PromiseCompleteCallback, asyncEventOverload } from "../util";
+import { PromiseCompleteCallback, asyncEventOverload } from "../utils/misc";
 
 export type Column<T> = Pick<
 	ColumnType<T>,
