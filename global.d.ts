@@ -11,6 +11,7 @@ import type {
 } from "./electron/modules/ipc";
 import type { DiskStore } from "./electron/core/stores/disk";
 import { UploadFile } from "antd/lib/upload/interface";
+import { ObjectId } from "bson";
 
 declare global {
 	namespace Ark {
@@ -58,7 +59,34 @@ declare global {
 			};
 		}
 
-		type AnyObject = Record<string, unknown> | Record<string, unknown>[];
+		type AllElements =
+			| { [K: string]: AllElements }
+			| Date
+			| Array<{ [K: string]: AllElements }>
+			| string
+			| number
+			| boolean
+			| ObjectId;
+
+		type AnyObject =
+			| Record<string, AllElements>
+			| Record<string, AllElements>[];
+
+		type BSONTypes =
+			| ObjectId
+			| Date
+			| string
+			| number
+			| boolean
+			| BSONArray
+			| BSONDocument
+			| Record<string, any>;
+
+		type BSONDocument = {
+			_id: ObjectId;
+			[k: string]: BSONTypes;
+		};
+		type BSONArray = Array<BSONDocument>;
 
 		interface Driver {
 			run<D extends keyof Database>(
@@ -131,6 +159,7 @@ declare global {
 				title?: string,
 				buttonLabel?: string
 			) => Promise<{ path: string }>;
+			copyText(text: string): void;
 			scripts: Scripts;
 			driver: Driver;
 			shell: Shell;

@@ -1,7 +1,7 @@
 import "./Button.less";
 
 import React, { FC, useState, useMemo } from "react";
-import { Button as AntButton } from "antd";
+import { Button as BPButton, ActionProps } from "@blueprintjs/core";
 import { PromiseCompleteCallback, asyncEventOverload } from "../utils/misc";
 import { Popover } from "./Popover";
 
@@ -16,11 +16,11 @@ interface PopoverOptions {
 }
 
 interface ButtonProps {
-	variant?: "primary" | "secondary" | "danger" | "success" | "link";
+	variant?: ActionProps["intent"] | "link";
 	shape?: "round" | "circle";
 	text?: string;
 	icon?: React.ReactNode;
-	size?: "large" | "middle" | "small";
+	size?: "large" | "small";
 	popoverOptions?: {
 		hover?: PopoverOptions;
 		click?: PopoverOptions;
@@ -29,37 +29,33 @@ interface ButtonProps {
 }
 
 export const Button: FC<ButtonProps> = (props) => {
-	const { icon, text, onClick, popoverOptions, size, variant, shape } = props;
+	const { icon, text, onClick, popoverOptions, size, variant } = props;
 
 	const [loading, setLoading] = useState(false);
 
 	const baseButton = useMemo(
 		() => (
-			<AntButton
-				type={variant === "link" ? "link" : undefined}
-				className={variant ? "button-" + variant : "button-primary"}
-				shape={shape}
+			<BPButton
 				disabled={loading}
 				onClick={(e) => {
 					if (!popoverOptions || (popoverOptions && !popoverOptions.click))
 						onClick && asyncEventOverload(setLoading, onClick, e);
 				}}
 				loading={icon ? loading : undefined}
+				large={size === "large"}
+				small={size === "small"}
+				outlined={variant === "link"}
+				intent={variant !== "link" ? variant : undefined}
 				icon={
 					icon ? (
 						<span className={"button-icon-wrapper"}>{icon}</span>
 					) : undefined
 				}
-				size={size || "large"}
 			>
-				{text && (
-					<span className={"button-text-size-" + (size || "large")}>
-						{text}
-					</span>
-				)}
-			</AntButton>
+				{text && <span>{text}</span>}
+			</BPButton>
 		),
-		[icon, loading, onClick, popoverOptions, shape, size, text, variant]
+		[icon, loading, onClick, popoverOptions, size, text, variant]
 	);
 
 	const buttonWithPopovers = useMemo(
