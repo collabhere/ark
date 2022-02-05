@@ -2,7 +2,7 @@ import { ObjectId } from "bson";
 import React, { FC } from "react";
 
 export interface JSONViewerProps {
-	bson: Ark.AnyObject | string;
+	bson: Ark.BSONArray;
 }
 
 export const JSONViewer: FC<JSONViewerProps> = (props) => {

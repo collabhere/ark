@@ -80,11 +80,12 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 
 	return (
 		<>
-			<div className="ResultViewer flex-block padding-min">
+			<div className="ResultViewer">
 				<div className="flex-inline-end">
 					<div>
 						<span>
 							<Button
+								size="large"
 								icon={<VscListTree color={"#fff"} />}
 								onClick={() => switchViews && switchViews("tree")}
 								popoverOptions={{
@@ -96,6 +97,7 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 					<div>
 						<span>
 							<Button
+								size="small"
 								icon={<VscJson color={"#fff"} />}
 								onClick={() => switchViews && switchViews("json")}
 								popoverOptions={{
@@ -106,6 +108,7 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 					</div>
 					<div>
 						<Button
+							size="small"
 							icon={<VscArrowUp color={"#fff"} />}
 							onClick={() => toggleExportDialog(true)}
 							popoverOptions={{ hover: { content: "Export data" } }}

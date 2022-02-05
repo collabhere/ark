@@ -1,7 +1,7 @@
 import React, { FC, useState } from "react";
 import { Collapse, Dropdown, Input, Menu } from "antd";
 import { ObjectID, ObjectId } from "bson";
-import "../../styles.less";
+import "./styles.less";
 import "../../../../common/styles/layout.less";
 import {
 	CaretRightOutlined,
@@ -22,10 +22,20 @@ interface BSONTest {
 		| "number"
 		| "string"
 		| "boolean"
+		| "primitive[]"
 		| "subdocument"
 		| "subdocument[]"
+		| "null"
 		| "unknown";
 }
+
+const isBSONType = (value) =>
+	value instanceof ObjectId ||
+	value instanceof Date ||
+	typeof value === "string" ||
+	typeof value === "number" ||
+	typeof value === "boolean" ||
+	value === null;
 
 const testBsonValue = (value: Ark.BSONTypes): BSONTest => ({
 	type:
@@ -39,29 +49,129 @@ const testBsonValue = (value: Ark.BSONTypes): BSONTest => ({
 			? "number"
 			: typeof value === "boolean"
 			? "boolean"
-			: typeof value === "object" && Array.isArray(value)
+			: typeof value === "object" &&
+			  Array.isArray(value) &&
+			  isBSONType(value[0])
+			? "primitive[]"
+			: typeof value === "object" &&
+			  Array.isArray(value) &&
+			  !isBSONType(value[0])
 			? "subdocument[]"
-			: typeof value === "object"
+			: typeof value === "object" && value !== null
 			? "subdocument"
+			: value === null
+			? "null"
 			: "unknown",
 });
 
 interface ContentBuilderOptions {
 	editable: boolean;
-	onKeyChange?: (key: string, value: Ark.BSONTypes) => void;
+	onKeyChange?: (key: string | number, value: Ark.BSONTypes) => void;
 }
 
-const contentBuilder = (
-	document: Ark.BSONDocument,
-	{ editable, onKeyChange }: ContentBuilderOptions
-) =>
-	Object.entries(document).reduce<React.ReactNode[]>((rows, [key, value]) => {
+interface ContentBuilderReducer {
+	(
+		rows: React.ReactNode[],
+		entry: [string | number, Ark.BSONTypes | Ark.BSONDocument | Ark.BSONArray]
+	);
+}
+interface ContentBuilder {
+	(options: ContentBuilderOptions): ContentBuilderReducer;
+}
+
+const contentBuilder: ContentBuilder =
+	({ editable, onKeyChange }: ContentBuilderOptions) =>
+	(rows, [key, value]) => {
 		const { type } = testBsonValue(value);
+		// console.log("KEY", key, "TYPE", type, "VALUE", value);
 		switch (type) {
+			case "oid": {
+				rows.push(
+					<ObjectIdRow
+						key={key}
+						field={key}
+						id={value as ObjectId}
+						editable={editable}
+					/>
+				);
+				break;
+			}
+			case "isodate": {
+				rows.push(
+					<ISODateRow
+						key={key}
+						field={key}
+						date={value as Date}
+						editable={editable}
+					/>
+				);
+				break;
+			}
+			case "boolean": {
+				rows.push(
+					<BooleanValueRow
+						key={key}
+						field={key}
+						value={value as boolean}
+						editable={editable}
+						onValueChange={(value) => {}}
+					/>
+				);
+				break;
+			}
+			case "number": {
+				rows.push(
+					<NumberValueRow
+						key={key}
+						field={key}
+						value={value as number}
+						editable={editable}
+					/>
+				);
+				break;
+			}
+			case "string": {
+				rows.push(
+					<StringValueRow
+						key={key}
+						field={key}
+						value={value as string}
+						editable={editable}
+						onValueChange={(value) => onKeyChange && onKeyChange(key, value)}
+					/>
+				);
+				break;
+			}
+			case "primitive[]": {
+				const bsonTypes = value as Ark.BSONTypes[];
+				rows.push(
+					<div key={key}>
+						<Collapse
+							defaultActiveKey={["0"]}
+							expandIcon={({ isActive }) => (
+								<CaretRightOutlined rotate={isActive ? 90 : 0} />
+							)}
+						>
+							<Panel key={key} header={key}>
+								{bsonTypes
+									.map<Parameters<ContentBuilderReducer>[1]>((t, i) => [i, t])
+									.reduce(
+										contentBuilder({
+											editable,
+											onKeyChange,
+										}),
+										[]
+									)}
+							</Panel>
+						</Collapse>
+					</div>
+				);
+				break;
+			}
 			case "subdocument[]": {
 				const subdocumentArray = value as Ark.BSONArray;
 				rows.push(
-					<div>
+					<div key={key}>
 						<Collapse
 							defaultActiveKey={["0"]}
 							expandIcon={({ isActive }) => (
@@ -98,13 +208,13 @@ const contentBuilder = (
 				const document = value as Ark.BSONDocument;
 				rows.push(
 					<Collapse
+						key={key}
 						defaultActiveKey={["0"]}
 						expandIcon={({ isActive }) => (
 							<CaretRightOutlined rotate={isActive ? 90 : 0} />
 						)}
 					>
 						<DocumentPanel
-							key={rows.length - 1}
 							document={document}
 							field={key}
 							editable={editable}
@@ -116,44 +226,12 @@ const contentBuilder = (
 				);
 				break;
 			}
-			case "oid": {
+			case "null": {
 				rows.push(
-					<ObjectIdRow field={key} id={value as ObjectId} editable={editable} />
-				);
-				break;
-			}
-			case "isodate": {
-				rows.push(
-					<ISODateRow field={key} date={value as Date} editable={editable} />
-				);
-				break;
-			}
-			case "boolean": {
-				rows.push(
-					<BooleanValueRow
+					<NullValueRow
+						key={key}
 						field={key}
-						value={value as boolean}
-						editable={editable}
-						onValueChange={(value) => {}}
-					/>
-				);
-				break;
-			}
-			case "number": {
-				rows.push(
-					<NumberValueRow
-						field={key}
-						value={value as number}
-						editable={editable}
-					/>
-				);
-				break;
-			}
-			case "string": {
-				rows.push(
-					<StringValueRow
-						field={key}
-						value={value as string}
+						value={value as null}
 						editable={editable}
 						onValueChange={(value) => onKeyChange && onKeyChange(key, value)}
 					/>
@@ -171,7 +249,7 @@ const contentBuilder = (
 		}
 
 		return rows;
-	}, []);
+	};
 
 interface CreateMenuItem {
 	item: string;
@@ -230,7 +308,7 @@ const DocumentOptions: FC<DocumentOptionsProps> = ({
 );
 
 interface ObjectIdRowProps {
-	field: string;
+	field: string | number;
 	id: ObjectId;
 	editable: boolean;
 }
@@ -245,7 +323,7 @@ const ObjectIdRow: FC<ObjectIdRowProps> = (props) => {
 };
 
 interface ISODateRowProps {
-	field: string;
+	field: string | number;
 	date: Date;
 	editable: boolean;
 }
@@ -254,13 +332,15 @@ const ISODateRow: FC<ISODateRowProps> = (props) => {
 	return (
 		<div style={{ display: "flex" }} key={field}>
 			<div style={{ width: "50%" }}>{field}</div>
-			<div style={{ width: "50%" }}>{`ISODate("` + date.toString() + `")`}</div>
+			<div style={{ width: "50%" }}>
+				{`ISODate("` + date.toISOString() + `")`}
+			</div>
 		</div>
 	);
 };
 
 interface StringValueRowrops {
-	field: string;
+	field: string | number;
 	value: string;
 	editable: boolean;
 	onValueChange: (value: string) => void;
@@ -289,7 +369,7 @@ const StringValueRow: FC<StringValueRowrops> = (props) => {
 };
 
 interface NumberValueRowrops {
-	field: string;
+	field: string | number;
 	value: number;
 	editable: boolean;
 }
@@ -304,7 +384,7 @@ const NumberValueRow: FC<NumberValueRowrops> = (props) => {
 };
 
 interface BooleanValueRowProps {
-	field: string;
+	field: string | number;
 	value: boolean;
 	editable: boolean;
 	onValueChange: (value: boolean) => void;
@@ -408,12 +488,35 @@ const DocumentPanel: FC<DocumentPanelProps> = (props) => {
 					)
 				}
 			>
-				{contentBuilder(document, {
-					editable: editing,
-					onKeyChange: onDocumentModified,
-				})}
+				{Object.entries(document).reduce<React.ReactNode[]>(
+					contentBuilder({
+						editable: editing,
+						onKeyChange: (key, value) =>
+							onDocumentModified && onDocumentModified(String(key), value),
+					}),
+					[]
+				)}
 			</Panel>
 		</Collapse>
+	);
+};
+
+interface NullValueRowProps {
+	field: string | number;
+	value: null;
+	editable: boolean;
+	onValueChange: (value: boolean) => void;
+}
+const NullValueRow: FC<NullValueRowProps> = (props) => {
+	const { field, value, editable, onValueChange } = props;
+
+	return editable ? (
+		<div></div>
+	) : (
+		<div style={{ display: "flex" }} key={field}>
+			<div style={{ width: "50%" }}>{field}</div>
+			<div style={{ width: "50%" }}>{String(value)}</div>
+		</div>
 	);
 };
 
@@ -462,37 +565,37 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 
 	const updateDocument = useCallback(
 		(documentId: string) => {
-			// console.log("Running update on", documentId, "with", updates);
+			console.log("Running update on", documentId, "with", updates);
 		},
 		[updates]
 	);
-
-	// console.log("UPDATES", updates);
 
 	return (
 		<>
 			{bson && bson.length ? (
 				<div className="TreeViewer">
-					<div>Header</div>
-					{bson.map((document, index) => (
-						<DocumentPanel
-							allowOptions={
-								!!(document._id && document._id instanceof ObjectId)
-							}
-							document={document}
-							field={"(" + String(index + 1) + ")"}
-							key={index}
-							onDocumentModified={(key, value) =>
-								onKeyUpdate(document._id.toString(), key, value)
-							}
-							onDocumentEditComplete={() => {
-								updateDocument(document._id.toString());
-							}}
-							onDocumentEditCancel={() => {
-								removeDocumentUpdates(document._id.toString());
-							}}
-						/>
-					))}
+					<div className="TreeViewHeader">Header</div>
+					<div className="TreeViewerContent">
+						{bson.map((document, index) => (
+							<DocumentPanel
+								allowOptions={
+									!!(document._id && document._id instanceof ObjectId)
+								}
+								document={document}
+								field={"(" + String(index + 1) + ")"}
+								key={index}
+								onDocumentModified={(key, value) =>
+									onKeyUpdate(document._id.toString(), key, value)
+								}
+								onDocumentEditComplete={() => {
+									updateDocument(document._id.toString());
+								}}
+								onDocumentEditCancel={() => {
+									removeDocumentUpdates(document._id.toString());
+								}}
+							/>
+						))}
+					</div>
 				</div>
 			) : (
 				<div></div>

@@ -80,7 +80,8 @@ declare global {
 			| boolean
 			| BSONArray
 			| BSONDocument
-			| Record<string, any>;
+			| Record<string, any>
+			| null;
 
 		type BSONDocument = {
 			_id: ObjectId;
