@@ -574,7 +574,7 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 		<>
 			{bson && bson.length ? (
 				<div className="TreeViewer">
-					<div className="TreeViewHeader">Header</div>
+					<div className="TreeViewerHeader">Header</div>
 					<div className="TreeViewerContent">
 						{bson.map((document, index) => (
 							<DocumentPanel

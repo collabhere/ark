@@ -9,6 +9,7 @@ import "../../../../common/styles/layout.less";
 import "./styles.less";
 import { TreeViewer } from "./TreeViewer";
 import { JSONViewer } from "./JSONViewer";
+import { Resizable } from "re-resizable";
 
 export type ResultViewerProps = {
 	type: "json" | "tree";
@@ -81,41 +82,32 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 	return (
 		<>
 			<div className="ResultViewer">
-				<div className="flex-inline-end">
-					<div>
-						<span>
-							<Button
-								size="large"
-								icon={<VscListTree color={"#fff"} />}
-								onClick={() => switchViews && switchViews("tree")}
-								popoverOptions={{
-									hover: { content: "Switch to Tree View" },
-								}}
-							/>
-						</span>
-					</div>
-					<div>
-						<span>
-							<Button
-								size="small"
-								icon={<VscJson color={"#fff"} />}
-								onClick={() => switchViews && switchViews("json")}
-								popoverOptions={{
-									hover: { content: "Switch to JSON View" },
-								}}
-							/>
-						</span>
-					</div>
-					<div>
-						<Button
-							size="small"
-							icon={<VscArrowUp color={"#fff"} />}
-							onClick={() => toggleExportDialog(true)}
-							popoverOptions={{ hover: { content: "Export data" } }}
-						/>
-					</div>
+				<div className="ResultViewerHeader">
+					<Button
+						size="small"
+						icon={<VscListTree color={"#fff"} />}
+						onClick={() => switchViews && switchViews("tree")}
+						popoverOptions={{
+							hover: { content: "Switch to Tree View" },
+						}}
+					/>
+
+					<Button
+						size="small"
+						icon={<VscJson color={"#fff"} />}
+						onClick={() => switchViews && switchViews("json")}
+						popoverOptions={{
+							hover: { content: "Switch to JSON View" },
+						}}
+					/>
+					<Button
+						size="small"
+						icon={<VscArrowUp color={"#fff"} />}
+						onClick={() => toggleExportDialog(true)}
+						popoverOptions={{ hover: { content: "Export data" } }}
+					/>
 				</div>
-				<div className="resultviewer-container">
+				<div className="ResultViewerContainer">
 					{type === "json" ? (
 						<JSONViewer bson={props.bson} />
 					) : type === "tree" ? (

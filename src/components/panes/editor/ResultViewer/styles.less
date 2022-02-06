@@ -1,16 +1,45 @@
 .ResultViewer {
 	display: flex;
 	flex-direction: column;
+	flex-grow: 1;
+	min-height: 0;
+}
+.ResultViewerHeader {
+	display: flex;
+	justify-content: flex-end;
+	flex-grow: 1;
+	min-height: 40px;
+	padding: 8px;
+}
+.ResultViewerContainer {
+	display: flex;
+	min-height: 0;
+	width: 100%;
+	height: calc(100% - 40px);
+	padding: 4px;
 }
 .TreeViewer {
 	display: flex;
 	flex-direction: column;
+	flex-grow: 1;
+	min-height: 0;
+}
+.TreeViewerHeader {
+	height: 30px;
 }
 .TreeViewerContent {
 	overflow-y: scroll;
-}
-.JSONViewer {
 	display: flex;
 	flex-direction: column;
+	flex-grow: 0;
+	min-height: calc(100% - 30px);
+}
+.JSONViewer {
+	overflow-y: scroll;
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	flex-grow: 0;
+	min-height: 0;
 	white-space: pre-wrap;
 }

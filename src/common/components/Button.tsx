@@ -15,7 +15,7 @@ interface PopoverOptions {
 	title?: string;
 }
 
-interface ButtonProps {
+export interface ButtonProps {
 	variant?: ActionProps["intent"] | "link";
 	shape?: "round" | "circle";
 	text?: string;

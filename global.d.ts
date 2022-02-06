@@ -59,18 +59,9 @@ declare global {
 			};
 		}
 
-		type AllElements =
-			| { [K: string]: AllElements }
-			| Date
-			| Array<{ [K: string]: AllElements }>
-			| string
-			| number
-			| boolean
-			| ObjectId;
-
 		type AnyObject =
-			| Record<string, AllElements>
-			| Record<string, AllElements>[];
+			| BSONDocument
+			| BSONArray
 
 		type BSONTypes =
 			| ObjectId

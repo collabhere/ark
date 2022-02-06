@@ -10,7 +10,7 @@ export const JSONViewer: FC<JSONViewerProps> = (props) => {
 	const isPrimitive = (val: unknown) =>
 		!val || (typeof val !== "object" && !(val instanceof Date));
 
-	const formatBson = (elem: Ark.AllElements) => {
+	const formatBson = (elem: Ark.BSONTypes) => {
 		if (isPrimitive(elem)) {
 			return elem;
 		} else if (elem instanceof Date) {
@@ -18,14 +18,17 @@ export const JSONViewer: FC<JSONViewerProps> = (props) => {
 		} else if (Array.isArray(elem)) {
 			return elem.map((elem) => formatBson(elem));
 		} else if (
-			ObjectId.isValid(elem as Extract<Ark.AllElements, string | ObjectId>)
+			ObjectId.isValid(elem as Extract<Ark.BSONTypes, string | ObjectId>) &&
+			elem !== null
 		) {
 			return `ObjectId('` + elem.toString() + `')`;
-		} else if (typeof elem === "object") {
+		} else if (typeof elem === "object" && elem !== null) {
 			return Object.keys(elem).reduce(
 				(acc, key) => ((acc[key] = formatBson(elem[key])), acc),
 				{}
 			);
+		} else if (elem === null) {
+			return "null";
 		}
 	};
 
