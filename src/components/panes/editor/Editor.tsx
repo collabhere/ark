@@ -21,7 +21,7 @@ import {
 	handleErrors,
 	notify,
 } from "../../../common/utils/misc";
-import { ResultViewer, ResultViewerProps } from "./ResultViewer";
+import { ResultViewer, ResultViewerProps } from "./ResultViewer/ResultViewer";
 import { Button } from "../../../common/components/Button";
 import { CircularLoading } from "../../../common/components/Loading";
 import { useRefresh } from "../../../hooks/useRefresh";
@@ -116,7 +116,7 @@ export const Editor: FC<EditorProps> = (props) => {
 								: [bson];
 
 							setCurrentResult({
-								type: "json",
+								type: "tree",
 								bson: bsonArray,
 							});
 						})
@@ -266,9 +266,7 @@ export const Editor: FC<EditorProps> = (props) => {
 	return (
 		<div className={"Editor"}>
 			<Resizable
-				// minHeight={"20%"}
-				maxHeight={"40%"}
-				defaultSize={{ height: "20%", width: "100%" }}
+				defaultSize={{ height: "300px", width: "100%" }}
 				enable={{ bottom: true }}
 			>
 				<div className={"EditorHeader"}>
