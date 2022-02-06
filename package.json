@@ -18,6 +18,7 @@
 		"storybook": "start-storybook -p 6006",
 		"build-storybook": "build-storybook"
 	},
+	"browser": "none",
 	"browserslist": {
 		"production": [
 			">0.2%",
