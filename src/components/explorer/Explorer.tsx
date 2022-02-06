@@ -387,15 +387,14 @@ export const Explorer: FC<ExplorerProps> = () => {
 	return isOpen ? (
 		<Resizable
 			defaultSize={{
-				width: "20%",
+				width: "400px",
 				height: "100%",
 			}}
 			enable={{
 				right: true,
 			}}
-			maxWidth="40%"
+			maxWidth="50%"
 			minWidth="20%"
-			minHeight="100%"
 		>
 			<div className="Explorer">
 				{storedConnectionId && cachedConnections[storedConnectionId] ? (

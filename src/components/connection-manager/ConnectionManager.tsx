@@ -157,15 +157,14 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 	return isOpen ? (
 		<Resizable
 			defaultSize={{
-				width: "40%",
+				width: "400px",
 				height: "100%",
 			}}
 			enable={{
 				right: true,
 			}}
-			maxWidth="60%"
-			minWidth="30%"
-			minHeight="100%"
+			maxWidth="50%"
+			minWidth="20%"
 		>
 			<div className="ConnectionManager">
 				<div className="Container">
