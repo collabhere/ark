@@ -12,6 +12,7 @@ import type {
 import type { DiskStore } from "./electron/core/stores/disk";
 import { UploadFile } from "antd/lib/upload/interface";
 import { ObjectId } from "bson";
+import { TimeZone } from "jstz";
 
 declare global {
 	namespace Ark {
@@ -59,9 +60,7 @@ declare global {
 			};
 		}
 
-		type AnyObject =
-			| BSONDocument
-			| BSONArray
+		type AnyObject = BSONDocument | BSONArray;
 
 		type BSONTypes =
 			| ObjectId
@@ -79,6 +78,8 @@ declare global {
 			[k: string]: BSONTypes;
 		};
 		type BSONArray = Array<BSONDocument>;
+
+		type SettingTypes = "general";
 
 		interface Driver {
 			run<D extends keyof Database>(
@@ -142,6 +143,14 @@ declare global {
 			delete(scriptId: string): Promise<void>;
 		}
 
+		interface Settings {
+			save: (
+				type: SettingTypes,
+				settings: Ark.GeneralSettings
+			) => Promise<void>;
+			fetch: (type: SettingTypes) => Promise<Ark.GeneralSettings>;
+		}
+
 		interface Context {
 			browseForDirs: (
 				title?: string,
@@ -154,8 +163,13 @@ declare global {
 			copyText(text: string): void;
 			scripts: Scripts;
 			driver: Driver;
+			settings: Settings;
 			shell: Shell;
 			[k: string]: any;
+		}
+
+		interface GeneralSettings {
+			timezone?: ReturnType<TimeZone["name"]> | "utc";
 		}
 	}
 	interface Window {

@@ -35,6 +35,11 @@ const arkContext: Ark.Context = {
 				args,
 			}),
 	},
+	settings: {
+		save: (type, settings) =>
+			invoke("settings_actions", { action: "save", type, settings }),
+		fetch: (type) => invoke("settings_actions", { action: "fetch", type }),
+	},
 };
 
 contextBridge.exposeInMainWorld("ark", arkContext);

@@ -104,6 +104,12 @@ interface IPCInitParams {
 	window: BrowserWindow;
 }
 
+export interface SettingsAction {
+	action: 'save' | 'fetch'
+	type: 'general';
+	settings: Ark.GeneralSettings;
+}
+
 function IPC() {
 	const shells = createMemoryStore<StoredShellValue>();
 
@@ -117,6 +123,7 @@ function IPC() {
 
 	// Stores opened scripts
 	const scriptDiskStore = createDiskStore<StoredScript>("scripts");
+	const settingsStore = createDiskStore<Ark.GeneralSettings>("settings");
 
 	return {
 		init: ({ window }: IPCInitParams) => {
@@ -306,6 +313,21 @@ function IPC() {
 					}
 				} catch (err) {
 					console.error("`script_actions` error");
+					console.error(err);
+					return { err };
+				}
+			});
+
+			ipcMain.handle("settings_actions", async (event, data: SettingsAction) => {
+				try {
+					if (data.action === 'save') {
+						const { settings } = data;
+						await settingsStore.set(data.type, settings);
+					} else if (data.action === 'fetch') {
+						return await settingsStore.get(data.type);
+					}
+				} catch (err) {
+					console.error("`settings_action` error");
 					console.error(err);
 					return { err };
 				}
