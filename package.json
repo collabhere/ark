@@ -141,6 +141,7 @@
 		"bluebird": "^3.7.2",
 		"bson": "^4.5.2",
 		"concurrently": "^6.2.0",
+		"dayjs": "^1.10.7",
 		"defaults": "^1.0.3",
 		"electron-json-storage": "^4.5.0",
 		"jstz": "^2.1.1",

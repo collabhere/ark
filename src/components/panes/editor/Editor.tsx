@@ -1,10 +1,13 @@
 import React, { FC, useState, useEffect, useCallback } from "react";
-import { deserialize } from "bson";
+import { deserialize, ObjectId } from "bson";
 import "../styles.less";
 import { MONACO_COMMANDS, Shell } from "../../shell/Shell";
 import { Resizable } from "re-resizable";
 import { Menu, Dropdown } from "antd";
 import { DownOutlined } from "@ant-design/icons";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 import {
 	VscGlobe,
 	VscDatabase,
@@ -26,6 +29,10 @@ import { Button } from "../../../common/components/Button";
 import { CircularLoading } from "../../../common/components/Loading";
 import { useRefresh } from "../../../hooks/useRefresh";
 import { bsonTest } from "../../../../util/misc";
+import { BSONType } from "mongodb";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const createDefaultCodeSnippet = (collection: string) => `// Mongo shell
 db.getCollection('${collection}').find({});
@@ -93,6 +100,33 @@ export const Editor: FC<EditorProps> = (props) => {
 		}));
 	}, []);
 
+	const applyTimezone = (result: Ark.BSONArray, timezone: string) => {
+		const recursivelyFormat = (res: Ark.BSONArray[0]) =>
+			res
+				? Object.keys(res).reduce((acc, key) => {
+						if (acc[key] instanceof Date) {
+							acc[key] = `ISODate("${dayjs
+								.utc(acc[key] as Date)
+								.tz(timezone)
+								.format()}")`;
+						} else if (Array.isArray(acc[key])) {
+							acc[key] = (acc[key] as Array<Ark.BSONArray[0]>).map((elem) =>
+								typeof elem === "object" ? recursivelyFormat(elem) : elem
+							);
+						} else if (
+							typeof acc[key] === "object" &&
+							!ObjectId.isValid(acc[key] as BSONType)
+						) {
+							acc[key] = recursivelyFormat(acc[key] as Ark.BSONArray[0]);
+						}
+
+						return acc;
+				  }, res)
+				: res;
+
+		return result.map((res) => (res ? recursivelyFormat(res) : res));
+	};
+
 	const exec = useCallback(
 		(code) => {
 			const _code = code.replace(/(\/\/.*)|(\n)/g, "");
@@ -117,7 +151,7 @@ export const Editor: FC<EditorProps> = (props) => {
 
 							setCurrentResult({
 								type: "tree",
-								bson: bsonArray,
+								bson: applyTimezone(bsonArray, dayjs.tz.guess()),
 							});
 						})
 						.catch(function (err) {
