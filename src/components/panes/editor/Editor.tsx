@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect, useCallback } from "react";
+import React, { FC, useState, useEffect, useCallback, useContext } from "react";
 import { deserialize, ObjectId } from "bson";
 import "../styles.less";
 import { MONACO_COMMANDS, Shell } from "../../shell/Shell";
@@ -30,6 +30,7 @@ import { CircularLoading } from "../../../common/components/Loading";
 import { useRefresh } from "../../../hooks/useRefresh";
 import { bsonTest } from "../../../../util/misc";
 import { BSONType } from "mongodb";
+import { SettingsContext } from "../../../App";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -68,6 +69,8 @@ export const Editor: FC<EditorProps> = (props) => {
 	} = props;
 
 	const { collection, username: user, uri, hosts } = shellConfig || {};
+
+	const { settings } = useContext(SettingsContext);
 
 	const [effectRefToken, refreshEffect] = useRefresh();
 	const [executing, setExecuting] = useState(false);
@@ -151,7 +154,10 @@ export const Editor: FC<EditorProps> = (props) => {
 
 							setCurrentResult({
 								type: "tree",
-								bson: applyTimezone(bsonArray, dayjs.tz.guess()),
+								bson:
+									settings && settings.timezone && settings.timezone === "local"
+										? applyTimezone(bsonArray, dayjs.tz.guess())
+										: bsonArray,
 							});
 						})
 						.catch(function (err) {
@@ -161,7 +167,7 @@ export const Editor: FC<EditorProps> = (props) => {
 						.finally(() => setExecuting(false))
 				: setExecuting(false);
 		},
-		[shellId, storedConnectionId]
+		[settings, shellId, storedConnectionId]
 	);
 
 	const destroyShell = useCallback(

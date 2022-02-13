@@ -105,9 +105,9 @@ interface IPCInitParams {
 }
 
 export interface SettingsAction {
-	action: 'save' | 'fetch'
+	action: 'save' | 'fetch';
 	type: 'general';
-	settings: Ark.GeneralSettings;
+	settings: Ark.Settings;
 }
 
 function IPC() {
@@ -123,7 +123,7 @@ function IPC() {
 
 	// Stores opened scripts
 	const scriptDiskStore = createDiskStore<StoredScript>("scripts");
-	const settingsStore = createDiskStore<Ark.GeneralSettings>("settings");
+	const settingsStore = createDiskStore<Ark.Settings>("settings");
 
 	return {
 		init: ({ window }: IPCInitParams) => {

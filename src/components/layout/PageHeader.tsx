@@ -1,48 +1,28 @@
 import "./styles.less";
 
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useContext } from "react";
 import { Button } from "../../common/components/Button";
 import { Dropdown, Menu } from "antd";
 import { VscFileCode, VscClose, VscWatch } from "react-icons/vsc";
 import { useState } from "react";
 import { SelectConnectionForFilePath } from "../dialogs/SelectConnectionForScript";
 import SubMenu from "antd/lib/menu/SubMenu";
-import jstz, { TimeZone } from "jstz";
+import { SettingsContext } from "../../App";
 
 export const PageHeader = (): JSX.Element => {
 	const [openScriptPath, setOpenScriptPath] = useState("");
-	const [generalSettings, setGeneralSettings] = useState<Ark.GeneralSettings>(
-		{}
-	);
-
-	useEffect(() => {
-		window.ark.settings
-			.fetch("general")
-			.then((settings) => {
-				if (settings) {
-					setGeneralSettings(settings);
-				}
-			})
-			.catch((err) => {
-				console.log("Error", err);
-			});
-	}, []);
+	const { settings, setSettings } = useContext(SettingsContext);
 
 	const changeSettings = useCallback(
-		(
-			setting: keyof Ark.GeneralSettings,
-			value: ReturnType<TimeZone["name"]>
-		) => {
-			const settings = {
-				...generalSettings,
-				[setting]: value,
-			};
-
-			window.ark.settings.save("general", settings).catch((err) => {
-				console.log("Error", err);
-			});
+		(setting: keyof Ark.Settings, value: "local" | "utc") => {
+			setSettings && setSettings((s) => ({ ...s, [setting]: value }));
+			window.ark.settings
+				.save("general", { ...settings, [setting]: value })
+				.catch((err) => {
+					console.log("Error", err);
+				});
 		},
-		[generalSettings]
+		[setSettings, settings]
 	);
 
 	return (
@@ -79,11 +59,7 @@ export const PageHeader = (): JSX.Element => {
 						<Menu.Divider />
 						<Menu.Item icon={<VscWatch />} key="2">
 							<SubMenu title="Timezone">
-								<Menu.Item
-									onClick={() =>
-										changeSettings("timezone", jstz.determine().name())
-									}
-								>
+								<Menu.Item onClick={() => changeSettings("timezone", "local")}>
 									Local Timezone
 								</Menu.Item>
 								<Menu.Item onClick={() => changeSettings("timezone", "utc")}>
