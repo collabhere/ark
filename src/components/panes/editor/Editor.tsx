@@ -26,6 +26,8 @@ import { Button } from "../../../common/components/Button";
 import { CircularLoading } from "../../../common/components/Loading";
 import { useRefresh } from "../../../hooks/useRefresh";
 import { bsonTest } from "../../../../util/misc";
+import { useContext } from "react";
+import { SettingsContext } from "../../../App";
 
 const createDefaultCodeSnippet = (collection: string) => `// Mongo shell
 db.getCollection('${collection}').find({});
@@ -61,6 +63,8 @@ export const Editor: FC<EditorProps> = (props) => {
 	} = props;
 
 	const { collection, username: user, uri, hosts } = shellConfig || {};
+
+	const { settings } = useContext(SettingsContext);
 
 	const [effectRefToken, refreshEffect] = useRefresh();
 	const [executing, setExecuting] = useState(false);
@@ -100,7 +104,12 @@ export const Editor: FC<EditorProps> = (props) => {
 			setExecuting(true);
 			shellId
 				? window.ark.shell
-						.eval(shellId, _code, storedConnectionId)
+						.eval(
+							shellId,
+							_code,
+							storedConnectionId,
+							settings?.shellTimeout
+						)
 						.then(function ({ result, err }) {
 							if (err) {
 								console.log("exec shell");
@@ -127,7 +136,7 @@ export const Editor: FC<EditorProps> = (props) => {
 						.finally(() => setExecuting(false))
 				: setExecuting(false);
 		},
-		[shellId, storedConnectionId]
+		[shellId, storedConnectionId, settings]
 	);
 
 	const destroyShell = useCallback(

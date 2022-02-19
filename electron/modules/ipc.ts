@@ -23,6 +23,7 @@ interface InvokeJS {
 	code: string;
 	shell: string;
 	connectionId: string;
+	timeout?: number;
 }
 
 interface ExportData extends InvokeJS {
@@ -177,7 +178,8 @@ function IPC() {
 					const result = await shell.executor.evaluate(
 						data.code,
 						shell.database,
-						data.connectionId
+						data.connectionId,
+						data.timeout
 					);
 					return { result: bson.serialize(result) };
 				} catch (err) {

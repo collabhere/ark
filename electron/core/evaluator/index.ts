@@ -25,7 +25,12 @@ export interface EvalResult {
 }
 
 export interface Evaluator {
-	evaluate(code: string, database: string, connectionId: string): Promise<Ark.AnyObject>;
+	evaluate(
+		code: string,
+		database: string,
+		connectionId: string,
+		timeout?: number
+	): Promise<Ark.AnyObject>;
 	disconnect(): Promise<void>;
 	export(
 		code: string,
@@ -61,8 +66,13 @@ export async function createEvaluator(
 				memoryStore
 			);
 		},
-		evaluate: (code, database, connectionId) => {
-			return evaluate(code, provider, { mode: "query", params: { database, connectionId } }, memoryStore);
+		evaluate: (code, database, connectionId, timeout) => {
+			return evaluate(
+				code,
+				provider,
+				{ mode: "query", params: { database, connectionId, timeout } },
+				memoryStore
+			);
 		},
 		disconnect: async () => {
 			await provider.close(true);
@@ -77,19 +87,25 @@ async function createServiceProvider(uri: string, driverOpts: MongoClientOptions
 	return provider
 }
 
-function paginateFindCursor(cursor: Cursor, page: number) {
-	return cursor.limit(50).skip((page - 1) * 50);
+function paginateFindCursor(cursor: Cursor, page: number, timeout?: number) {
+	const shellTimeout = timeout ? timeout * 1000 : 120000;
+	return cursor
+		.limit(50)
+		.skip((page - 1) * 50)
+		.maxTimeMS(shellTimeout);
 }
 
 
-function paginateAggregationCursor(cursor: AggregationCursor, page: number) {
-	return cursor;
+function paginateAggregationCursor(cursor: AggregationCursor, page: number, timeout?: number) {
+	const shellTimeout = timeout ? timeout * 1000 : 120000;
+	return cursor.maxTimeMS(shellTimeout);
 }
 
 interface MongoEvalOptions {
 	database: string;
 	page?: number;
 	connectionId: string;
+	timeout?: number;
 }
 interface MongoQueryOptions {
 	mode: "query";
@@ -102,7 +118,7 @@ async function evaluate(
 	options: MongoQueryOptions | MongoExportOptions<MongoEvalOptions>,
 	connectionStore?: MemoryStore<MemEntry>
 ) {
-	const { database, page, connectionId } = options.params;
+	const { database, page, connectionId, timeout } = options.params;
 
 	const connection = connectionStore?.get(connectionId);
 
@@ -145,9 +161,9 @@ async function evaluate(
 		return await exportData(result, options);
 	} else {
 		if (result instanceof AggregationCursor) {
-			result = await paginateAggregationCursor(result, page || 1).toArray();
+			result = await paginateAggregationCursor(result, page || 1, timeout).toArray();
 		} else if (result instanceof Cursor) {
-			result = await paginateFindCursor(result, page || 1).toArray();
+			result = await paginateFindCursor(result, page || 1, timeout).toArray();
 		} else if ('toArray' in result) {
 			result = result.toArray();
 		}

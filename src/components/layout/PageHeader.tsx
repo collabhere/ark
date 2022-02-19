@@ -11,14 +11,17 @@ import { SettingsContext } from "../../App";
 import { Dialog } from "../../common/components/Dialog";
 import { InputGroup } from "@blueprintjs/core";
 import { notify } from "../../common/utils/misc";
+import { useEffect } from "react";
 
 export const PageHeader = (): JSX.Element => {
 	const [openScriptPath, setOpenScriptPath] = useState("");
 	const { settings, setSettings } = useContext(SettingsContext);
 	const [timeoutDialog, setTimeoutDialog] = useState(false);
-	const [shellTimeout, setShellTimeout] = useState(
-		settings?.shellTimeout?.toString() || "120"
-	);
+	const [shellTimeout, setShellTimeout] = useState("120");
+
+	useEffect(() => {
+		setShellTimeout(settings?.shellTimeout?.toString() || "120");
+	}, [settings?.shellTimeout]);
 
 	const changeSettings = useCallback(
 		function <T extends keyof Ark.Settings>(

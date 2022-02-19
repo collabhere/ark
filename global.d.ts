@@ -124,7 +124,8 @@ declare global {
 			eval: (
 				shellId: string,
 				code: string,
-				connectionId: string
+				connectionId: string,
+				timeout?: Ark.Settings["shellTimeout"]
 			) => Promise<EvalResult>;
 			export: (
 				shellId: string,
