@@ -166,6 +166,7 @@ declare global {
 
 		interface Settings {
 			timezone?: "local" | "utc";
+			shellTimeout?: number;
 		}
 	}
 	interface Window {

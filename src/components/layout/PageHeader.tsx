@@ -3,23 +3,45 @@ import "./styles.less";
 import React, { useCallback, useContext } from "react";
 import { Button } from "../../common/components/Button";
 import { Dropdown, Menu } from "antd";
-import { VscFileCode, VscClose, VscWatch } from "react-icons/vsc";
+import { VscFileCode, VscClose, VscWatch, VscTerminal } from "react-icons/vsc";
 import { useState } from "react";
 import { SelectConnectionForFilePath } from "../dialogs/SelectConnectionForScript";
 import SubMenu from "antd/lib/menu/SubMenu";
 import { SettingsContext } from "../../App";
+import { Dialog } from "../../common/components/Dialog";
+import { InputGroup } from "@blueprintjs/core";
+import { notify } from "../../common/utils/misc";
 
 export const PageHeader = (): JSX.Element => {
 	const [openScriptPath, setOpenScriptPath] = useState("");
 	const { settings, setSettings } = useContext(SettingsContext);
+	const [timeoutDialog, setTimeoutDialog] = useState(false);
+	const [shellTimeout, setShellTimeout] = useState(
+		settings?.shellTimeout?.toString() || "120"
+	);
 
 	const changeSettings = useCallback(
-		(setting: keyof Ark.Settings, value: "local" | "utc") => {
+		function <T extends keyof Ark.Settings>(
+			setting: T,
+			value: Ark.Settings[T]
+		) {
 			setSettings && setSettings((s) => ({ ...s, [setting]: value }));
 			window.ark.settings
 				.save("general", { ...settings, [setting]: value })
+				.then(() => {
+					notify({
+						title: "Success!",
+						description: "Settings saved successfully.",
+						type: "success",
+					});
+				})
 				.catch((err) => {
 					console.log("Error", err);
+					notify({
+						title: "Error!",
+						description: err.message ? err.message : err.toString(),
+						type: "error",
+					});
 				});
 		},
 		[setSettings, settings]
@@ -30,7 +52,6 @@ export const PageHeader = (): JSX.Element => {
 			{openScriptPath && (
 				<SelectConnectionForFilePath
 					path={openScriptPath}
-					onCancel={() => setOpenScriptPath("")}
 					onClose={() => setOpenScriptPath("")}
 				/>
 			)}
@@ -53,21 +74,36 @@ export const PageHeader = (): JSX.Element => {
 							<a>Open Script</a>
 						</Menu.Item>
 						<Menu.Divider />
-						<Menu.Item icon={<VscClose />} key="1">
-							<a>Exit</a>
-						</Menu.Item>
-						<Menu.Divider />
-						<Menu.Item icon={<VscWatch />} key="2">
+						<Menu.Item icon={<VscWatch />} key="1">
 							<SubMenu title="Timezone">
-								<Menu.Item onClick={() => changeSettings("timezone", "local")}>
+								<Menu.Item
+									onClick={() =>
+										changeSettings<"timezone">("timezone", "local")
+									}
+								>
 									Local Timezone
 								</Menu.Item>
-								<Menu.Item onClick={() => changeSettings("timezone", "utc")}>
+								<Menu.Item
+									onClick={() => changeSettings<"timezone">("timezone", "utc")}
+								>
 									{" "}
 									UTC
 								</Menu.Item>
 							</SubMenu>
 						</Menu.Item>
+						<Menu.Divider />
+						<Menu.Item
+							icon={<VscTerminal />}
+							key="2"
+							onClick={() => setTimeoutDialog(true)}
+						>
+							<a>Change Shell Timeout</a>
+						</Menu.Item>
+						<Menu.Divider />
+						<Menu.Item icon={<VscClose />} key="3">
+							<a>Exit</a>
+						</Menu.Item>
+						<Menu.Divider />
 					</Menu>
 				}
 				trigger={["click"]}
@@ -76,6 +112,34 @@ export const PageHeader = (): JSX.Element => {
 					<Button size="small" text="Options" variant="link" />
 				</div>
 			</Dropdown>
+			{timeoutDialog && (
+				<Dialog
+					size="small"
+					confirmButtonText="Change"
+					onCancel={() => setTimeoutDialog(false)}
+					onConfirm={() => {
+						const timeout = Number(shellTimeout);
+						if (isNaN(timeout)) {
+							return notify({
+								description: "Timeout must be a number!",
+								type: "error",
+							});
+						}
+
+						changeSettings("shellTimeout", timeout);
+						setTimeoutDialog(false);
+					}}
+					title={"Change Shell Timeout"}
+				>
+					<div>
+						<InputGroup
+							value={shellTimeout.toString()}
+							onChange={(event) => setShellTimeout(event.target.value)}
+							placeholder={"Shell timeout (in seconds)"}
+						/>
+					</div>
+				</Dialog>
+			)}
 		</div>
 	);
 };
