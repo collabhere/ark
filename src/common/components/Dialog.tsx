@@ -1,8 +1,9 @@
-import React, { ReactNode, useState } from "react";
-import { Modal } from "antd";
+import React, { ReactNode } from "react";
 import "./Dialog.less";
 import { Button } from "./Button";
 import { EventOverloadMethod } from "../utils/misc";
+
+import { Dialog as BPDialog } from "@blueprintjs/core";
 
 interface ModalProps {
 	size: "small" | "large";
@@ -30,41 +31,38 @@ export function Dialog({
 	const rootElement = document.getElementById("root");
 
 	return rootElement ? (
-		<Modal
-			title={<span className={"modal-title"}>{title}</span>}
-			centered
-			getContainer={rootElement}
-			onCancel={onCancel}
-			afterClose={onClose}
-			visible={true}
-			width={size === "small" ? 600 : 1000}
-			footer={
-				!noFooter && (
-					<div className={"modal-footer"}>
-						{onCancel && (
-							<div>
-								<Button
-									variant={"primary"}
-									text={"Cancel"}
-									onClick={onCancel}
-								/>
-							</div>
-						)}
-						{onConfirm && (
-							<div>
-								<Button
-									variant={variant === "danger" ? "danger" : "secondary"}
-									text={confirmButtonText || "Confirm"}
-									onClick={onConfirm}
-								/>
-							</div>
-						)}
-					</div>
-				)
-			}
+		<BPDialog
+			className="modal"
+			isOpen
+			usePortal
+			lazy
+			portalContainer={rootElement}
+			onClose={onCancel}
+			onClosed={onClose}
+			title={<span className={"title"}>{title}</span>}
 		>
-			<div>{children}</div>
-		</Modal>
+			<div className="content">{children}</div>
+			{noFooter ? (
+				<></>
+			) : (
+				<div className={"footer"}>
+					{onCancel && (
+						<div>
+							<Button variant={"primary"} text={"Cancel"} onClick={onCancel} />
+						</div>
+					)}
+					{onConfirm && (
+						<div>
+							<Button
+								variant={variant === "danger" ? "danger" : "success"}
+								text={confirmButtonText || "Confirm"}
+								onClick={onConfirm}
+							/>
+						</div>
+					)}
+				</div>
+			)}
+		</BPDialog>
 	) : (
 		<></>
 	);

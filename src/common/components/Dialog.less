@@ -1,11 +1,22 @@
 @import "../styles/variables.less";
 
-.modal-title {
-	color: @primary-tint-1;
-	font-size: large;
-}
+.modal {
+	padding-bottom: 8px;
 
-.modal-footer {
-	display: flex;
-	justify-content: flex-end;
+	.title {
+		color: @primary-tint-1;
+		font-size: large;
+	}
+
+	.content {
+		padding: 8px 8px;
+	}
+
+	.footer {
+		display: flex;
+		justify-content: flex-end;
+		* {
+			padding: 4px;
+		}
+	}
 }
