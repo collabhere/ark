@@ -57,7 +57,7 @@ export const Button: FC<ButtonProps> = (props) => {
 				loading={icon ? loading : undefined}
 				large={size === "large"}
 				small={size === "small"}
-				outlined={variant === "link"}
+				minimal={variant === "link"}
 				intent={variant !== "link" ? variant : undefined}
 				icon={icon ? icon : undefined}
 			/>
@@ -71,13 +71,9 @@ export const Button: FC<ButtonProps> = (props) => {
 				? Object.keys(popoverOptions).reduce((children, trigger) => {
 						const options = popoverOptions[trigger];
 						return options ? (
-							<Popover
-								trigger={trigger as "click" | "hover"}
-								content={options.content}
-								title={options.title}
-							>
+							<Popover2 content={options.content}>
 								{React.Children.toArray(children)}
-							</Popover>
+							</Popover2>
 						) : (
 							React.cloneElement(children)
 						);
