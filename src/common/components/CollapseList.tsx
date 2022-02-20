@@ -1,10 +1,10 @@
-import { Collapse, Icon, IconSize } from "@blueprintjs/core";
+import { Collapse, Icon } from "@blueprintjs/core";
 import { ContextMenu2 } from "@blueprintjs/popover2";
-import React, { FC, useEffect, useState } from "react";
+import React, { FC, useState } from "react";
 
 import "./CollapseList.less";
 
-interface CollapseContent {
+export interface CollapseContent {
 	jsx: React.ReactNode;
 	header: {
 		menu?: JSX.Element;
@@ -32,15 +32,12 @@ export const CollapseList: FC<CollapseListProps> = (props) => {
 		);
 
 	return (
-		<div tabIndex={tabIndex} className="collapse-list-container">
+		<div tabIndex={tabIndex} className="collapse-list">
 			{content.map(({ jsx, header }, key) => {
 				return (
 					<ContextMenu2 key={key} disabled={!header.menu} content={header.menu}>
 						<div
-							className={
-								"collapse-list-item" +
-								(header.primary ? " collapse-list-item-primary" : "")
-							}
+							className={"item" + (header.primary ? " primary" : "")}
 							onClick={() => {
 								toggleKey(key);
 							}}
@@ -52,11 +49,9 @@ export const CollapseList: FC<CollapseListProps> = (props) => {
 										| "chevron-down"
 								}
 							/>
-							<span className="collapse-list-item-heading">{header.title}</span>
+							<span className="heading">{header.title}</span>
 							{header.rightElement && (
-								<div className="collapse-list-item-top-right-element">
-									{header.rightElement}
-								</div>
+								<div className="top-right-element">{header.rightElement}</div>
 							)}
 						</div>
 						<Collapse isOpen={openKeys.has(key)}>
