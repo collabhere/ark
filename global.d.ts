@@ -114,6 +114,13 @@ declare global {
 			fields?: Array<string>;
 			fileName: string;
 		}
+
+		interface QueryOptions {
+			page: number;
+			limit: number;
+			timeout?: number;
+		}
+
 		interface Shell {
 			create: (
 				uri: string,
@@ -125,7 +132,7 @@ declare global {
 				shellId: string,
 				code: string,
 				connectionId: string,
-				timeout?: Ark.Settings["shellTimeout"]
+				options: QueryOptions
 			) => Promise<EvalResult>;
 			export: (
 				shellId: string,

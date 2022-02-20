@@ -7,10 +7,13 @@ import {
 	ReplicaSet,
 	Shard,
 	AggregationCursor,
-	Cursor
+	Cursor,
 } from "@mongosh/shell-api";
 import { bson } from "@mongosh/service-provider-core";
-import { CliServiceProvider, MongoClientOptions } from "@mongosh/service-provider-server";
+import {
+	CliServiceProvider,
+	MongoClientOptions,
+} from "@mongosh/service-provider-server";
 import { EventEmitter } from "stream";
 import { exportData, MongoExportOptions } from "../../modules/exports";
 
@@ -29,7 +32,7 @@ export interface Evaluator {
 		code: string,
 		database: string,
 		connectionId: string,
-		timeout?: number
+		options: Ark.QueryOptions
 	): Promise<Ark.AnyObject>;
 	disconnect(): Promise<void>;
 	export(
@@ -66,11 +69,11 @@ export async function createEvaluator(
 				memoryStore
 			);
 		},
-		evaluate: (code, database, connectionId, timeout) => {
+		evaluate: (code, database, connectionId, options) => {
 			return evaluate(
 				code,
 				provider,
-				{ mode: "query", params: { database, connectionId, timeout } },
+				{ mode: "query", params: { database, connectionId, ...options } },
 				memoryStore
 			);
 		},
@@ -82,23 +85,43 @@ export async function createEvaluator(
 	return evaluator;
 }
 
-async function createServiceProvider(uri: string, driverOpts: MongoClientOptions = {}) {
-	const provider = await CliServiceProvider.connect(uri, driverOpts, {}, new EventEmitter());
-	return provider
+async function createServiceProvider(
+	uri: string,
+	driverOpts: MongoClientOptions = {}
+) {
+	const provider = await CliServiceProvider.connect(
+		uri,
+		driverOpts,
+		{},
+		new EventEmitter()
+	);
+	return provider;
 }
 
-function paginateFindCursor(cursor: Cursor, page: number, timeout?: number) {
+function paginateFindCursor(
+	cursor: Cursor,
+	page: number,
+	limit: number,
+	timeout?: number
+) {
 	const shellTimeout = timeout ? timeout * 1000 : 120000;
 	return cursor
-		.limit(50)
-		.skip((page - 1) * 50)
+		.limit(limit)
+		.skip((page - 1) * limit)
 		.maxTimeMS(shellTimeout);
 }
 
-
-function paginateAggregationCursor(cursor: AggregationCursor, page: number, timeout?: number) {
+function paginateAggregationCursor(
+	cursor: AggregationCursor,
+	page: number,
+	limit: number,
+	timeout?: number
+) {
 	const shellTimeout = timeout ? timeout * 1000 : 120000;
-	return cursor.maxTimeMS(shellTimeout);
+	return cursor
+		.skip((page - 1) * limit)
+		.maxTimeMS(shellTimeout)
+		._cursor.limit(limit);
 }
 
 interface MongoEvalOptions {
@@ -106,6 +129,7 @@ interface MongoEvalOptions {
 	page?: number;
 	connectionId: string;
 	timeout?: number;
+	limit?: number;
 }
 interface MongoQueryOptions {
 	mode: "query";
@@ -118,7 +142,7 @@ async function evaluate(
 	options: MongoQueryOptions | MongoExportOptions<MongoEvalOptions>,
 	connectionStore?: MemoryStore<MemEntry>
 ) {
-	const { database, page, connectionId, timeout } = options.params;
+	const { database, connectionId, page, timeout, limit } = options.params;
 
 	const connection = connectionStore?.get(connectionId);
 
@@ -161,10 +185,20 @@ async function evaluate(
 		return await exportData(result, options);
 	} else {
 		if (result instanceof AggregationCursor) {
-			result = await paginateAggregationCursor(result, page || 1, timeout).toArray();
+			result = await paginateAggregationCursor(
+				result,
+				page || 1,
+				limit || 50,
+				timeout
+			).toArray();
 		} else if (result instanceof Cursor) {
-			result = await paginateFindCursor(result, page || 1, timeout).toArray();
-		} else if ('toArray' in result) {
+			result = await paginateFindCursor(
+				result,
+				page || 1,
+				limit || 50,
+				timeout
+			).toArray();
+		} else if ("toArray" in result) {
 			result = result.toArray();
 		}
 	}

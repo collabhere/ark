@@ -22,8 +22,8 @@ const arkContext: Ark.Context = {
 	shell: {
 		create: (uri, contextDB, storedConnectionId) =>
 			invoke("shell_create", { uri, contextDB, storedConnectionId }),
-		eval: (shell, code, connectionId, timeout) =>
-			invoke("shell_eval", { code, shell, connectionId, timeout }),
+		eval: (shell, code, connectionId, options) =>
+			invoke("shell_eval", { code, shell, connectionId, ...options}),
 		export: (shell, code, connectionId, options) =>
 			invoke("shell_export", { code, shell, connectionId, options }),
 		destroy: (shell) => invoke("shell_destroy", { shell }),

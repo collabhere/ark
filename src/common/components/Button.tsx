@@ -22,6 +22,7 @@ export interface ButtonProps {
 	text?: string;
 	icon?: IconName;
 	size?: "large" | "small";
+	disabled?: boolean;
 	dropdownOptions?: {
 		menu: JSX.Element;
 	};
@@ -41,6 +42,7 @@ export const Button: FC<ButtonProps> = (props) => {
 		dropdownOptions,
 		size,
 		variant,
+		disabled
 	} = props;
 
 	const [loading, setLoading] = useState(false);
@@ -48,7 +50,7 @@ export const Button: FC<ButtonProps> = (props) => {
 	const baseButton = useMemo(
 		() => (
 			<BPButton
-				disabled={loading}
+				disabled={loading || disabled}
 				onClick={(e) => {
 					if (!popoverOptions || (popoverOptions && !popoverOptions.click))
 						onClick && asyncEventOverload(setLoading, onClick, e);
@@ -62,7 +64,7 @@ export const Button: FC<ButtonProps> = (props) => {
 				icon={icon ? icon : undefined}
 			/>
 		),
-		[icon, loading, onClick, popoverOptions, size, text, variant]
+		[disabled, icon, loading, onClick, popoverOptions, size, text, variant]
 	);
 
 	const buttonWithPopovers = useMemo(

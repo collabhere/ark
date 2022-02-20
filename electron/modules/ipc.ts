@@ -23,6 +23,8 @@ interface InvokeJS {
 	code: string;
 	shell: string;
 	connectionId: string;
+	page: number;
+	limit: number;
 	timeout?: number;
 }
 
@@ -179,7 +181,11 @@ function IPC() {
 						data.code,
 						shell.database,
 						data.connectionId,
-						data.timeout
+						{
+							page: data.page,
+							timeout: data.timeout,
+							limit: data.limit
+						}
 					);
 					return { result: bson.serialize(result) };
 				} catch (err) {
