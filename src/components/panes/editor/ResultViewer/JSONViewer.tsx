@@ -46,7 +46,7 @@ export const JSONViewer: FC<JSONViewerProps> = (props) => {
 	};
 
 	return (
-		<div className={"JSONViewer"}>
+		<div className={"json-viewer"}>
 			{replaceQuotes(JSON.stringify(formatQueryResult(bson), null, 4))}
 		</div>
 	);

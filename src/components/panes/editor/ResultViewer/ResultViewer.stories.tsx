@@ -68,6 +68,7 @@ export default {
 					justifyContent: "center",
 					alignItems: "center",
 					height: "100%",
+					background: "var(--primary-tint-3)",
 				}}
 			>
 				<Story />
@@ -84,5 +85,12 @@ export const TreeView = Template.bind({});
 TreeView.args = {
 	bson: createTestingBSON(1),
 	type: "tree",
+	code: "db.test.find()",
+};
+
+export const PlainView = Template.bind({});
+PlainView.args = {
+	bson: createTestingBSON(1),
+	type: "json",
 	code: "db.test.find()",
 };

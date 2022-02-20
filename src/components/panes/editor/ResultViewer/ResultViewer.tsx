@@ -9,7 +9,6 @@ import "../../../../common/styles/layout.less";
 import "./styles.less";
 import { TreeViewer } from "./TreeViewer";
 import { JSONViewer } from "./JSONViewer";
-import { Resizable } from "re-resizable";
 
 export type ResultViewerProps = {
 	type: "json" | "tree";
@@ -81,33 +80,38 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 
 	return (
 		<>
-			<div className="ResultViewer">
-				<div className="ResultViewerHeader">
-					<Button
-						size="small"
-						icon={<VscListTree color={"#fff"} />}
-						onClick={() => switchViews && switchViews("tree")}
-						popoverOptions={{
-							hover: { content: "Switch to Tree View" },
-						}}
-					/>
-
-					<Button
-						size="small"
-						icon={<VscJson color={"#fff"} />}
-						onClick={() => switchViews && switchViews("json")}
-						popoverOptions={{
-							hover: { content: "Switch to JSON View" },
-						}}
-					/>
-					<Button
-						size="small"
-						icon={<VscArrowUp color={"#fff"} />}
-						onClick={() => toggleExportDialog(true)}
-						popoverOptions={{ hover: { content: "Export data" } }}
-					/>
+			<div className="result-viewer">
+				<div className="header">
+					<div className="button">
+						<Button
+							size="small"
+							icon={"diagram-tree"}
+							onClick={() => switchViews && switchViews("tree")}
+							popoverOptions={{
+								hover: { content: "Switch to Tree View" },
+							}}
+						/>
+					</div>
+					<div className="button">
+						<Button
+							size="small"
+							icon={"list-detail-view"}
+							onClick={() => switchViews && switchViews("json")}
+							popoverOptions={{
+								hover: { content: "Switch to JSON View" },
+							}}
+						/>
+					</div>
+					<div className="button">
+						<Button
+							size="small"
+							icon={"export"}
+							onClick={() => toggleExportDialog(true)}
+							popoverOptions={{ hover: { content: "Export data" } }}
+						/>
+					</div>
 				</div>
-				<div className="ResultViewerContainer">
+				<div className="container">
 					{type === "json" ? (
 						<JSONViewer bson={props.bson} />
 					) : type === "tree" ? (
