@@ -406,7 +406,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 							</div>
 							<div className={"ExplorerHeaderMenu"}>
 								<Button
-									icon={<VscRefresh />}
+									icon="refresh"
 									size="small"
 									variant="primary"
 									popoverOptions={{
@@ -447,11 +447,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 									}
 									trigger={["click"]}
 								>
-									<Button
-										icon={<VscKebabVertical />}
-										size="small"
-										variant="primary"
-									/>
+									<Button icon="more" size="small" variant="primary" />
 								</Dropdown>
 							</div>
 						</div>
