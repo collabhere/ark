@@ -1,7 +1,6 @@
 import { Input, Radio, Switch } from "antd";
 import TextArea from "antd/lib/input/TextArea";
 import React, { FC, useCallback, useState } from "react";
-import { VscArrowUp, VscListTree, VscJson } from "react-icons/vsc";
 import { Button } from "../../../../common/components/Button";
 import { Dialog } from "../../../../common/components/Dialog";
 import "../../styles.less";
@@ -9,6 +8,7 @@ import "../../../../common/styles/layout.less";
 import "./styles.less";
 import { TreeViewer } from "./TreeViewer";
 import { JSONViewer } from "./JSONViewer";
+import { InputGroup } from "@blueprintjs/core";
 
 export type ResultViewerProps = {
 	type: "json" | "tree";
@@ -17,10 +17,18 @@ export type ResultViewerProps = {
 	code?: string;
 	onExport?: (params?: any) => void;
 	switchViews?: (type: "tree" | "json") => void;
+	paramsState?: {
+		queryParams: Ark.QueryOptions;
+		changeQueryParams: (
+			type: Exclude<keyof Ark.QueryOptions, "timeout">,
+			value: number
+		) => void;
+	};
 };
 
 export const ResultViewer: FC<ResultViewerProps> = (props) => {
-	const { code, type, onExport, switchViews, bson } = props;
+	const { bson, code, type, onExport, switchViews, paramsState } = props;
+
 	const [exportDialog, toggleExportDialog] = useState<boolean>(false);
 	const [exportOptions, setExportOptions] = useState<
 		Ark.ExportNdjsonOptions | Ark.ExportCsvOptions
@@ -82,6 +90,58 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 		<>
 			<div className="result-viewer">
 				<div className="header">
+					<div>
+						{paramsState &&
+							<span>
+								Showing {
+									(paramsState.queryParams.page - 1) *
+									(paramsState.queryParams.limit) + 1
+								} to {
+									(paramsState.queryParams.page - 1) *
+									(paramsState.queryParams.limit) +
+									(paramsState.queryParams.limit)
+								}
+							</span>
+						}
+					</div>
+					<div className="button">
+						<Button
+							size="small"
+							icon={"arrow-left"}
+							disabled={paramsState && paramsState.queryParams.page <= 0}
+							onClick={() => {
+								if (paramsState && paramsState.queryParams.page > 1) {
+									paramsState?.changeQueryParams(
+										"page",
+										paramsState?.queryParams.page - 1
+									);
+								}
+							}}
+						/>
+					</div>
+					<div className="button">
+						<InputGroup
+							size={2}
+							value={paramsState?.queryParams.limit.toString()}
+							onChange={(e) => {
+								if (!isNaN(Number(e.target.value))) {
+									paramsState?.changeQueryParams("limit", Number(e.target.value));
+								}
+							}}
+						/>
+					</div>
+					<div className="button">
+						<Button
+							size="small"
+							icon={"arrow-right"}
+							onClick={() =>
+								paramsState?.changeQueryParams(
+									"page",
+									paramsState?.queryParams.page + 1
+								)
+							}
+						/>
+					</div>
 					<div className="button">
 						<Button
 							size="small"

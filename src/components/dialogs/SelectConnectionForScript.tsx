@@ -8,13 +8,12 @@ import { ConnectionsList } from "../connection-manager/ConnectionManager";
 
 interface SelectConnectionForScriptProps {
 	path: string;
-	onCancel?: () => void;
 	/* conn will be undefined if no connection is selected */
 	onClose?: (conn?: Ark.StoredConnection) => void;
 }
 
 export const SelectConnectionForFilePath: FC<SelectConnectionForScriptProps> =
-	({ path, onCancel, onClose }) => {
+	({ path, onClose }) => {
 		const [loading, setLoading] = useState(false);
 		const [connections, setConnections] = useState<Ark.StoredConnection[]>([]);
 
@@ -104,8 +103,7 @@ export const SelectConnectionForFilePath: FC<SelectConnectionForScriptProps> =
 						? "Select a database"
 						: "Select a connection"
 				}
-				onCancel={onCancel}
-				onClose={onClose}
+				onCancel={onClose}
 				noFooter
 			>
 				{loading ? (

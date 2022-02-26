@@ -23,6 +23,9 @@ interface InvokeJS {
 	code: string;
 	shell: string;
 	connectionId: string;
+	page: number;
+	limit: number;
+	timeout?: number;
 }
 
 interface ExportData extends InvokeJS {
@@ -104,6 +107,12 @@ interface IPCInitParams {
 	window: BrowserWindow;
 }
 
+export interface SettingsAction {
+	action: 'save' | 'fetch';
+	type: 'general';
+	settings: Ark.Settings;
+}
+
 function IPC() {
 	const shells = createMemoryStore<StoredShellValue>();
 
@@ -117,6 +126,7 @@ function IPC() {
 
 	// Stores opened scripts
 	const scriptDiskStore = createDiskStore<StoredScript>("scripts");
+	const settingsStore = createDiskStore<Ark.Settings>("settings");
 
 	return {
 		init: ({ window }: IPCInitParams) => {
@@ -170,7 +180,12 @@ function IPC() {
 					const result = await shell.executor.evaluate(
 						data.code,
 						shell.database,
-						data.connectionId
+						data.connectionId,
+						{
+							page: data.page,
+							timeout: data.timeout,
+							limit: data.limit
+						}
 					);
 					return { result: bson.serialize(result) };
 				} catch (err) {
@@ -306,6 +321,21 @@ function IPC() {
 					}
 				} catch (err) {
 					console.error("`script_actions` error");
+					console.error(err);
+					return { err };
+				}
+			});
+
+			ipcMain.handle("settings_actions", async (event, data: SettingsAction) => {
+				try {
+					if (data.action === 'save') {
+						const { settings } = data;
+						await settingsStore.set(data.type, settings);
+					} else if (data.action === 'fetch') {
+						return await settingsStore.get(data.type);
+					}
+				} catch (err) {
+					console.error("`settings_action` error");
 					console.error(err);
 					return { err };
 				}
