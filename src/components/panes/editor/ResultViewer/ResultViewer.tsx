@@ -20,7 +20,7 @@ export type ResultViewerProps = {
 };
 
 export const ResultViewer: FC<ResultViewerProps> = (props) => {
-	const { code, type, onExport, switchViews } = props;
+	const { code, type, onExport, switchViews, bson } = props;
 	const [exportDialog, toggleExportDialog] = useState<boolean>(false);
 	const [exportOptions, setExportOptions] = useState<
 		Ark.ExportNdjsonOptions | Ark.ExportCsvOptions
@@ -113,9 +113,9 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 				</div>
 				<div className="container">
 					{type === "json" ? (
-						<JSONViewer bson={props.bson} />
+						<JSONViewer bson={bson} />
 					) : type === "tree" ? (
-						<TreeViewer bson={props.bson} />
+						<TreeViewer bson={bson} />
 					) : (
 						<div>{"Incorrect view type!"}</div>
 					)}
