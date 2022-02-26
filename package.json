@@ -91,6 +91,7 @@
 	"devDependencies": {
 		"@babel/core": "^7.17.0",
 		"@blueprintjs/core": "^3.52.0",
+		"@blueprintjs/popover2": "^0.13.0",
 		"@storybook/addon-actions": "^6.4.18",
 		"@storybook/addon-essentials": "^6.4.18",
 		"@storybook/addon-links": "^6.4.18",
@@ -123,6 +124,7 @@
 	},
 	"dependencies": {
 		"@ant-design/icons": "^4.6.2",
+		"@blueprintjs/icons": "^3.32.0",
 		"@monaco-editor/react": "^4.2.1",
 		"@mongosh/async-rewriter2": "~1.1.1",
 		"@mongosh/service-provider-server": "~1.1.1",
@@ -141,6 +143,7 @@
 		"bluebird": "^3.7.2",
 		"bson": "^4.5.2",
 		"concurrently": "^6.2.0",
+		"dayjs": "^1.10.7",
 		"defaults": "^1.0.3",
 		"electron-json-storage": "^4.5.0",
 		"monaco-editor": "^0.26.1",

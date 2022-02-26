@@ -1,7 +1,6 @@
 import { Input, Radio, Switch } from "antd";
 import TextArea from "antd/lib/input/TextArea";
 import React, { FC, useCallback, useState } from "react";
-import { VscArrowUp, VscListTree, VscJson } from "react-icons/vsc";
 import { Button } from "../../../../common/components/Button";
 import { Dialog } from "../../../../common/components/Dialog";
 import "../../styles.less";
@@ -9,7 +8,7 @@ import "../../../../common/styles/layout.less";
 import "./styles.less";
 import { TreeViewer } from "./TreeViewer";
 import { JSONViewer } from "./JSONViewer";
-import { Resizable } from "re-resizable";
+import { InputGroup } from "@blueprintjs/core";
 
 export type ResultViewerProps = {
 	type: "json" | "tree";
@@ -18,10 +17,18 @@ export type ResultViewerProps = {
 	code?: string;
 	onExport?: (params?: any) => void;
 	switchViews?: (type: "tree" | "json") => void;
+	paramsState?: {
+		queryParams: Ark.QueryOptions;
+		changeQueryParams: (
+			type: Exclude<keyof Ark.QueryOptions, "timeout">,
+			value: number
+		) => void;
+	};
 };
 
 export const ResultViewer: FC<ResultViewerProps> = (props) => {
-	const { code, type, onExport, switchViews } = props;
+	const { code, type, onExport, switchViews, paramsState } = props;
+
 	const [exportDialog, toggleExportDialog] = useState<boolean>(false);
 	const [exportOptions, setExportOptions] = useState<
 		Ark.ExportNdjsonOptions | Ark.ExportCsvOptions
@@ -85,7 +92,7 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 				<div className="ResultViewerHeader">
 					<Button
 						size="small"
-						icon={<VscListTree color={"#fff"} />}
+						icon={"code-block"}
 						onClick={() => switchViews && switchViews("tree")}
 						popoverOptions={{
 							hover: { content: "Switch to Tree View" },
@@ -94,7 +101,7 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 
 					<Button
 						size="small"
-						icon={<VscJson color={"#fff"} />}
+						icon={"group-objects"}
 						onClick={() => switchViews && switchViews("json")}
 						popoverOptions={{
 							hover: { content: "Switch to JSON View" },
@@ -102,9 +109,57 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 					/>
 					<Button
 						size="small"
-						icon={<VscArrowUp color={"#fff"} />}
+						icon={"arrow-up"}
 						onClick={() => toggleExportDialog(true)}
 						popoverOptions={{ hover: { content: "Export data" } }}
+					/>
+				</div>
+				<div className="ResultViewerHeader">
+					<div>
+						{ paramsState &&
+							<span>
+								Showing {
+									(paramsState.queryParams.page - 1) *
+									(paramsState.queryParams.limit) + 1
+								} to {
+									(paramsState.queryParams.page - 1) *
+									(paramsState.queryParams.limit) +
+									(paramsState.queryParams.limit)
+								}
+							</span>
+						}
+					</div>
+					<Button
+						size="small"
+						icon={"arrow-left"}
+						disabled={paramsState && paramsState.queryParams.page <= 0}
+						onClick={() => {
+							if (paramsState && paramsState.queryParams.page > 1) {
+								paramsState?.changeQueryParams(
+									"page",
+									paramsState?.queryParams.page - 1
+								);
+							}
+						}}
+					/>
+					<InputGroup
+						size={2}
+						value={paramsState?.queryParams.limit.toString()}
+						onChange={(e) => {
+							if (!isNaN(Number(e.target.value))) {
+								paramsState?.changeQueryParams("limit", Number(e.target.value));
+							}
+						}}
+					/>
+					<Button
+						size="small"
+						icon={"arrow-right"}
+						onClick={() =>
+							paramsState?.changeQueryParams(
+								"page",
+								paramsState?.queryParams.page + 1
+							)
+						}
 					/>
 				</div>
 				<div className="ResultViewerContainer">

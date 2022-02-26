@@ -1,5 +1,5 @@
-import React, { ReactNode, useState } from "react";
-import { Modal } from "antd";
+import React, { ReactNode } from "react";
+import { Classes, Dialog as Modal } from "@blueprintjs/core";
 import "./Dialog.less";
 import { Button } from "./Button";
 import { EventOverloadMethod } from "../utils/misc";
@@ -11,9 +11,38 @@ interface ModalProps {
 	confirmButtonText?: string;
 	onConfirm?: EventOverloadMethod;
 	onCancel?: () => void;
-	onClose?: () => void;
 	children?: ReactNode;
 	noFooter?: boolean;
+}
+
+function DialogFooter(
+	footerOptions: Pick<
+		ModalProps,
+		"onCancel" | "onConfirm" | "variant" | "confirmButtonText"
+	>
+) {
+	const { onCancel, onConfirm, confirmButtonText, variant } = footerOptions;
+
+	return (
+		<div className={Classes.DIALOG_FOOTER}>
+			<div className={Classes.DIALOG_FOOTER_ACTIONS}>
+				{onCancel && (
+					<div className={Classes.DIALOG_CLOSE_BUTTON}>
+						<Button text={"Cancel"} onClick={onCancel} />
+					</div>
+				)}
+				{onConfirm && (
+					<div>
+						<Button
+							variant={variant === "danger" ? "danger" : "primary"}
+							text={confirmButtonText || "Confirm"}
+							onClick={onConfirm}
+						/>
+					</div>
+				)}
+			</div>
+		</div>
+	);
 }
 
 export function Dialog({
@@ -22,48 +51,32 @@ export function Dialog({
 	variant,
 	confirmButtonText,
 	onConfirm,
-	onCancel,
 	children,
-	onClose,
+	onCancel,
 	noFooter = false,
 }: ModalProps): JSX.Element {
 	const rootElement = document.getElementById("root");
 
+	const sizeClass = size === "small" ? "small" : "large";
+
 	return rootElement ? (
 		<Modal
-			title={<span className={"modal-title"}>{title}</span>}
-			centered
-			getContainer={rootElement}
-			onCancel={onCancel}
-			afterClose={onClose}
-			visible={true}
-			width={size === "small" ? 600 : 1000}
-			footer={
-				!noFooter && (
-					<div className={"modal-footer"}>
-						{onCancel && (
-							<div>
-								<Button
-									variant={"primary"}
-									text={"Cancel"}
-									onClick={onCancel}
-								/>
-							</div>
-						)}
-						{onConfirm && (
-							<div>
-								<Button
-									variant={variant === "danger" ? "danger" : "secondary"}
-									text={confirmButtonText || "Confirm"}
-									onClick={onConfirm}
-								/>
-							</div>
-						)}
-					</div>
-				)
-			}
+			isOpen={true}
+			title={<span className={Classes.DIALOG_HEADER}>{title}</span>}
+			onClose={onCancel}
+			portalContainer={rootElement}
+			usePortal={true}
+			className={sizeClass}
 		>
-			<div>{children}</div>
+			<div className={Classes.DIALOG_BODY}>{children}</div>
+			{!noFooter && (
+				<DialogFooter
+					variant={variant}
+					onCancel={onCancel}
+					onConfirm={onConfirm}
+					confirmButtonText={confirmButtonText}
+				/>
+			)}
 		</Modal>
 	) : (
 		<></>

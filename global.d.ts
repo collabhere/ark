@@ -59,9 +59,7 @@ declare global {
 			};
 		}
 
-		type AnyObject =
-			| BSONDocument
-			| BSONArray
+		type AnyObject = BSONDocument | BSONArray;
 
 		type BSONTypes =
 			| ObjectId
@@ -79,6 +77,8 @@ declare global {
 			[k: string]: BSONTypes;
 		};
 		type BSONArray = Array<BSONDocument>;
+
+		type SettingTypes = "general";
 
 		interface Driver {
 			run<D extends keyof Database>(
@@ -114,6 +114,13 @@ declare global {
 			fields?: Array<string>;
 			fileName: string;
 		}
+
+		interface QueryOptions {
+			page: number;
+			limit: number;
+			timeout?: number;
+		}
+
 		interface Shell {
 			create: (
 				uri: string,
@@ -124,7 +131,8 @@ declare global {
 			eval: (
 				shellId: string,
 				code: string,
-				connectionId: string
+				connectionId: string,
+				options: QueryOptions
 			) => Promise<EvalResult>;
 			export: (
 				shellId: string,
@@ -142,6 +150,11 @@ declare global {
 			delete(scriptId: string): Promise<void>;
 		}
 
+		interface GeneralSettings {
+			save: (type: SettingTypes, settings: Ark.Settings) => Promise<void>;
+			fetch: (type: SettingTypes) => Promise<Ark.Settings>;
+		}
+
 		interface Context {
 			browseForDirs: (
 				title?: string,
@@ -154,8 +167,14 @@ declare global {
 			copyText(text: string): void;
 			scripts: Scripts;
 			driver: Driver;
+			settings: GeneralSettings;
 			shell: Shell;
 			[k: string]: any;
+		}
+
+		interface Settings {
+			timezone?: "local" | "utc";
+			shellTimeout?: number;
 		}
 	}
 	interface Window {

@@ -9,10 +9,6 @@ import {
 	VscGlobe,
 	VscDatabase,
 	VscAccount,
-	VscSaveAs,
-	VscSave,
-	VscClose,
-	VscPlay,
 } from "react-icons/vsc";
 
 import { dispatch, listenEffect } from "../../../common/utils/events";
@@ -26,6 +22,8 @@ import { Button } from "../../../common/components/Button";
 import { CircularLoading } from "../../../common/components/Loading";
 import { useRefresh } from "../../../hooks/useRefresh";
 import { bsonTest } from "../../../../util/misc";
+import { useContext } from "react";
+import { SettingsContext } from "../../../App";
 
 const createDefaultCodeSnippet = (collection: string) => `// Mongo shell
 db.getCollection('${collection}').find({});
@@ -62,6 +60,15 @@ export const Editor: FC<EditorProps> = (props) => {
 
 	const { collection, username: user, uri, hosts } = shellConfig || {};
 
+	const { settings } = useContext(SettingsContext);
+	const [initialRender, setInitialRender] = useState<boolean>(true);
+
+	const [queryParams, setQueryParams] = useState<Ark.QueryOptions>({
+		page: 1,
+		limit: 50,
+		timeout: settings?.shellTimeout,
+	});
+
 	const [effectRefToken, refreshEffect] = useRefresh();
 	const [executing, setExecuting] = useState(false);
 	const [currentResult, setCurrentResult] = useState<ResultViewerProps>();
@@ -93,6 +100,17 @@ export const Editor: FC<EditorProps> = (props) => {
 		}));
 	}, []);
 
+	const changeQueryParams = useCallback(
+		(type: Exclude<keyof Ark.QueryOptions, "timeout">, value: number) => {
+			setInitialRender(false);
+			setQueryParams((params) => ({
+				...params,
+				[type]: value,
+			}));
+		},
+		[]
+	);
+
 	const exec = useCallback(
 		(code) => {
 			const _code = code.replace(/(\/\/.*)|(\n)/g, "");
@@ -100,7 +118,7 @@ export const Editor: FC<EditorProps> = (props) => {
 			setExecuting(true);
 			shellId
 				? window.ark.shell
-						.eval(shellId, _code, storedConnectionId)
+						.eval(shellId, _code, storedConnectionId, queryParams)
 						.then(function ({ result, err }) {
 							if (err) {
 								console.log("exec shell");
@@ -127,7 +145,7 @@ export const Editor: FC<EditorProps> = (props) => {
 						.finally(() => setExecuting(false))
 				: setExecuting(false);
 		},
-		[shellId, storedConnectionId]
+		[shellId, storedConnectionId, queryParams]
 	);
 
 	const destroyShell = useCallback(
@@ -193,6 +211,24 @@ export const Editor: FC<EditorProps> = (props) => {
 	const terminateExecution = useCallback(() => {
 		if (shellId) return destroyShell(shellId).then(() => refreshEffect());
 	}, [destroyShell, refreshEffect, shellId]);
+
+	useEffect(() => {
+		if (queryParams && !initialRender) {
+			exec(code);
+		}
+
+		/* Just need these dependencies for code to re-execute
+			when either the page or the limit is changed */ 
+	}, [queryParams, initialRender]);
+
+	useEffect(() => {
+		if (settings?.shellTimeout) {
+			setQueryParams((params) => ({
+				...params,
+				timeout: settings.shellTimeout
+			}));
+		}
+	}, [settings?.shellTimeout])
 
 	useEffect(() => {
 		if (contextDB && storedConnectionId) {
@@ -304,7 +340,7 @@ export const Editor: FC<EditorProps> = (props) => {
 					</div>
 					<Button
 						size="small"
-						icon={<VscSaveAs />}
+						icon={"floppy-disk"}
 						onClick={() => {
 							window.ark
 								.browseForDirs("Select A Save Location", "Set")
@@ -332,7 +368,7 @@ export const Editor: FC<EditorProps> = (props) => {
 					{savedScriptId && (
 						<Button
 							size="small"
-							icon={<VscSave />}
+							icon={"saved"}
 							onClick={() => {
 								return window.ark.scripts
 									.save({
@@ -353,7 +389,7 @@ export const Editor: FC<EditorProps> = (props) => {
 					{!executing && (
 						<Button
 							size="small"
-							icon={<VscPlay />}
+							icon={"play"}
 							variant="success"
 							onClick={() => exec(code)}
 							popoverOptions={{
@@ -366,7 +402,7 @@ export const Editor: FC<EditorProps> = (props) => {
 					{executing && (
 						<Button
 							size="small"
-							icon={<VscClose />}
+							icon={"stop"}
 							variant="danger"
 							onClick={() => terminateExecution()}
 							popoverOptions={{
@@ -417,6 +453,7 @@ export const Editor: FC<EditorProps> = (props) => {
 					{...currentResult}
 					code={code}
 					switchViews={switchViews}
+					paramsState={{ queryParams, changeQueryParams }}
 					onExport={(params) => exportData(params.code, params.options)}
 				/>
 			)}
