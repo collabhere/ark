@@ -4,7 +4,6 @@ import React, { FC, useState, useMemo } from "react";
 import { Button as BPButton, ActionProps, IconName } from "@blueprintjs/core";
 import { Popover2 } from "@blueprintjs/popover2";
 import { PromiseCompleteCallback, asyncEventOverload } from "../utils/misc";
-import { Popover } from "./Popover";
 
 export interface PromiseButtonMouseEventHandler {
 	promise: (e: React.MouseEvent) => Promise<void>;
@@ -21,6 +20,7 @@ export interface ButtonProps {
 	shape?: "round" | "circle";
 	text?: string;
 	icon?: IconName;
+	rightIcon?: IconName;
 	size?: "large" | "small";
 	dropdownOptions?: {
 		menu: JSX.Element;
@@ -35,6 +35,7 @@ export interface ButtonProps {
 export const Button: FC<ButtonProps> = (props) => {
 	const {
 		icon,
+		rightIcon,
 		text,
 		onClick,
 		popoverOptions,
@@ -60,9 +61,10 @@ export const Button: FC<ButtonProps> = (props) => {
 				minimal={variant === "link"}
 				intent={variant !== "link" ? variant : undefined}
 				icon={icon ? icon : undefined}
+				rightIcon={rightIcon ? rightIcon : undefined}
 			/>
 		),
-		[icon, loading, onClick, popoverOptions, size, text, variant]
+		[icon, loading, onClick, popoverOptions, size, text, variant, rightIcon]
 	);
 
 	const buttonWithPopovers = useMemo(
