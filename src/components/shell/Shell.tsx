@@ -13,11 +13,13 @@ export enum MONACO_COMMANDS {
 export interface ShellProps {
 	allCollections: string[];
 	code: string;
+	settings: Ark.Settings | undefined;
 	onCodeChange: (code: string) => void;
 	onMonacoCommand?: (command: MONACO_COMMANDS) => void;
 }
 export const Shell: FC<ShellProps> = (props) => {
-	const { allCollections, onMonacoCommand, code, onCodeChange } = props;
+	const { allCollections, onMonacoCommand, code, onCodeChange, settings } =
+		props;
 
 	const [monacoEditor, setMonacoEditor] =
 		useState<editor.IStandaloneCodeEditor>();
@@ -44,8 +46,9 @@ export const Shell: FC<ShellProps> = (props) => {
 		<div className={"Shell"}>
 			<Monaco
 				options={{
+					lineNumbers: settings?.lineNumbers === "off" ? "off" : "on",
 					minimap: {
-						enabled: false,
+						enabled: settings?.miniMap === "on" ? true : false,
 					},
 				}}
 				theme={"ark"}

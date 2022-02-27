@@ -175,6 +175,8 @@ declare global {
 		interface Settings {
 			timezone?: "local" | "utc";
 			shellTimeout?: number;
+			lineNumbers?: "on" | "off";
+			miniMap?: "on" | "off";
 		}
 	}
 	interface Window {

@@ -9,7 +9,7 @@ import { SelectConnectionForFilePath } from "../dialogs/SelectConnectionForScrip
 import SubMenu from "antd/lib/menu/SubMenu";
 import { SettingsContext } from "../../App";
 import { Dialog } from "../../common/components/Dialog";
-import { InputGroup } from "@blueprintjs/core";
+import { Checkbox, InputGroup } from "@blueprintjs/core";
 import { notify } from "../../common/utils/misc";
 import { useEffect } from "react";
 
@@ -18,10 +18,14 @@ export const PageHeader = (): JSX.Element => {
 	const { settings, setSettings } = useContext(SettingsContext);
 	const [timeoutDialog, setTimeoutDialog] = useState(false);
 	const [shellTimeout, setShellTimeout] = useState("120");
+	const [lineNumbers, setLineNumbers] = useState(true);
+	const [miniMap, setMiniMap] = useState(false);
 
 	useEffect(() => {
 		setShellTimeout(settings?.shellTimeout?.toString() || "120");
-	}, [settings?.shellTimeout]);
+		setLineNumbers(settings?.lineNumbers === "off" ? false : true);
+		setMiniMap(settings?.miniMap === "on" ? true : false);
+	}, [settings?.lineNumbers, settings?.miniMap, settings?.shellTimeout]);
 
 	const changeSettings = useCallback(
 		function <T extends keyof Ark.Settings>(
@@ -103,7 +107,33 @@ export const PageHeader = (): JSX.Element => {
 							<a>Change Shell Timeout</a>
 						</Menu.Item>
 						<Menu.Divider />
-						<Menu.Item icon={<VscClose />} key="3">
+						<Menu.Item key="3">
+							<Checkbox
+								checked={lineNumbers}
+								label={"Show line numbers"}
+								onChange={(e) => {
+									const showLineNumbers = (e.target as HTMLInputElement).checked
+										? "on"
+										: "off";
+									changeSettings("lineNumbers", showLineNumbers);
+								}}
+							/>
+						</Menu.Item>
+						<Menu.Divider />
+						<Menu.Item key="4">
+							<Checkbox
+								checked={miniMap}
+								label={"Show mini map"}
+								onChange={(e) => {
+									const showMiniMap = (e.target as HTMLInputElement).checked
+										? "on"
+										: "off";
+									changeSettings("miniMap", showMiniMap);
+								}}
+							/>
+						</Menu.Item>
+						<Menu.Divider />
+						<Menu.Item icon={<VscClose />} key="5">
 							<a>Exit</a>
 						</Menu.Item>
 						<Menu.Divider />
