@@ -1,0 +1,11 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "isBackground": true,
+            "type": "npm",
+            "script": "build:react",
+            "label": "Run vite",
+        }
+    ]
+}
