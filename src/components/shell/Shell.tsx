@@ -1,6 +1,6 @@
 import "./styles.less";
 
-import React, { FC, useCallback, useEffect, useState } from "react";
+import React, { FC, useCallback, useEffect, useMemo, useState } from "react";
 import Monaco from "@monaco-editor/react";
 import { KeyMod, KeyCode, editor } from "monaco-editor";
 import { mountMonaco } from "./monaco";
@@ -32,15 +32,33 @@ export const Shell: FC<ShellProps> = (props) => {
 		onMonacoCommand && onMonacoCommand(MONACO_COMMANDS.CLONE_SHELL);
 	}, [onMonacoCommand]);
 
+	const keyBindings = useMemo(
+		() => [
+			{
+				key: KeyMod.CtrlCmd | KeyCode.Enter,
+				command: exec,
+			},
+			{
+				key: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KEY_N,
+				command: cloneCurrentTab,
+			},
+		],
+		[cloneCurrentTab, exec]
+	);
+
 	useEffect(() => {
 		if (monacoEditor) {
-			monacoEditor.addCommand(KeyMod.CtrlCmd | KeyCode.Enter, exec);
-			monacoEditor.addCommand(
-				KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KEY_N,
-				cloneCurrentTab
-			);
+			if (settings?.hotKeys === "off") {
+				keyBindings.forEach((binding) =>
+					monacoEditor.addCommand(binding.key, () => {})
+				);
+			} else {
+				keyBindings.forEach((binding) =>
+					monacoEditor.addCommand(binding.key, binding.command)
+				);
+			}
 		}
-	}, [cloneCurrentTab, exec, monacoEditor]);
+	}, [cloneCurrentTab, exec, keyBindings, monacoEditor, settings?.hotKeys]);
 
 	return (
 		<div className={"Shell"}>

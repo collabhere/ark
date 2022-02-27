@@ -177,6 +177,8 @@ declare global {
 			shellTimeout?: number;
 			lineNumbers?: "on" | "off";
 			miniMap?: "on" | "off";
+			autoUpdates?: "on" | "off";
+			hotKeys?: "on" | "off";
 		}
 	}
 	interface Window {
