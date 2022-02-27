@@ -1,6 +1,6 @@
 import "./styles.less";
 
-import React, { FC, useCallback, useEffect, useState } from "react";
+import React, { FC, useCallback, useEffect, useMemo, useState } from "react";
 import Monaco from "@monaco-editor/react";
 import { KeyMod, KeyCode, editor } from "monaco-editor";
 import { mountMonaco } from "./monaco";
@@ -13,11 +13,13 @@ export enum MONACO_COMMANDS {
 export interface ShellProps {
 	allCollections: string[];
 	code: string;
+	settings: Ark.Settings | undefined;
 	onCodeChange: (code: string) => void;
 	onMonacoCommand?: (command: MONACO_COMMANDS) => void;
 }
 export const Shell: FC<ShellProps> = (props) => {
-	const { allCollections, onMonacoCommand, code, onCodeChange } = props;
+	const { allCollections, onMonacoCommand, code, onCodeChange, settings } =
+		props;
 
 	const [monacoEditor, setMonacoEditor] =
 		useState<editor.IStandaloneCodeEditor>();
@@ -30,22 +32,41 @@ export const Shell: FC<ShellProps> = (props) => {
 		onMonacoCommand && onMonacoCommand(MONACO_COMMANDS.CLONE_SHELL);
 	}, [onMonacoCommand]);
 
+	const keyBindings = useMemo(
+		() => [
+			{
+				key: KeyMod.CtrlCmd | KeyCode.Enter,
+				command: exec,
+			},
+			{
+				key: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KEY_N,
+				command: cloneCurrentTab,
+			},
+		],
+		[cloneCurrentTab, exec]
+	);
+
 	useEffect(() => {
 		if (monacoEditor) {
-			monacoEditor.addCommand(KeyMod.CtrlCmd | KeyCode.Enter, exec);
-			monacoEditor.addCommand(
-				KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KEY_N,
-				cloneCurrentTab
-			);
+			if (settings?.hotKeys === "off") {
+				keyBindings.forEach((binding) =>
+					monacoEditor.addCommand(binding.key, () => {})
+				);
+			} else {
+				keyBindings.forEach((binding) =>
+					monacoEditor.addCommand(binding.key, binding.command)
+				);
+			}
 		}
-	}, [cloneCurrentTab, exec, monacoEditor]);
+	}, [cloneCurrentTab, exec, keyBindings, monacoEditor, settings?.hotKeys]);
 
 	return (
 		<div className={"Shell"}>
 			<Monaco
 				options={{
+					lineNumbers: settings?.lineNumbers === "off" ? "off" : "on",
 					minimap: {
-						enabled: false,
+						enabled: settings?.miniMap === "on" ? true : false,
 					},
 				}}
 				theme={"ark"}

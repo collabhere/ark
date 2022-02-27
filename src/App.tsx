@@ -30,6 +30,7 @@ const App: FC = () => {
 			.then((settings) => {
 				if (settings) {
 					setSettings(settings);
+					setEnableHotkeys(settings.hotKeys !== "off");
 				}
 			})
 			.catch((err) => {

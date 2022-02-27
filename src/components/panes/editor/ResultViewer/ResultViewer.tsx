@@ -91,18 +91,18 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 			<div className="result-viewer">
 				<div className="header">
 					<div>
-						{paramsState &&
+						{paramsState && (
 							<span>
-								Showing {
-									(paramsState.queryParams.page - 1) *
-									(paramsState.queryParams.limit) + 1
-								} to {
-									(paramsState.queryParams.page - 1) *
-									(paramsState.queryParams.limit) +
-									(paramsState.queryParams.limit)
-								}
+								Showing{" "}
+								{(paramsState.queryParams.page - 1) *
+									paramsState.queryParams.limit +
+									1}{" "}
+								to{" "}
+								{(paramsState.queryParams.page - 1) *
+									paramsState.queryParams.limit +
+									paramsState.queryParams.limit}
 							</span>
-						}
+						)}
 					</div>
 					<div className="button">
 						<Button
@@ -125,7 +125,10 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 							value={paramsState?.queryParams.limit.toString()}
 							onChange={(e) => {
 								if (!isNaN(Number(e.target.value))) {
-									paramsState?.changeQueryParams("limit", Number(e.target.value));
+									paramsState?.changeQueryParams(
+										"limit",
+										Number(e.target.value)
+									);
 								}
 							}}
 						/>

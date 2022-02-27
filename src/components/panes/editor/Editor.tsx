@@ -5,11 +5,7 @@ import { MONACO_COMMANDS, Shell } from "../../shell/Shell";
 import { Resizable } from "re-resizable";
 import { Menu, Dropdown } from "antd";
 import { DownOutlined } from "@ant-design/icons";
-import {
-	VscGlobe,
-	VscDatabase,
-	VscAccount,
-} from "react-icons/vsc";
+import { VscGlobe, VscDatabase, VscAccount } from "react-icons/vsc";
 
 import { dispatch, listenEffect } from "../../../common/utils/events";
 import {
@@ -218,17 +214,17 @@ export const Editor: FC<EditorProps> = (props) => {
 		}
 
 		/* Just need these dependencies for code to re-execute
-			when either the page or the limit is changed */ 
+			when either the page or the limit is changed */
 	}, [queryParams, initialRender]);
 
 	useEffect(() => {
 		if (settings?.shellTimeout) {
 			setQueryParams((params) => ({
 				...params,
-				timeout: settings.shellTimeout
+				timeout: settings.shellTimeout,
 			}));
 		}
-	}, [settings?.shellTimeout])
+	}, [settings?.shellTimeout]);
 
 	useEffect(() => {
 		if (contextDB && storedConnectionId) {
@@ -418,6 +414,7 @@ export const Editor: FC<EditorProps> = (props) => {
 						code={code}
 						onCodeChange={onCodeChange}
 						allCollections={COLLECTIONS} // @todo: Fetch these collection names
+						settings={settings}
 						onMonacoCommand={(command) => {
 							switch (command) {
 								case MONACO_COMMANDS.CLONE_SHELL: {
