@@ -141,6 +141,12 @@ declare global {
 				options: ExportCsvOptions | ExportNdjsonOptions
 			) => Promise<void>;
 		}
+		interface Titlebar {
+			close: () => void;
+			maximize: () => void;
+			minimize: () => void;
+		}
+
 		interface Scripts {
 			open(
 				params: ScriptOpenActionData["params"]
@@ -169,6 +175,7 @@ declare global {
 			driver: Driver;
 			settings: GeneralSettings;
 			shell: Shell;
+			titlebar: Titlebar;
 			[k: string]: any;
 		}
 
