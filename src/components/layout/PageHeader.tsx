@@ -70,121 +70,150 @@ export const PageHeader = (): JSX.Element => {
 
 	return (
 		<div className="PageHeader">
+			<div className="PageHeaderComponent">
+				<div className="PageHeaderLogo">Ark</div>
+				<div>
+					<Dropdown
+						overlay={
+							<Menu>
+								<Menu.Item
+									onClick={() => {
+										window.ark
+											.browseForFile("Select A File", "Select")
+											.then((result) => {
+												const { path } = result;
+												setOpenScriptPath(path);
+											});
+									}}
+									icon={<VscFileCode />}
+									key="0"
+								>
+									<a>Open Script</a>
+								</Menu.Item>
+								<Menu.Divider />
+								<Menu.Item icon={<VscWatch />} key="1">
+									<SubMenu title="Timezone">
+										<Menu.Item
+											onClick={() =>
+												changeSettings<"timezone">("timezone", "local")
+											}
+										>
+											Local Timezone
+										</Menu.Item>
+										<Menu.Item
+											onClick={() =>
+												changeSettings<"timezone">("timezone", "utc")
+											}
+										>
+											{" "}
+											UTC
+										</Menu.Item>
+									</SubMenu>
+								</Menu.Item>
+								<Menu.Divider />
+								<Menu.Item
+									icon={<VscTerminal />}
+									key="2"
+									onClick={() => setTimeoutDialog(true)}
+								>
+									<a>Change Shell Timeout</a>
+								</Menu.Item>
+								<Menu.Divider />
+								<Menu.Item key="3">
+									<Checkbox
+										checked={localSettings.lineNumbers}
+										label={"Show Line Numbers"}
+										onChange={(e) => {
+											const showLineNumbers = (e.target as HTMLInputElement)
+												.checked
+												? "on"
+												: "off";
+											changeSettings("lineNumbers", showLineNumbers);
+										}}
+									/>
+								</Menu.Item>
+								<Menu.Divider />
+								<Menu.Item key="4">
+									<Checkbox
+										checked={localSettings.miniMap}
+										label={"Show Mini Map"}
+										onChange={(e) => {
+											const showMiniMap = (e.target as HTMLInputElement).checked
+												? "on"
+												: "off";
+											changeSettings("miniMap", showMiniMap);
+										}}
+									/>
+								</Menu.Item>
+								<Menu.Divider />
+								<Menu.Item key="5">
+									<Checkbox
+										checked={localSettings.hotKeys}
+										label={"Enable hotkeys"}
+										onChange={(e) => {
+											const enableHotkeys = (e.target as HTMLInputElement)
+												.checked
+												? "on"
+												: "off";
+											changeSettings("hotKeys", enableHotkeys);
+										}}
+									/>
+								</Menu.Item>
+								<Menu.Divider />
+								<Menu.Item key="6">
+									<Checkbox
+										checked={localSettings.autoUpdates}
+										label={"Auto Updates"}
+										onChange={(e) => {
+											const autoUpdates = (e.target as HTMLInputElement).checked
+												? "on"
+												: "off";
+											changeSettings("autoUpdates", autoUpdates);
+										}}
+									/>
+								</Menu.Item>
+								<Menu.Divider />
+								<Menu.Item
+									icon={<VscClose />}
+									key="7"
+									onClick={() => window.ark.titlebar.close()}
+								>
+									<a>Exit</a>
+								</Menu.Item>
+								<Menu.Divider />
+							</Menu>
+						}
+						trigger={["click"]}
+					>
+						<div className="PageHeaderItem">
+							<Button size="small" text="Options" />
+						</div>
+					</Dropdown>
+				</div>
+			</div>
+
+			<div className="PageHeaderComponent">
+				<Button
+					icon="minimize"
+					onClick={() => window.ark.titlebar.minimize()}
+				/>
+				<Button
+					icon="maximize"
+					onClick={() => window.ark.titlebar.maximize()}
+				/>
+				<Button
+					icon="cross"
+					variant="danger"
+					onClick={() => window.ark.titlebar.close()}
+				/>
+			</div>
+
 			{openScriptPath && (
 				<SelectConnectionForFilePath
 					path={openScriptPath}
 					onClose={() => setOpenScriptPath("")}
 				/>
 			)}
-			<div className="PageHeaderLogo">Ark</div>
-			<Dropdown
-				overlay={
-					<Menu>
-						<Menu.Item
-							onClick={() => {
-								window.ark
-									.browseForFile("Select A File", "Select")
-									.then((result) => {
-										const { path } = result;
-										setOpenScriptPath(path);
-									});
-							}}
-							icon={<VscFileCode />}
-							key="0"
-						>
-							<a>Open Script</a>
-						</Menu.Item>
-						<Menu.Divider />
-						<Menu.Item icon={<VscWatch />} key="1">
-							<SubMenu title="Timezone">
-								<Menu.Item
-									onClick={() =>
-										changeSettings<"timezone">("timezone", "local")
-									}
-								>
-									Local Timezone
-								</Menu.Item>
-								<Menu.Item
-									onClick={() => changeSettings<"timezone">("timezone", "utc")}
-								>
-									{" "}
-									UTC
-								</Menu.Item>
-							</SubMenu>
-						</Menu.Item>
-						<Menu.Divider />
-						<Menu.Item
-							icon={<VscTerminal />}
-							key="2"
-							onClick={() => setTimeoutDialog(true)}
-						>
-							<a>Change Shell Timeout</a>
-						</Menu.Item>
-						<Menu.Divider />
-						<Menu.Item key="3">
-							<Checkbox
-								checked={localSettings.lineNumbers}
-								label={"Show Line Numbers"}
-								onChange={(e) => {
-									const showLineNumbers = (e.target as HTMLInputElement).checked
-										? "on"
-										: "off";
-									changeSettings("lineNumbers", showLineNumbers);
-								}}
-							/>
-						</Menu.Item>
-						<Menu.Divider />
-						<Menu.Item key="4">
-							<Checkbox
-								checked={localSettings.miniMap}
-								label={"Show Mini Map"}
-								onChange={(e) => {
-									const showMiniMap = (e.target as HTMLInputElement).checked
-										? "on"
-										: "off";
-									changeSettings("miniMap", showMiniMap);
-								}}
-							/>
-						</Menu.Item>
-						<Menu.Divider />
-						<Menu.Item key="5">
-							<Checkbox
-								checked={localSettings.hotKeys}
-								label={"Enable hotkeys"}
-								onChange={(e) => {
-									const enableHotkeys = (e.target as HTMLInputElement).checked
-										? "on"
-										: "off";
-									changeSettings("hotKeys", enableHotkeys);
-								}}
-							/>
-						</Menu.Item>
-						<Menu.Divider />
-						<Menu.Item key="6">
-							<Checkbox
-								checked={localSettings.autoUpdates}
-								label={"Auto Updates"}
-								onChange={(e) => {
-									const autoUpdates = (e.target as HTMLInputElement).checked
-										? "on"
-										: "off";
-									changeSettings("autoUpdates", autoUpdates);
-								}}
-							/>
-						</Menu.Item>
-						<Menu.Divider />
-						<Menu.Item icon={<VscClose />} key="7">
-							<a>Exit</a>
-						</Menu.Item>
-						<Menu.Divider />
-					</Menu>
-				}
-				trigger={["click"]}
-			>
-				<div className="PageHeaderItem">
-					<Button size="small" text="Options" variant="link" />
-				</div>
-			</Dropdown>
 			{timeoutDialog && (
 				<Dialog
 					size="small"
