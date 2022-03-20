@@ -109,15 +109,6 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 
 	const isModified = value !== editedValue;
 
-	// useEffect(() => {
-	// 	return () => {
-	// 		setType(initialType);
-	// 		setEditedKey(field);
-	// 		setEditedValue(value);
-	// 		setCommited(false);
-	// 	};
-	// }, [field, initialType, value]);
-
 	const commitRow = (value?: SwitchableInputProps["value"]) => {
 		if (isModified) {
 			typeof value !== "undefined" && setEditedValue(value);
@@ -311,7 +302,7 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 		>
 			<div className="left">{editableKey ? keyInput : field}</div>
 			<div className="modified">
-				{isModified && !commited && editable && (
+				{isModified && editable && (
 					<Icon icon="symbol-circle" size={IconSize.STANDARD} />
 				)}
 			</div>
@@ -833,6 +824,7 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 		Set<Ark.BSONDocument>
 	>(new Set());
 	const [docBeingDeleted, setDocBeingDeleted] = useState<Ark.BSONDocument>();
+	const [refreshCounts, setRefreshCounts] = useState({});
 
 	const startEditingDocument = useCallback((document: Ark.BSONDocument) => {
 		setDocsBeingUpdated((docs) => {
@@ -854,13 +846,13 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 		});
 	}, []);
 
-	const refreshDocument = useCallback(
-		(document: Ark.BSONDocument) => {
-			const b = Object.values(deserialize(serialize(bsonResult)));
-			setBSON(b);
-		},
-		[bsonResult]
-	);
+	const refreshDocument = useCallback((document: Ark.BSONDocument) => {
+		setRefreshCounts((counts) => {
+			counts[document._id.toString()] =
+				(counts[document._id.toString()] || 0) + 1;
+			return { ...counts };
+		});
+	}, []);
 
 	const clearUpdates = () => setUpdates([]);
 
@@ -1005,7 +997,7 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 					<DocumentPanel
 						editable={docsBeingEdited.has(document)}
 						document={document}
-						key={index}
+						key={(refreshCounts[document._id] || 0) + "" + index}
 						onDocumentModified={(change, key, value) => {
 							if (change === "value") {
 								setKeyValue(document._id.toString(), key, value);
