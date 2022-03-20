@@ -2,7 +2,7 @@ import "./styles.less";
 import "../../../../common/styles/layout.less";
 
 import React, { FC, useState, useEffect } from "react";
-import { ObjectId, serialize, deserialize } from "bson";
+import { ObjectId, serialize } from "bson";
 import { useCallback } from "react";
 import {
 	CollapseContent,
@@ -299,6 +299,7 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 			onContextMenuAction={(action) => onAction && onAction(action)}
 			key={field}
 			disableContextMenu={disableContextMenu}
+			editable={!!editable}
 		>
 			<div className="left">{editableKey ? keyInput : field}</div>
 			<div className="modified">
@@ -323,6 +324,7 @@ enum ContentRowActions {
 interface ContentRowProps {
 	onContextMenuAction?: (action: ContentRowActions) => void;
 	disableContextMenu?: boolean;
+	editable: boolean;
 }
 
 const ContentRow: FC<ContentRowProps> = (props) => {
@@ -330,7 +332,60 @@ const ContentRow: FC<ContentRowProps> = (props) => {
 		children,
 		onContextMenuAction = () => {},
 		disableContextMenu,
+		editable,
 	} = props;
+
+	const items: CreateMenuItem[] = [
+		{
+			item: "Copy",
+			key: "copy",
+			intent: "primary",
+			icon: "comparison",
+			submenu: [
+				{
+					key: ContentRowActions.copy_key,
+					item: "Key",
+					cb: () => onContextMenuAction(ContentRowActions.copy_key),
+				},
+				{
+					key: ContentRowActions.copy_value,
+					item: "Value",
+					cb: () => onContextMenuAction(ContentRowActions.copy_value),
+				},
+			],
+		},
+		{
+			divider: true,
+			key: "div_1",
+		},
+		{
+			item: "Delete Document",
+			key: ContentRowActions.delete_document,
+			cb: () => onContextMenuAction(ContentRowActions.delete_document),
+			icon: "trash",
+			intent: "danger",
+		},
+	];
+
+	items.splice(
+		1,
+		0,
+		editable
+			? {
+					item: "Discard Edits",
+					cb: () => onContextMenuAction(ContentRowActions.discard_edit),
+					intent: "primary",
+					icon: "cross",
+					key: ContentRowActions.discard_edit,
+			  }
+			: {
+					item: "Edit Document",
+					cb: () => onContextMenuAction(ContentRowActions.edit_document),
+					intent: "primary",
+					icon: "edit",
+					key: ContentRowActions.edit_document,
+			  }
+	);
 
 	return disableContextMenu ? (
 		<div onContextMenu={(e) => e.stopPropagation()} className={"content-row"}>
@@ -339,44 +394,7 @@ const ContentRow: FC<ContentRowProps> = (props) => {
 	) : (
 		<ContextMenu2
 			className="context-menu"
-			content={createContextMenuItems([
-				{
-					item: "Copy",
-					key: "copy",
-					intent: "primary",
-					icon: "comparison",
-					submenu: [
-						{
-							key: ContentRowActions.copy_key,
-							item: "Key",
-							cb: () => onContextMenuAction(ContentRowActions.copy_key),
-						},
-						{
-							key: ContentRowActions.copy_value,
-							item: "Value",
-							cb: () => onContextMenuAction(ContentRowActions.copy_value),
-						},
-					],
-				},
-				{
-					item: "Edit Document",
-					key: ContentRowActions.edit_document,
-					cb: () => onContextMenuAction(ContentRowActions.edit_document),
-					intent: "primary",
-					icon: "edit",
-				},
-				{
-					divider: true,
-					key: "div_1",
-				},
-				{
-					item: "Delete Document",
-					key: ContentRowActions.delete_document,
-					cb: () => onContextMenuAction(ContentRowActions.delete_document),
-					icon: "trash",
-					intent: "danger",
-				},
-			])}
+			content={createContextMenuItems(items)}
 		>
 			<div className={"content-row"}>{children}</div>
 		</ContextMenu2>
@@ -750,6 +768,7 @@ interface DocumentPanelProps {
 	onDocumentModified: ContentBuilderOptions["onChange"];
 	onDocumentEdit: () => void;
 	onDocumentDelete: () => void;
+	onDocumentChangeDiscard: () => void;
 }
 const DocumentPanel: FC<DocumentPanelProps> = (props) => {
 	const {
@@ -758,6 +777,7 @@ const DocumentPanel: FC<DocumentPanelProps> = (props) => {
 		onDocumentModified,
 		onDocumentEdit,
 		onDocumentDelete,
+		onDocumentChangeDiscard,
 	} = props;
 
 	const onRowAction = useCallback(
@@ -776,13 +796,17 @@ const DocumentPanel: FC<DocumentPanelProps> = (props) => {
 					onDocumentEdit();
 					break;
 				}
+				case ContentRowActions.discard_edit: {
+					onDocumentChangeDiscard();
+					break;
+				}
 				case ContentRowActions.delete_document: {
 					onDocumentDelete();
 					break;
 				}
 			}
 		},
-		[onDocumentEdit, onDocumentDelete]
+		[onDocumentEdit, onDocumentChangeDiscard, onDocumentDelete]
 	);
 
 	return (
@@ -938,6 +962,15 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 		]
 	);
 
+	const discardChanges = useCallback(
+		(document: Ark.BSONDocument) => {
+			refreshDocument(document);
+			removeDocumentUpdates(document._id.toString());
+			stopEditingDocument(document);
+		},
+		[refreshDocument, removeDocumentUpdates, stopEditingDocument]
+	);
+
 	const documentContextMenu = useCallback(
 		(document: any) => {
 			const items: CreateMenuItem[] = [
@@ -968,7 +1001,7 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 					? {
 							item: "Discard Edits",
 							cb: () => {
-								stopEditingDocument(document);
+								discardChanges(document);
 							},
 							intent: "primary",
 							icon: "cross",
@@ -987,7 +1020,7 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 
 			return createContextMenuItems(items);
 		},
-		[docsBeingEdited, startEditingDocument, stopEditingDocument]
+		[discardChanges, docsBeingEdited, startEditingDocument]
 	);
 
 	const createDocumentPanelListContent = useCallback(
@@ -1005,6 +1038,7 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 						}}
 						onDocumentEdit={() => startEditingDocument(document)}
 						onDocumentDelete={() => setDocBeingDeleted(document)}
+						onDocumentChangeDiscard={() => discardChanges(document)}
 					/>
 				),
 				header: {
@@ -1036,9 +1070,7 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 								variant={"link"}
 								onClick={(e) => {
 									e.stopPropagation();
-									refreshDocument(document);
-									removeDocumentUpdates(document._id.toString());
-									stopEditingDocument(document);
+									discardChanges(document);
 								}}
 							/>
 						</div>
@@ -1050,12 +1082,12 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 		},
 		[
 			docsBeingEdited,
+			refreshCounts,
 			documentContextMenu,
 			startEditingDocument,
 			stopEditingDocument,
 			updateDocument,
-			refreshDocument,
-			removeDocumentUpdates,
+			discardChanges,
 		]
 	);
 
@@ -1064,7 +1096,26 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 
 	return (
 		<div className="tree-viewer">
-			<div className="header">Header</div>
+			<div className="header">
+				{docsBeingEdited.size > 0 && (
+					<>
+						<Button
+							onClick={() => {}}
+							size={"small"}
+							icon="small-tick"
+							variant={"primary"}
+							text="Save all"
+						/>
+						<Button
+							onClick={() => {}}
+							size={"small"}
+							icon="small-tick"
+							variant={"danger"}
+							text="Discard all"
+						/>
+					</>
+				)}
+			</div>
 			<div className="content">
 				{bson && bson.length && (
 					<CollapseList content={bson.map(createDocumentPanelListContent)} />
