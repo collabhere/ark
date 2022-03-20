@@ -194,7 +194,7 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 						onKeyPress={(e) => (e.key === "Enter" ? commitRow() : undefined)}
 					/>
 				) : (
-					String(value)
+					String(input)
 				)
 			);
 			break;
@@ -278,7 +278,7 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 						<Button rightIcon="caret-down" text={String(bool)} />
 					</Select>
 				) : (
-					String(value)
+					String(bool)
 				)
 			);
 			break;
@@ -503,7 +503,7 @@ const contentBuilder: ContentBuilder = (
 							content={[
 								{
 									jsx: (
-										<div key={key}>
+										<div>
 											{contentBuilder({
 												...contentBuilderOptions,
 												document: bsonTypes,
@@ -534,10 +534,10 @@ const contentBuilder: ContentBuilder = (
 										<CollapseList
 											content={subdocumentArray.map((document, index) => ({
 												jsx: (
-													<div key={index + "_idx_" + rowIdx}>
+													<div>
 														{contentBuilder({
 															...contentBuilderOptions,
-															document: subdocumentArray,
+															document: document,
 															onRowAction: (action, key) =>
 																onRowAction(action, key, subdocumentArray),
 														})}
@@ -553,7 +553,7 @@ const contentBuilder: ContentBuilder = (
 									),
 									header: {
 										primary: true,
-										key: String(),
+										key: String(key),
 										title: String(key),
 									},
 								},
@@ -854,10 +854,13 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 		});
 	}, []);
 
-	const refreshDocument = useCallback(() => {
-		const b = Object.values(deserialize(serialize(bsonResult)));
-		setBSON(b);
-	}, [bsonResult]);
+	const refreshDocument = useCallback(
+		(document: Ark.BSONDocument) => {
+			const b = Object.values(deserialize(serialize(bsonResult)));
+			setBSON(b);
+		},
+		[bsonResult]
+	);
 
 	const clearUpdates = () => setUpdates([]);
 
@@ -1015,7 +1018,7 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 				header: {
 					menu: documentContextMenu(document),
 					primary: true,
-					key: document._id.toString(),
+					key: index,
 					title: `(${String(
 						index + 1
 					)}) ObjectId("${document._id.toString()}")`,
@@ -1041,7 +1044,7 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 								variant={"link"}
 								onClick={(e) => {
 									e.stopPropagation();
-									refreshDocument();
+									refreshDocument(document);
 									removeDocumentUpdates(document._id.toString());
 									stopEditingDocument(document);
 								}}
