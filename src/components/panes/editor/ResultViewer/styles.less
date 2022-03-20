@@ -31,8 +31,10 @@
 		flex-grow: 1;
 		min-height: 0;
 
+		@tree-view-header-height: 30px;
+
 		.header {
-			height: 38px;
+			height: @tree-view-header-height;
 			gap: 10px;
 		}
 
@@ -42,7 +44,7 @@
 			display: flex;
 			flex-direction: column;
 			flex-grow: 0;
-			min-height: calc(100% - 30px);
+			min-height: calc(100% - @tree-view-header-height);
 
 			.document-header-buttons {
 				display: flex;
@@ -52,8 +54,24 @@
 			}
 		}
 
-		.content-row {
+		.context-menu {
 			display: flex;
+			flex-grow: 1;
+		}
+
+		.new-field-row {
+			display: flex;
+		}
+
+		.content-row {
+			@content-row-modified-width: 20px;
+
+			display: flex;
+			flex-grow: 1;
+
+			.button-container {
+				display: flex;
+			}
 
 			.left {
 				width: 50%;
@@ -61,6 +79,32 @@
 
 			.right {
 				width: 50%;
+			}
+
+			.modified {
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				width: @content-row-modified-width;
+			}
+
+			.button {
+				// width: calc(@content-row-modified-width + 20px);
+			}
+		}
+
+		.switchable-input {
+			display: flex;
+			flex-grow: 1;
+			align-items: center;
+
+			.object-id {
+				display: flex;
+			}
+
+			.switchable-input-child {
+				display: flex;
+				flex-grow: 1;
 			}
 		}
 	}

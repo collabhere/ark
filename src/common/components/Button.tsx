@@ -43,7 +43,7 @@ export const Button: FC<ButtonProps> = (props) => {
 		dropdownOptions,
 		size,
 		variant,
-		disabled
+		disabled,
 	} = props;
 
 	const [loading, setLoading] = useState(false);
@@ -66,7 +66,17 @@ export const Button: FC<ButtonProps> = (props) => {
 				rightIcon={rightIcon ? rightIcon : undefined}
 			/>
 		),
-		[icon, loading, onClick, popoverOptions, size, text, variant, rightIcon, disabled]
+		[
+			icon,
+			loading,
+			onClick,
+			popoverOptions,
+			size,
+			text,
+			variant,
+			rightIcon,
+			disabled,
+		]
 	);
 
 	const buttonWithPopovers = useMemo(

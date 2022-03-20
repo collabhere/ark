@@ -35,7 +35,11 @@ export const CollapseList: FC<CollapseListProps> = (props) => {
 		<div tabIndex={tabIndex} className="collapse-list">
 			{content.map(({ jsx, header }, key) => {
 				return (
-					<ContextMenu2 key={key} disabled={!header.menu} content={header.menu}>
+					<ContextMenu2
+						key={header.key}
+						disabled={!header.menu}
+						content={header.menu}
+					>
 						<div
 							className={"item" + (header.primary ? " primary" : "")}
 							onClick={() => {

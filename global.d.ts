@@ -12,6 +12,7 @@ import type {
 import type { DiskStore } from "./electron/core/stores/disk";
 import { UploadFile } from "antd/lib/upload/interface";
 import { ObjectId } from "bson";
+import { Query } from "./electron/core/driver/query";
 
 declare global {
 	namespace Ark {
@@ -91,6 +92,11 @@ declare global {
 				action: C,
 				arg: Parameters<Connection[C]>[1]
 			): ReturnType<Connection[C]>;
+			run<Q extends keyof Query>(
+				library: "query",
+				action: Q,
+				arg: Parameters<Query[Q]>[1]
+			): ReturnType<Query[Q]>;
 		}
 
 		interface ShellConfig {

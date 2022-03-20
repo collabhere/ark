@@ -5,11 +5,7 @@ import { MONACO_COMMANDS, Shell } from "../../shell/Shell";
 import { Resizable } from "re-resizable";
 import { Menu, Dropdown } from "antd";
 import { DownOutlined } from "@ant-design/icons";
-import {
-	VscGlobe,
-	VscDatabase,
-	VscAccount,
-} from "react-icons/vsc";
+import { VscGlobe, VscDatabase, VscAccount } from "react-icons/vsc";
 
 import { dispatch, listenEffect } from "../../../common/utils/events";
 import {
@@ -71,7 +67,8 @@ export const Editor: FC<EditorProps> = (props) => {
 
 	const [effectRefToken, refreshEffect] = useRefresh();
 	const [executing, setExecuting] = useState(false);
-	const [currentResult, setCurrentResult] = useState<ResultViewerProps>();
+	const [currentResult, setCurrentResult] =
+		useState<Partial<ResultViewerProps>>();
 	const [savedScriptId, setSavedScriptId] = useState<string | undefined>(
 		scriptId
 	);
@@ -116,6 +113,7 @@ export const Editor: FC<EditorProps> = (props) => {
 			const _code = code.replace(/(\/\/.*)|(\n)/g, "");
 			console.log(`executing ${shellId} code`);
 			setExecuting(true);
+			setCurrentResult(undefined);
 			shellId
 				? window.ark.shell
 						.eval(shellId, _code, storedConnectionId, queryParams)
@@ -218,17 +216,17 @@ export const Editor: FC<EditorProps> = (props) => {
 		}
 
 		/* Just need these dependencies for code to re-execute
-			when either the page or the limit is changed */ 
+			when either the page or the limit is changed */
 	}, [queryParams, initialRender]);
 
 	useEffect(() => {
 		if (settings?.shellTimeout) {
 			setQueryParams((params) => ({
 				...params,
-				timeout: settings.shellTimeout
+				timeout: settings.shellTimeout,
 			}));
 		}
-	}, [settings?.shellTimeout])
+	}, [settings?.shellTimeout]);
 
 	useEffect(() => {
 		if (contextDB && storedConnectionId) {
@@ -448,13 +446,19 @@ export const Editor: FC<EditorProps> = (props) => {
 					</div>
 				)}
 			</Resizable>
-			{currentResult && (
+			{currentResult && currentResult.bson && currentResult.type && (
 				<ResultViewer
-					{...currentResult}
+					bson={currentResult.bson}
+					type={currentResult.type}
+					shellConfig={shellConfig}
+					driverConnectionId={storedConnectionId}
 					code={code}
 					switchViews={switchViews}
 					paramsState={{ queryParams, changeQueryParams }}
 					onExport={(params) => exportData(params.code, params.options)}
+					onRefresh={() => {
+						exec(code);
+					}}
 				/>
 			)}
 		</div>

@@ -63,11 +63,11 @@ export function Dialog({
 
 	return rootElement ? (
 		<Modal
-			isOpen={true}
+			isOpen
+			usePortal
 			title={<span className={Classes.DIALOG_HEADER}>{title}</span>}
 			onClose={onCancel}
 			portalContainer={rootElement}
-			usePortal={true}
 			className={sizeClass}
 		>
 			<div className={Classes.DIALOG_BODY}>{children}</div>
