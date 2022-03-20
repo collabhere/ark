@@ -147,6 +147,12 @@ declare global {
 				options: ExportCsvOptions | ExportNdjsonOptions
 			) => Promise<void>;
 		}
+		interface Titlebar {
+			close: () => void;
+			maximize: () => void;
+			minimize: () => void;
+		}
+
 		interface Scripts {
 			open(
 				params: ScriptOpenActionData["params"]
@@ -175,12 +181,17 @@ declare global {
 			driver: Driver;
 			settings: GeneralSettings;
 			shell: Shell;
+			titlebar: Titlebar;
 			[k: string]: any;
 		}
 
 		interface Settings {
 			timezone?: "local" | "utc";
 			shellTimeout?: number;
+			lineNumbers?: "on" | "off";
+			miniMap?: "on" | "off";
+			autoUpdates?: "on" | "off";
+			hotKeys?: "on" | "off";
 		}
 	}
 	interface Window {

@@ -1,5 +1,5 @@
 import type { BrowserWindow } from "electron";
-import { ipcMain, dialog } from "electron";
+import { ipcMain, dialog, app } from "electron";
 import fs from "fs";
 import path from "path";
 import { nanoid } from "nanoid";
@@ -83,6 +83,10 @@ export interface ScriptDeleteActionData {
 export interface ScriptOpenActionData {
 	action: "open";
 	params: { storedConnectionId?: string; fileLocation?: string; };
+}
+
+export interface TitlebarActions {
+	action: "close" | "maximize" | "minimize"
 }
 
 export type ScriptActionData =
@@ -336,6 +340,26 @@ function IPC() {
 					}
 				} catch (err) {
 					console.error("`settings_action` error");
+					console.error(err);
+					return { err };
+				}
+			});
+
+			ipcMain.handle("title_actions", async (event, data: TitlebarActions) => {
+				try {
+					if (data.action === 'close') {
+						window.close();
+					} else if (data.action === "maximize") {
+						if (window.isMaximized()) {
+							window.unmaximize()
+						} else {
+							window.maximize();
+						}
+					} else if (data.action === "minimize") {
+						window.minimize();
+					}
+				} catch (err) {
+					console.error("title_actions error");
 					console.error(err);
 					return { err };
 				}

@@ -416,6 +416,7 @@ export const Editor: FC<EditorProps> = (props) => {
 						code={code}
 						onCodeChange={onCodeChange}
 						allCollections={COLLECTIONS} // @todo: Fetch these collection names
+						settings={settings}
 						onMonacoCommand={(command) => {
 							switch (command) {
 								case MONACO_COMMANDS.CLONE_SHELL: {
