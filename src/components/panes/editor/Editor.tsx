@@ -73,6 +73,7 @@ export const Editor: FC<EditorProps> = (props) => {
 		scriptId
 	);
 	const [shellId, setShellId] = useState<string>();
+	const [shellLoadError, setShellLoadError] = useState<string>();
 	const [currentReplicaHost, setCurrentReplicaHost] =
 		useState<ReplicaSetMember>();
 	const [replicaHosts, setReplicaHosts] = useState<ReplicaSetMember[]>();
@@ -230,44 +231,60 @@ export const Editor: FC<EditorProps> = (props) => {
 
 	useEffect(() => {
 		if (contextDB && storedConnectionId) {
-			console.log("[editor onload]", shellId);
-			if (hosts && hosts.length > 1) {
-				console.log("[editor onload] multi-host");
-				window.ark.driver
-					.run("connection", "info", {
-						id: storedConnectionId,
-					})
-					.then((connection) => {
-						if (connection.replicaSetDetails) {
-							console.log("[editor onload] multi-host replica set");
-							const primary = connection.replicaSetDetails.members.find(
-								(x) => x.stateStr === "PRIMARY"
-							);
-							if (primary) {
+			setShellLoadError(undefined);
+			Promise.resolve()
+				.then(() => {
+					console.log("[editor onload]", shellId);
+					if (hosts && hosts.length > 1) {
+						console.log("[editor onload] multi-host");
+						return window.ark.driver
+							.run("connection", "info", {
+								id: storedConnectionId,
+							})
+							.then((connection) => {
+								if (connection.replicaSetDetails) {
+									console.log("[editor onload] multi-host replica set");
+									const primary = connection.replicaSetDetails.members.find(
+										(x) => x.stateStr === "PRIMARY"
+									);
+									if (primary) {
+										setReplicaHosts(
+											() => connection.replicaSetDetails?.members
+										);
+										switchReplicaShell(primary);
+									} else {
+										console.error("NO PRIMARY");
+									}
+								}
+							});
+					} else {
+						console.log("[editor onload] single-host");
+						return Promise.all([
+							window.ark.shell.create(uri, contextDB, storedConnectionId),
+							window.ark.driver.run("connection", "info", {
+								id: storedConnectionId,
+							}),
+						]).then(([{ id }, connection]) => {
+							console.log("[editor onload] single-host shell created - " + id);
+							setShellId(id);
+							// incase of single node replica set
+							connection.replicaSetDetails &&
 								setReplicaHosts(() => connection.replicaSetDetails?.members);
-								switchReplicaShell(primary);
-							} else {
-								console.error("NO PRIMARY");
-							}
-						} else {
-							// Multi-host standalone? not possible
-						}
-					});
-			} else {
-				console.log("[editor onload] single-host");
-				Promise.all([
-					window.ark.shell.create(uri, contextDB, storedConnectionId),
-					window.ark.driver.run("connection", "info", {
-						id: storedConnectionId,
-					}),
-				]).then(([{ id }, connection]) => {
-					console.log("[editor onload] single-host shell created - " + id);
-					setShellId(id);
-					// incase of single node replica set
-					connection.replicaSetDetails &&
-						setReplicaHosts(() => connection.replicaSetDetails?.members);
+						});
+					}
+				})
+				.catch(function (err) {
+					console.log(err);
+					if (err.message.startsWith("No mem entry found for id")) {
+						setShellLoadError(
+							"Unable to load the editor, connection was not made."
+						);
+					} else {
+						setShellLoadError(
+							`Something unexpected happened when loading the editor.\nError: ${err.message}`
+						);
+					}
 				});
-			}
 		}
 		return () => {
 			if (shellId) destroyShell(shellId);
@@ -279,6 +296,8 @@ export const Editor: FC<EditorProps> = (props) => {
 		hosts,
 		switchReplicaShell,
 		effectRefToken,
+		// shellId, // Causes infinite re-renders @todo: fix
+		destroyShell,
 	]);
 
 	/** Register browser event listeners */
@@ -443,7 +462,7 @@ export const Editor: FC<EditorProps> = (props) => {
 							height: "100%",
 						}}
 					>
-						<CircularLoading />
+						{shellLoadError ? shellLoadError : <CircularLoading />}
 					</div>
 				)}
 			</Resizable>

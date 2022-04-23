@@ -136,7 +136,7 @@ function IPC() {
 		init: ({ window }: IPCInitParams) => {
 			ipcMain.handle("driver_run", async (event, data: RunCommandInput) => {
 				try {
-					console.log(`calling ${data.library}.${data.action}()`);
+					console.log(`calling ${data.library}.${data.action}() ${data.args ? `args=${JSON.stringify(data.args).slice(0, 100)}` : ``}`);
 					const result = await driver.run(data.library as any, data.action as any, data.args)
 					return result;
 				} catch (err) {
