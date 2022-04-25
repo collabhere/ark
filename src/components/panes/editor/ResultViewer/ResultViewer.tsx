@@ -17,6 +17,7 @@ export type ResultViewerProps = {
 	code?: string;
 	shellConfig: Ark.ShellConfig;
 	driverConnectionId: string;
+	allowDocumentEdits?: boolean;
 	onExport?: (params?: any) => void;
 	onRefresh: () => void;
 	switchViews?: (type: "tree" | "json") => void;
@@ -37,6 +38,7 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 		paramsState,
 		driverConnectionId,
 		shellConfig,
+		allowDocumentEdits,
 		onExport,
 		onRefresh,
 		switchViews,
@@ -196,6 +198,7 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 							driverConnectionId={driverConnectionId}
 							shellConfig={shellConfig}
 							onRefresh={onRefresh}
+							allowDocumentEdits={allowDocumentEdits || false}
 						/>
 					) : (
 						<div>{"Incorrect view type!"}</div>

@@ -1,4 +1,3 @@
-import type { EvalResult } from "./electron/core/evaluator";
 import type { Connection, Database } from "./electron/core/driver";
 import type { MongoClientOptions } from "@mongosh/service-provider-server";
 import type { MemoryStore } from "./electron/core/stores/memory";
@@ -8,6 +7,7 @@ import type {
 	ScriptSaveActionData,
 	ScriptSaveAsActionData,
 	ScriptOpenActionData,
+	ShellEvalResult,
 } from "./electron/modules/ipc";
 import type { DiskStore } from "./electron/core/stores/disk";
 import { UploadFile } from "antd/lib/upload/interface";
@@ -139,7 +139,7 @@ declare global {
 				code: string,
 				connectionId: string,
 				options: QueryOptions
-			) => Promise<EvalResult>;
+			) => Promise<ShellEvalResult>;
 			export: (
 				shellId: string,
 				code: string,

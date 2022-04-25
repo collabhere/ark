@@ -22,11 +22,6 @@ import { MemoryStore } from "../stores/memory";
 import { MemEntry } from "../../modules/ipc";
 import { ERRORS } from "../../../util/constants";
 
-export interface EvalResult {
-	result?: Buffer;
-	err?: Error;
-}
-
 export interface Evaluator {
 	evaluate(
 		code: string,

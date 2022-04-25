@@ -12,6 +12,13 @@ import { createDiskStore } from "../core/stores/disk";
 import { MongoClient, ListDatabasesResult } from "mongodb";
 import { Server } from "net";
 import { UploadFile } from "antd/lib/upload/interface";
+import { isObjectId } from "../../util/misc";
+
+export interface ShellEvalResult {
+	editable: boolean;
+	result: Buffer;
+	err?: Error;
+}
 
 interface RunCommandInput {
 	library: keyof DriverModules;
@@ -181,7 +188,7 @@ function IPC() {
 				try {
 					const shell = shells.get(data.shell);
 					if (!shell) throw new Error("Invalid shell");
-					const result = await shell.executor.evaluate(
+					const evalResult = await shell.executor.evaluate(
 						data.code,
 						shell.database,
 						data.connectionId,
@@ -191,7 +198,21 @@ function IPC() {
 							limit: data.limit
 						}
 					);
-					return { result: bson.serialize(result) };
+
+					const result: ShellEvalResult = {
+						result: bson.serialize(evalResult),
+						editable: false
+					};
+
+					if (Array.isArray(evalResult)
+						&& evalResult.every(document =>
+							document._id && isObjectId(document._id)
+						)
+					) {
+						result.editable = true;
+					}
+
+					return result;
 				} catch (err) {
 					console.error("`shell_eval` error");
 					console.error(err);

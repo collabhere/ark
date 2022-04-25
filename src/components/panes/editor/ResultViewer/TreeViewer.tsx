@@ -26,6 +26,7 @@ import { DateInput } from "@blueprintjs/datetime";
 import { Button } from "../../../../common/components/Button";
 import { DangerousActionPrompt } from "../../../dialogs/DangerousActionPrompt";
 import { handleErrors, notify } from "../../../../common/utils/misc";
+import { isObjectId } from "../../../../../util/misc";
 
 interface BSONTest {
 	type:
@@ -840,36 +841,49 @@ const DocumentPanel: FC<DocumentPanelProps> = (props) => {
 	);
 };
 
+interface Update {
+	_id: string;
+	update: {
+		[k in "$set" | "$unset"]: Ark.BSONTypes | undefined;
+	};
+}
+
 interface JSONViewerProps {
 	bson: Ark.BSONArray;
 	driverConnectionId: string;
 	shellConfig: Ark.ShellConfig;
 	onRefresh: () => void;
+	allowDocumentEdits: boolean;
 }
 
 export const TreeViewer: FC<JSONViewerProps> = (props) => {
-	const { bson, driverConnectionId, shellConfig, onRefresh } = props;
+	const {
+		bson,
+		driverConnectionId,
+		shellConfig,
+		allowDocumentEdits,
+		onRefresh,
+	} = props;
 
-	const [updates, setUpdates] = useState<
-		Array<{
-			_id: string;
-			update: {
-				[k in "$set" | "$unset"]: Ark.BSONTypes | undefined;
-			};
-		}>
-	>([]);
+	const [updates, setUpdates] = useState<Array<Update>>([]);
 	const [docsBeingEdited, setDocsBeingUpdated] = useState<
 		Set<Ark.BSONDocument>
 	>(new Set());
+	const [showSaveAllDialog, setShowSaveAllDialog] = useState(false);
+	const [showSaveDialog, setShowSaveDialog] = useState(false);
+	const [docBeingSaved, setDocBeingSaved] = useState<Ark.BSONDocument>();
 	const [docBeingDeleted, setDocBeingDeleted] = useState<Ark.BSONDocument>();
 	const [refreshCounts, setRefreshCounts] = useState({});
 
-	const driverArgs = (args) => ({
-		id: driverConnectionId,
-		database: shellConfig.database,
-		collection: shellConfig.collection,
-		...args,
-	});
+	const driverArgs = useCallback(
+		(args) => ({
+			id: driverConnectionId,
+			database: shellConfig.database,
+			collection: shellConfig.collection,
+			...args,
+		}),
+		[driverConnectionId, shellConfig.collection, shellConfig.database]
+	);
 
 	const startEditingDocument = useCallback((document: Ark.BSONDocument) => {
 		setDocsBeingUpdated((docs) => {
@@ -970,14 +984,14 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 						update: serialize(update.update),
 					})
 				)
-				.then(() => {
-					removeDocumentUpdates(update._id);
-				})
+				.then(() => update)
 				.catch((err) => {
 					removeDocumentUpdates(update._id);
 					handleErrors(err, driverConnectionId);
 				});
-		});
+		}).then((updates) =>
+			updates.forEach((update) => removeDocumentUpdates(update._id))
+		);
 	}, [driverArgs, driverConnectionId, removeDocumentUpdates, updates]);
 
 	const updateDocument = useCallback(
@@ -999,23 +1013,12 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 					.then((result) => {
 						removeDocumentUpdates(documentId);
 						onRefresh();
-						if (result.ack) {
-							notify({
-								title: "Update",
-								description: "Document updated succesfully",
-								type: "success",
-							});
-						} else {
-							notify({
-								title: "Update",
-								description: "Document update failed",
-								type: "error",
-							});
-						}
+						return result;
 					})
 					.catch((err) => {
 						removeDocumentUpdates(documentId);
 						handleErrors(err, driverConnectionId);
+						return Promise.reject(err);
 					});
 			} else {
 				console.log("no updates found for", documentId);
@@ -1107,12 +1110,14 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 					/>
 				),
 				header: {
-					menu: documentContextMenu(document),
+					menu: allowDocumentEdits ? documentContextMenu(document) : undefined,
 					primary: true,
 					key: index,
 					title: `(${String(index + 1)}) ${
-						document && document._id
+						document && document._id && isObjectId(document._id)
 							? `ObjectId("${document._id.toString()}")`
+							: document && document._id
+							? `${document._id}`
 							: ``
 					}`,
 					rightElement: docsBeingEdited.has(document) ? (
@@ -1121,14 +1126,10 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 								size="small"
 								text={"Save"}
 								variant={"link"}
-								onClick={{
-									callback: () => {
-										stopEditingDocument(document);
-									},
-									promise: (e) => {
-										e.stopPropagation();
-										return updateDocument(document._id.toString());
-									},
+								onClick={(e) => {
+									e.stopPropagation();
+									setDocBeingSaved(document);
+									setShowSaveDialog(true);
 								}}
 							/>
 							<Button
@@ -1150,10 +1151,9 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 		[
 			docsBeingEdited,
 			refreshCounts,
+			allowDocumentEdits,
 			documentContextMenu,
 			startEditingDocument,
-			stopEditingDocument,
-			updateDocument,
 			discardChanges,
 		]
 	);
@@ -1167,25 +1167,7 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 				{docsBeingEdited.size > 0 && (
 					<>
 						<Button
-							onClick={{
-								promise: () => updateAllDocuments(),
-								callback: (err) => {
-									if (err) {
-										notify({
-											title: "Update",
-											description: err.message,
-											type: "error",
-										});
-									} else {
-										onRefresh();
-										notify({
-											title: "Update",
-											description: "All documents updated",
-											type: "success",
-										});
-									}
-								},
-							}}
+							onClick={() => setShowSaveAllDialog(true)}
 							size={"small"}
 							icon="small-tick"
 							variant={"primary"}
@@ -1245,7 +1227,95 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 						title={"Deleting Document"}
 					/>
 				)}
+				{showSaveAllDialog && (
+					<DangerousActionPrompt
+						dangerousAction={() => updateAllDocuments()}
+						dangerousActionCallback={(err) => {
+							if (err) {
+								notify({
+									title: "Update",
+									description: err.message,
+									type: "error",
+								});
+							} else {
+								notify({
+									title: "Update",
+									description: "All documents updated",
+									type: "success",
+								});
+							}
+							setShowSaveAllDialog(false);
+							onRefresh();
+						}}
+						onCancel={() => {
+							setShowSaveAllDialog(false);
+						}}
+						prompt={
+							<UpdatesList
+								collection={shellConfig.collection}
+								updates={updates}
+							/>
+						}
+						title={"Saving Changes"}
+					/>
+				)}
+				{showSaveDialog && docBeingSaved && (
+					<DangerousActionPrompt
+						dangerousAction={() => updateDocument(docBeingSaved._id.toString())}
+						dangerousActionCallback={(err, result) => {
+							if (err || !result.ack) {
+								notify({
+									title: "Update",
+									description: "Document update failed",
+									type: "error",
+								});
+							} else {
+								notify({
+									title: "Update",
+									description: "Document updated succesfully",
+									type: "success",
+								});
+							}
+							setShowSaveDialog(false);
+							onRefresh();
+						}}
+						onCancel={() => {
+							setShowSaveDialog(false);
+						}}
+						prompt={
+							<UpdatesList
+								collection={shellConfig.collection}
+								updates={updates.filter(
+									(update) => update._id === docBeingSaved._id.toString()
+								)}
+							/>
+						}
+						title={"Saving Changes"}
+					/>
+				)}
 			</>
+		</div>
+	);
+};
+
+interface UpdateListProps {
+	updates: Update[];
+	collection: string;
+}
+
+const UpdatesList: FC<UpdateListProps> = (props) => {
+	const { updates } = props;
+	return (
+		<div className="updates-list">
+			{updates.length
+				? updates.map((update) => (
+						<div className="item" key={update._id.toString()}>
+							<p>{`ID - ${update._id.toString()}`}</p>
+
+							<code>{JSON.stringify(update.update)}</code>
+						</div>
+				  ))
+				: `No changes were made.`}
 		</div>
 	);
 };

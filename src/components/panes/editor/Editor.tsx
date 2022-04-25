@@ -118,7 +118,7 @@ export const Editor: FC<EditorProps> = (props) => {
 			shellId
 				? window.ark.shell
 						.eval(shellId, _code, storedConnectionId, queryParams)
-						.then(function ({ result, err }) {
+						.then(function ({ editable, result, err }) {
 							if (err) {
 								console.log("exec shell");
 								console.log(err);
@@ -126,16 +126,25 @@ export const Editor: FC<EditorProps> = (props) => {
 								return;
 							}
 
-							const bson = deserialize(result ? result : Buffer.from([]));
+							if (result) {
+								const bson = deserialize(result ? result : Buffer.from([]));
 
-							const bsonArray: Ark.BSONArray = bsonTest(bson)
-								? Object.values(bson)
-								: [bson];
+								const bsonArray: Ark.BSONArray = bsonTest(bson)
+									? Object.values(bson)
+									: [bson];
 
-							setCurrentResult({
-								type: "tree",
-								bson: bsonArray,
-							});
+								setCurrentResult({
+									type: "tree",
+									bson: bsonArray,
+									allowDocumentEdits: editable,
+								});
+							} else {
+								notify({
+									title: "Error",
+									description: "Did not get result from main process.",
+									type: "error",
+								});
+							}
 						})
 						.catch(function (err) {
 							console.error("exec shell error: ", err);
@@ -355,79 +364,83 @@ export const Editor: FC<EditorProps> = (props) => {
 						</span>
 						<span>{user || "no user"}</span>
 					</div>
-					<Button
-						size="small"
-						icon={"floppy-disk"}
-						onClick={() => {
-							window.ark
-								.browseForDirs("Select A Save Location", "Set")
-								.then((result) => {
-									const { dirs } = result;
-									const saveLocation = dirs[dirs.length - 1];
-									return window.ark.scripts
-										.saveAs({
-											code,
-											saveLocation,
-											storedConnectionId: storedConnectionId,
-											fileName: "saved-script-1.js",
-										})
-										.then((script) => {
-											setSavedScriptId(script.id);
+					{shellId && !shellLoadError && (
+						<>
+							<Button
+								size="small"
+								icon={"floppy-disk"}
+								onClick={() => {
+									window.ark
+										.browseForDirs("Select A Save Location", "Set")
+										.then((result) => {
+											const { dirs } = result;
+											const saveLocation = dirs[dirs.length - 1];
+											return window.ark.scripts
+												.saveAs({
+													code,
+													saveLocation,
+													storedConnectionId: storedConnectionId,
+													fileName: "saved-script-1.js",
+												})
+												.then((script) => {
+													setSavedScriptId(script.id);
+												});
 										});
-								});
-						}}
-						popoverOptions={{
-							hover: {
-								content: "Save as",
-							},
-						}}
-					/>
-					{savedScriptId && (
-						<Button
-							size="small"
-							icon={"saved"}
-							onClick={() => {
-								return window.ark.scripts
-									.save({
-										code,
-										id: savedScriptId,
-									})
-									.then((script) => {
-										setSavedScriptId(script.id);
-									});
-							}}
-							popoverOptions={{
-								hover: {
-									content: "Save",
-								},
-							}}
-						/>
-					)}
-					{!executing && (
-						<Button
-							size="small"
-							icon={"play"}
-							variant="success"
-							onClick={() => exec(code)}
-							popoverOptions={{
-								hover: {
-									content: "Run",
-								},
-							}}
-						/>
-					)}
-					{executing && (
-						<Button
-							size="small"
-							icon={"stop"}
-							variant="danger"
-							onClick={() => terminateExecution()}
-							popoverOptions={{
-								hover: {
-									content: "Stop",
-								},
-							}}
-						/>
+								}}
+								popoverOptions={{
+									hover: {
+										content: "Save as",
+									},
+								}}
+							/>
+							{savedScriptId && (
+								<Button
+									size="small"
+									icon={"saved"}
+									onClick={() => {
+										return window.ark.scripts
+											.save({
+												code,
+												id: savedScriptId,
+											})
+											.then((script) => {
+												setSavedScriptId(script.id);
+											});
+									}}
+									popoverOptions={{
+										hover: {
+											content: "Save",
+										},
+									}}
+								/>
+							)}
+							{!executing && (
+								<Button
+									size="small"
+									icon={"play"}
+									variant="success"
+									onClick={() => exec(code)}
+									popoverOptions={{
+										hover: {
+											content: "Run",
+										},
+									}}
+								/>
+							)}
+							{executing && (
+								<Button
+									size="small"
+									icon={"stop"}
+									variant="danger"
+									onClick={() => terminateExecution()}
+									popoverOptions={{
+										hover: {
+											content: "Stop",
+										},
+									}}
+								/>
+							)}
+						</>
 					)}
 				</div>
 				{shellId ? (
@@ -470,6 +483,7 @@ export const Editor: FC<EditorProps> = (props) => {
 				<ResultViewer
 					bson={currentResult.bson}
 					type={currentResult.type}
+					allowDocumentEdits={currentResult.allowDocumentEdits}
 					shellConfig={shellConfig}
 					driverConnectionId={storedConnectionId}
 					code={code}
