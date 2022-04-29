@@ -87,12 +87,10 @@ interface SwitchableInputProps {
 	value: string | Date | number | boolean | ObjectId | null;
 	editable?: boolean;
 	editableKey?: boolean;
-	disableContextMenu?: boolean;
 }
 
 const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 	const {
-		onAction,
 		onCommit,
 		onKeyRemove,
 		onChange,
@@ -101,7 +99,6 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 		value,
 		editable,
 		editableKey,
-		disableContextMenu,
 	} = props;
 
 	const [type, setType] = useState(initialType);
@@ -310,12 +307,7 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 	);
 
 	return (
-		<ContentRow
-			onContextMenuAction={(action) => onAction && onAction(action)}
-			key={field}
-			disableContextMenu={disableContextMenu}
-			editable={!!editable}
-		>
+		<>
 			<div className="left">{editableKey ? keyInput : field}</div>
 			<div className="modified">
 				{isModified && editable && (
@@ -323,7 +315,7 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 				)}
 			</div>
 			<div className="right">{jsx}</div>
-		</ContentRow>
+		</>
 	);
 };
 
@@ -338,16 +330,16 @@ enum ContentRowActions {
 
 interface ContentRowProps {
 	onContextMenuAction?: (action: ContentRowActions) => void;
-	disableContextMenu?: boolean;
-	editable: boolean;
+	enableInlineEdits: boolean;
+	allowModifyActions: boolean;
 }
 
 const ContentRow: FC<ContentRowProps> = (props) => {
 	const {
 		children,
 		onContextMenuAction = () => {},
-		disableContextMenu,
-		editable,
+		enableInlineEdits,
+		allowModifyActions,
 	} = props;
 
 	const items: CreateMenuItem[] = [
@@ -369,44 +361,45 @@ const ContentRow: FC<ContentRowProps> = (props) => {
 				},
 			],
 		},
-		{
-			divider: true,
-			key: "div_1",
-		},
-		{
-			item: "Delete Document",
-			key: ContentRowActions.delete_document,
-			cb: () => onContextMenuAction(ContentRowActions.delete_document),
-			icon: "trash",
-			intent: "danger",
-		},
 	];
 
-	items.splice(
-		1,
-		0,
-		editable
-			? {
-					item: "Discard Edits",
-					cb: () => onContextMenuAction(ContentRowActions.discard_edit),
-					intent: "primary",
-					icon: "cross",
-					key: ContentRowActions.discard_edit,
-			  }
-			: {
-					item: "Edit Document",
-					cb: () => onContextMenuAction(ContentRowActions.edit_document),
-					intent: "primary",
-					icon: "edit",
-					key: ContentRowActions.edit_document,
-			  }
-	);
+	if (allowModifyActions) {
+		items.push(
+			{
+				divider: true,
+				key: "div_1",
+			},
+			{
+				item: "Delete Document",
+				key: ContentRowActions.delete_document,
+				cb: () => onContextMenuAction(ContentRowActions.delete_document),
+				icon: "trash",
+				intent: "danger",
+			}
+		);
 
-	return disableContextMenu ? (
-		<div onContextMenu={(e) => e.stopPropagation()} className={"content-row"}>
-			{children}
-		</div>
-	) : (
+		items.splice(
+			1,
+			0,
+			enableInlineEdits
+				? {
+						item: "Discard Edits",
+						cb: () => onContextMenuAction(ContentRowActions.discard_edit),
+						intent: "primary",
+						icon: "cross",
+						key: ContentRowActions.discard_edit,
+				  }
+				: {
+						item: "Edit Document",
+						cb: () => onContextMenuAction(ContentRowActions.edit_document),
+						intent: "primary",
+						icon: "edit",
+						key: ContentRowActions.edit_document,
+				  }
+		);
+	}
+
+	return (
 		<ContextMenu2
 			className="context-menu"
 			content={createContextMenuItems(items)}
@@ -418,7 +411,8 @@ const ContentRow: FC<ContentRowProps> = (props) => {
 
 interface ContentBuilderOptions {
 	document: Ark.BSONDocument | Ark.BSONArray | Ark.BSONTypes[];
-	editable: boolean;
+	enableInlineEdits: boolean;
+	allowModifyActions: boolean;
 	onChange(
 		changed: "update_value" | "delete_key",
 		key: string,
@@ -438,7 +432,13 @@ interface ContentBuilder {
 const contentBuilder: ContentBuilder = (
 	contentBuilderOptions: ContentBuilderOptions
 ) => {
-	const { document, editable, onChange, onRowAction } = contentBuilderOptions;
+	const {
+		document,
+		enableInlineEdits,
+		onChange,
+		onRowAction,
+		allowModifyActions,
+	} = contentBuilderOptions;
 
 	const onValueChange = (key: string, newValue: Ark.BSONTypes) =>
 		onChange && onChange("update_value", key, newValue);
@@ -448,16 +448,19 @@ const contentBuilder: ContentBuilder = (
 	const rows = Object.entries(document).reduce<React.ReactNode[]>(
 		(rows, [key, value], rowIdx) => {
 			const { type } = testBsonValue(value);
+
+			let inputJSX;
+
 			// console.log("KEY", key, "TYPE", type, "VALUE", value);
 			switch (type) {
 				case "oid": {
-					rows.push(
+					inputJSX = (
 						<SwitchableInput
 							key={key + "_idx_" + rowIdx}
 							initialType={type}
 							field={key}
 							value={value as ObjectId}
-							editable={editable}
+							editable={enableInlineEdits}
 							onAction={(action) => onRowAction(action, key, value)}
 							onCommit={onValueChange}
 							onKeyRemove={onKeyRemove}
@@ -466,13 +469,13 @@ const contentBuilder: ContentBuilder = (
 					break;
 				}
 				case "isodate": {
-					rows.push(
+					inputJSX = (
 						<SwitchableInput
 							key={key + "_idx_" + rowIdx}
 							initialType={"date"}
 							field={key}
 							value={value as Date}
-							editable={editable}
+							editable={enableInlineEdits}
 							onAction={(action) => onRowAction(action, key, value)}
 							onCommit={onValueChange}
 							onKeyRemove={onKeyRemove}
@@ -481,13 +484,13 @@ const contentBuilder: ContentBuilder = (
 					break;
 				}
 				case "number": {
-					rows.push(
+					inputJSX = (
 						<SwitchableInput
 							key={key + "_idx_" + rowIdx}
 							initialType={type}
 							field={key}
 							value={value as number}
-							editable={editable}
+							editable={enableInlineEdits}
 							onAction={(action) => onRowAction(action, key, value)}
 							onCommit={onValueChange}
 							onKeyRemove={onKeyRemove}
@@ -496,13 +499,13 @@ const contentBuilder: ContentBuilder = (
 					break;
 				}
 				case "boolean": {
-					rows.push(
+					inputJSX = (
 						<SwitchableInput
 							key={key + "_idx_" + rowIdx}
 							initialType={type}
 							field={key}
 							value={value as boolean}
-							editable={editable}
+							editable={enableInlineEdits}
 							onAction={(action) => onRowAction(action, key, value)}
 							onCommit={onValueChange}
 							onKeyRemove={onKeyRemove}
@@ -512,13 +515,13 @@ const contentBuilder: ContentBuilder = (
 				}
 				case "null":
 				case "string": {
-					rows.push(
+					inputJSX = (
 						<SwitchableInput
 							key={key + "_idx_" + rowIdx}
 							initialType={"text"}
 							field={key}
 							value={String(value) as string}
-							editable={editable}
+							editable={enableInlineEdits}
 							onAction={(action) => onRowAction(action, key, value)}
 							onCommit={onValueChange}
 							onKeyRemove={onKeyRemove}
@@ -528,7 +531,7 @@ const contentBuilder: ContentBuilder = (
 				}
 				case "primitive[]": {
 					const bsonTypes = value as Ark.BSONTypes[];
-					rows.push(
+					inputJSX = (
 						<CollapseList
 							key={key}
 							content={[
@@ -556,7 +559,7 @@ const contentBuilder: ContentBuilder = (
 				}
 				case "subdocument[]": {
 					const subdocumentArray = value as Ark.BSONArray;
-					rows.push(
+					inputJSX = (
 						<CollapseList
 							key={key}
 							content={[
@@ -595,7 +598,7 @@ const contentBuilder: ContentBuilder = (
 				}
 				case "subdocument": {
 					const document = value as Ark.BSONDocument;
-					rows.push(
+					inputJSX = (
 						<CollapseList
 							key={key + "_idx_" + rowIdx}
 							content={[
@@ -623,7 +626,7 @@ const contentBuilder: ContentBuilder = (
 				}
 				case "unknown":
 				default:
-					rows.push(
+					inputJSX = (
 						<div style={{ display: "flex" }} key={key}>
 							<div style={{ width: "50%" }}>{key}</div>
 							<div style={{ width: "50%" }}>{}</div>
@@ -631,12 +634,23 @@ const contentBuilder: ContentBuilder = (
 					);
 			}
 
+			rows.push(
+				<ContentRow
+					onContextMenuAction={(action) => onRowAction(action, key, value)}
+					key={key}
+					enableInlineEdits={!!enableInlineEdits}
+					allowModifyActions={allowModifyActions}
+				>
+					{inputJSX}
+				</ContentRow>
+			);
+
 			return rows;
 		},
 		[]
 	);
 
-	if (editable) {
+	if (enableInlineEdits) {
 		rows.push(<NewFieldRows key={rows.length} onChange={onValueChange} />);
 	}
 
@@ -748,7 +762,6 @@ const NewFieldRows: FC<NewFieldRowsProps> = (props) => {
 								value={field.value as string}
 								editable={!field.commited}
 								editableKey={!field.commited}
-								disableContextMenu
 							/>
 						</div>
 						{rows.length - 1 === idx && (
@@ -783,7 +796,8 @@ const NewFieldRows: FC<NewFieldRowsProps> = (props) => {
 
 interface DocumentPanelProps {
 	document: Ark.BSONDocument | Ark.BSONTypes[];
-	editable: boolean;
+	allowModifyActions: boolean;
+	enableInlineEdits: boolean;
 	onDocumentModified: ContentBuilderOptions["onChange"];
 	onDocumentEdit: () => void;
 	onDocumentDelete: () => void;
@@ -792,7 +806,8 @@ interface DocumentPanelProps {
 const DocumentPanel: FC<DocumentPanelProps> = (props) => {
 	const {
 		document,
-		editable = false,
+		allowModifyActions,
+		enableInlineEdits = false,
 		onDocumentModified,
 		onDocumentEdit,
 		onDocumentDelete,
@@ -832,7 +847,8 @@ const DocumentPanel: FC<DocumentPanelProps> = (props) => {
 		<>
 			{contentBuilder({
 				document,
-				editable,
+				enableInlineEdits,
+				allowModifyActions,
 				onChange: onDocumentModified,
 				onRowAction: (action, key, value) =>
 					onRowAction(action, String(key), value),
@@ -1038,7 +1054,7 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 	);
 
 	const documentContextMenu = useCallback(
-		(document: any) => {
+		(document: any, allowEdits: boolean) => {
 			const items: CreateMenuItem[] = [
 				{
 					item: "Copy JSON",
@@ -1047,42 +1063,47 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 					icon: "comparison",
 					key: ContentRowActions.copy_json,
 				},
-				{
-					divider: true,
-					key: "div_2",
-				},
-				{
-					item: "Delete Document",
-					cb: () => setDocBeingDeleted(document),
-					icon: "trash",
-					intent: "danger",
-					key: ContentRowActions.delete_document,
-				},
 			];
 
-			items.splice(
-				1,
-				0,
-				docsBeingEdited.has(document)
-					? {
-							item: "Discard Edits",
-							cb: () => {
-								discardChanges(document);
-							},
-							intent: "primary",
-							icon: "cross",
-							key: ContentRowActions.discard_edit,
-					  }
-					: {
-							item: "Edit Document",
-							cb: () => {
-								startEditingDocument(document);
-							},
-							intent: "primary",
-							icon: "edit",
-							key: ContentRowActions.edit_document,
-					  }
-			);
+			if (allowEdits) {
+				items.push(
+					{
+						divider: true,
+						key: "div_2",
+					},
+					{
+						item: "Delete Document",
+						cb: () => setDocBeingDeleted(document),
+						icon: "trash",
+						intent: "danger",
+						key: ContentRowActions.delete_document,
+					}
+				);
+
+				items.splice(
+					1,
+					0,
+					docsBeingEdited.has(document)
+						? {
+								item: "Discard Edits",
+								cb: () => {
+									discardChanges(document);
+								},
+								intent: "primary",
+								icon: "cross",
+								key: ContentRowActions.discard_edit,
+						  }
+						: {
+								item: "Edit Document",
+								cb: () => {
+									startEditingDocument(document);
+								},
+								intent: "primary",
+								icon: "edit",
+								key: ContentRowActions.edit_document,
+						  }
+				);
+			}
 
 			return createContextMenuItems(items);
 		},
@@ -1094,7 +1115,8 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 			return {
 				jsx: (
 					<DocumentPanel
-						editable={docsBeingEdited.has(document)}
+						allowModifyActions={allowDocumentEdits}
+						enableInlineEdits={docsBeingEdited.has(document)}
 						document={document}
 						key={(refreshCounts[document._id] || 0) + "" + index}
 						onDocumentModified={(change, key, value) => {
@@ -1110,7 +1132,7 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 					/>
 				),
 				header: {
-					menu: allowDocumentEdits ? documentContextMenu(document) : undefined,
+					menu: documentContextMenu(document, allowDocumentEdits),
 					primary: true,
 					key: index,
 					title: `(${String(index + 1)}) ${
