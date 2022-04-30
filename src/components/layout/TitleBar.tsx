@@ -7,15 +7,16 @@ import { VscFileCode, VscClose, VscWatch, VscTerminal } from "react-icons/vsc";
 import { useState } from "react";
 import { SelectConnectionForFilePath } from "../dialogs/SelectConnectionForScript";
 import SubMenu from "antd/lib/menu/SubMenu";
-import { SettingsContext } from "../../App";
 import { Dialog } from "../../common/components/Dialog";
 import { Checkbox, InputGroup } from "@blueprintjs/core";
 import { notify } from "../../common/utils/misc";
 import { useEffect } from "react";
+import { SettingsContext } from "./BaseContextProvider";
 
-export const PageHeader = (): JSX.Element => {
-	const [openScriptPath, setOpenScriptPath] = useState("");
+export const TitleBar = (): JSX.Element => {
 	const { settings, setSettings } = useContext(SettingsContext);
+
+	const [openScriptPath, setOpenScriptPath] = useState("");
 	const [timeoutDialog, setTimeoutDialog] = useState(false);
 	const [localSettings, setLocalsettings] = useState({
 		shellTimeout: "120",
@@ -69,9 +70,9 @@ export const PageHeader = (): JSX.Element => {
 	);
 
 	return (
-		<div className="PageHeader">
-			<div className="PageHeaderComponent">
-				<div className="PageHeaderLogo">Ark</div>
+		<div className="title-bar">
+			<div className="header-container">
+				<div className="logo">Ark</div>
 				<div>
 					<Dropdown
 						overlay={
@@ -185,14 +186,14 @@ export const PageHeader = (): JSX.Element => {
 						}
 						trigger={["click"]}
 					>
-						<div className="PageHeaderItem">
+						<div className="header-item">
 							<Button size="small" text="Options" />
 						</div>
 					</Dropdown>
 				</div>
 			</div>
 
-			<div className="PageHeaderComponent">
+			<div className="header-container">
 				<Button
 					icon="minimize"
 					onClick={() => window.ark.titlebar.minimize()}

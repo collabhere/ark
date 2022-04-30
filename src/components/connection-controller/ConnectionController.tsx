@@ -1,77 +1,32 @@
 import "./styles.less";
-import React, { FC, useCallback, useEffect, useState } from "react";
+import React, { FC, useCallback, useContext, useEffect, useState } from "react";
 import { Icon, Card, Elevation } from "@blueprintjs/core";
 import { dispatch, listenEffect } from "../../common/utils/events";
 import { Resizable } from "re-resizable";
 import { Button } from "../../common/components/Button";
-
-interface ManagedConnection extends Ark.StoredConnection {
-	active?: boolean;
-}
+import {
+	ConnectionsContext,
+	ManagedConnection,
+} from "../layout/BaseContextProvider";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface ConnectionManagerProps {}
 
-export const ConnectionManager: FC<ConnectionManagerProps> = () => {
+export const ConnectionController: FC<ConnectionManagerProps> = () => {
+	const {
+		connections,
+		setConnections,
+		load,
+		connect,
+		disconnect,
+		deleteConnectionOnDisk,
+	} = useContext(ConnectionsContext);
+
 	const [isOpen, setIsOpen] = useState(false);
-	const [connections, setConnections] = useState<ManagedConnection[]>([]);
 	const [listViewMode, setListViewMode] = useState<"detailed" | "compact">(
 		"detailed"
 	);
 	const [listLoadError, setListLoadError] = useState<JSX.Element>();
-
-	const connect = useCallback((id: string) => {
-		window.ark.driver.run("connection", "connect", { id }).then(() =>
-			Promise.all([
-				window.ark.driver.run("connection", "load", { id }),
-				window.ark.driver.run("connection", "fetchIcon", { id }),
-			]).then(([connection, icon]) => {
-				const managed: ManagedConnection = { ...connection, active: true };
-				setConnections((connections) => [
-					...connections.filter((conn) => conn.id !== managed.id),
-					managed,
-				]);
-				dispatch("sidebar:add_item", {
-					id: connection.id,
-					name: connection.name,
-					icon: connection.icon ? icon : undefined,
-				});
-			})
-		);
-	}, []);
-
-	const disconnect = useCallback((id: string) => {
-		window.ark.driver.run("connection", "disconnect", { id }).then(() => {
-			setConnections((connections) => {
-				const idx = connections.findIndex((c) => c.id === id);
-				connections[idx].active = false;
-				return [...connections];
-			});
-			dispatch("sidebar:remove_item", id);
-		});
-	}, []);
-
-	const deleteConnection = useCallback(
-		(id: string) => {
-			const connection = connections.find((c) => c.id === id);
-			if (connection) {
-				if (connection.active) {
-					disconnect(id);
-				}
-
-				window.ark.driver
-					.run("connection", "delete", { id: connection.id })
-					.then(() => {
-						setConnections((connections) => {
-							const connectionIdx = connections.findIndex((c) => c.id === id);
-							connections.splice(connectionIdx, 1);
-							return [...connections];
-						});
-					});
-			}
-		},
-		[connections, disconnect]
-	);
 
 	const openEditOrCloneConnection = useCallback(
 		(connectionDetails: ManagedConnection, mode: "edit" | "clone") => {
@@ -89,21 +44,15 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 
 	/** On-load effect */
 	useEffect(() => {
-		window.ark.driver
-			.run("connection", "list", undefined)
-			.then((connections) => {
-				setConnections(Object.values(connections));
-			})
-			.catch((err) => {
-				setListLoadError(
-					<div>
-						<span>Something went wrong with loading the list.</span>
-						<p>Error: {err.message}</p>
-					</div>
-				);
-			});
-		return () => setConnections([]);
-	}, []);
+		load().catch((err) => {
+			setListLoadError(
+				<div>
+					<span>Something went wrong with loading the list.</span>
+					<p>Error: {err.message}</p>
+				</div>
+			);
+		});
+	}, [load]);
 
 	useEffect(
 		() =>
@@ -151,7 +100,7 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 					},
 				},
 			]),
-		[disconnect]
+		[disconnect, setConnections]
 	);
 
 	return isOpen ? (
@@ -191,7 +140,7 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 					onDisconnect={(conn) => disconnect(conn.id)}
 					onEdit={(conn) => openEditOrCloneConnection(conn, "edit")}
 					onClone={(conn) => openEditOrCloneConnection(conn, "clone")}
-					onDelete={(conn) => deleteConnection(conn.id)}
+					onDelete={(conn) => deleteConnectionOnDisk(conn.id)}
 				/>
 			</div>
 		</Resizable>
