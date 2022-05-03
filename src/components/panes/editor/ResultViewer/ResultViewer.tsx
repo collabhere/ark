@@ -1,4 +1,3 @@
-import TextArea from "antd/lib/input/TextArea";
 import React, { FC, useCallback, useState } from "react";
 import { Button } from "../../../../common/components/Button";
 import { Dialog } from "../../../../common/components/Dialog";
@@ -7,7 +6,13 @@ import "../../../../common/styles/layout.less";
 import "./styles.less";
 import { TreeViewer } from "./TreeViewer";
 import { JSONViewer } from "./JSONViewer";
-import { InputGroup, RadioGroup, Radio, Switch } from "@blueprintjs/core";
+import {
+	InputGroup,
+	TextArea,
+	RadioGroup,
+	Radio,
+	Switch,
+} from "@blueprintjs/core";
 
 export type ResultViewerProps = {
 	type: "json" | "tree";

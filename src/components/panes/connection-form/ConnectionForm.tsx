@@ -7,8 +7,7 @@ import { notify } from "../../../common/utils/misc";
 import { parse } from "mongodb-uri";
 import { RcFile } from "antd/lib/upload";
 import { UploadFile } from "antd/lib/upload/interface";
-import TextArea from "antd/lib/input/TextArea";
-import { Checkbox, InputGroup } from "@blueprintjs/core";
+import { Checkbox, InputGroup, TextArea } from "@blueprintjs/core";
 
 export interface ConnectionFormProps {
 	connectionParams?: Ark.StoredConnection;
