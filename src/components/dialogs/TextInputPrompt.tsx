@@ -1,4 +1,4 @@
-import { Input } from "antd";
+import { InputGroup } from "@blueprintjs/core";
 import React, { FC, useState } from "react";
 import { Dialog } from "../../common/components/Dialog";
 import { PromiseCompleteCallback } from "../../common/utils/misc";
@@ -41,7 +41,7 @@ export const TextInputPrompt: FC<TextInputPromptProps> = ({
 				return (
 					<div key={input.key}>
 						<span>{input.label}</span>
-						<Input
+						<InputGroup
 							value={inputValues[input.key]}
 							onChange={(e) =>
 								setInputValues((state) => {

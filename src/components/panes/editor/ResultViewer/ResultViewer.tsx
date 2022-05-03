@@ -235,7 +235,7 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 									<span>File name: </span>
 								</div>
 								<div>
-									<Input
+									<InputGroup
 										value={exportOptions.fileName}
 										onChange={(e) => changeExportOptions("fileName", e)}
 									/>
