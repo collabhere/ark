@@ -13,6 +13,8 @@ import { MongoClient, ListDatabasesResult } from "mongodb";
 import { Server } from "net";
 import { UploadFile } from "antd/lib/upload/interface";
 import { isObjectId } from "../../util/misc";
+import { IpcMainInvokeEvent } from "electron/main";
+import { getConnectionUri } from "../core/driver/connection";
 
 export interface ShellEvalResult {
 	editable: boolean;
@@ -40,7 +42,6 @@ interface ExportData extends InvokeJS {
 }
 
 interface CreateShell {
-	uri: string;
 	contextDB: string;
 	storedConnectionId: string;
 }
@@ -124,6 +125,37 @@ export interface SettingsAction {
 	settings: Ark.Settings;
 }
 
+interface IPCHandle {
+	(event: IpcMainInvokeEvent, data: any): Promise<any>;
+}
+
+interface IPCHandlerOptions<ArgType, ReturnType> {
+	channel: string;
+	controller: (args: ArgType) => Promise<ReturnType>;
+	onEventLog?: (args: ArgType) => string;
+}
+
+function ipcHandlers<ArgType, ReturnType = any>({
+	channel,
+	controller,
+	onEventLog,
+}: IPCHandlerOptions<ArgType, ReturnType>): [string, IPCHandle] {
+
+	const handle: IPCHandle = async (event, data) => {
+
+		console.log(`[${channel}] ${onEventLog ? onEventLog(data) : `data=${JSON.stringify(data).slice(0, 256)}`}`)
+
+		try {
+			const result = await controller(data);
+			return result;
+		} catch (err) {
+			return { err };
+		}
+	}
+
+	return [channel, handle];
+}
+
 function IPC() {
 	const shells = createMemoryStore<StoredShellValue>();
 
@@ -141,250 +173,252 @@ function IPC() {
 
 	return {
 		init: ({ window }: IPCInitParams) => {
-			ipcMain.handle("driver_run", async (event, data: RunCommandInput) => {
-				try {
-					console.log(`calling ${data.library}.${data.action}() ${data.args ? `args=${JSON.stringify(data.args).slice(0, 100)}` : ``}`);
-					const result = await driver.run(data.library as any, data.action as any, data.args)
-					return result;
-				} catch (err) {
-					console.error("`driver_run` error");
-					console.error(err);
-					return { err };
-				}
-			});
+			ipcMain.handle(
+				...ipcHandlers<RunCommandInput>({
+					channel: "driver_run",
+					controller: async (data) => {
+						return driver.run(data.library as any, data.action as any, data.args);
+					},
+					onEventLog: (data) => `calling ${data.library}.${data.action}() ${data.args ? `args=${JSON.stringify(data.args).slice(0, 100)}` : ``}`
+				})
+			);
 
-			ipcMain.handle("shell_create", async (event, data: CreateShell) => {
-				try {
-					const { uri, contextDB, storedConnectionId } = data;
+			ipcMain.handle(
+				...ipcHandlers<CreateShell>({
+					channel: "shell_create",
+					controller: async (data) => {
+						const { contextDB, storedConnectionId } = data;
 
-					const storedConnection = await driver.run("connection", "load", { id: storedConnectionId });
-					const driverConnection = await driver.run("connection", "info", { id: storedConnectionId });
-					const mongoOptions = {
-						...storedConnection.options,
-						replicaSet:
-							driverConnection.replicaSetDetails &&
-								driverConnection.replicaSetDetails.set
-								? driverConnection.replicaSetDetails.set
-								: undefined,
-					};
-					const shellExecutor = await createEvaluator({ uri, mongoOptions }, DriverDependency);
-					const shell = {
-						id: nanoid(),
-						executor: shellExecutor,
-						database: contextDB,
-						uri
-					};
-					shells.save(shell.id, shell);
-					console.log(`created shell id=${shell.id} storedConnectionId=${storedConnectionId} uri=${uri} db=${contextDB}`);
-					return { id: shell.id };
-				} catch (err) {
-					console.error("`shell_create` error");
-					console.error(err);
-					return { err };
-				}
-			});
+						const storedConnection = await driver.run("connection", "load", { id: storedConnectionId });
+						const driverConnection = await driver.run("connection", "info", { id: storedConnectionId });
 
-			ipcMain.handle("shell_eval", async (event, data: InvokeJS) => {
-				try {
-					const shell = shells.get(data.shell);
-					if (!shell) throw new Error("Invalid shell");
-					const evalResult = await shell.executor.evaluate(
-						data.code,
-						shell.database,
-						data.connectionId,
-						{
-							page: data.page,
-							timeout: data.timeout,
-							limit: data.limit
-						}
-					);
+						const uri = getConnectionUri(storedConnection);
 
-					const result: ShellEvalResult = {
-						result: bson.serialize(evalResult),
-						editable: false
-					};
+						const mongoOptions = {
+							...storedConnection.options,
+							replicaSet:
+								driverConnection.replicaSetDetails &&
+									driverConnection.replicaSetDetails.set
+									? driverConnection.replicaSetDetails.set
+									: undefined,
+						};
 
-					if (Array.isArray(evalResult)
-						&& evalResult.every(document =>
-							document._id && isObjectId(document._id)
-						)
-					) {
-						result.editable = true;
+						const shellExecutor = await createEvaluator({ uri, mongoOptions }, DriverDependency);
+						const shell = {
+							id: nanoid(),
+							executor: shellExecutor,
+							database: contextDB,
+							uri
+						};
+						shells.save(shell.id, shell);
+						console.log(`shell_create id=${shell.id} storedConnectionId=${storedConnectionId} uri=${uri} db=${contextDB}`);
+						return { id: shell.id };
 					}
+				})
+			);
 
-					return result;
-				} catch (err) {
-					console.error("`shell_eval` error");
-					console.error(err);
-					return { err };
-				}
-			});
+			ipcMain.handle(
+				...ipcHandlers<InvokeJS>({
+					channel: "shell_eval",
+					controller: async (data) => {
+						const shell = shells.get(data.shell);
+						if (!shell) throw new Error("Invalid shell");
+						const evalResult = await shell.executor.evaluate(
+							data.code,
+							shell.database,
+							data.connectionId,
+							{
+								page: data.page,
+								timeout: data.timeout,
+								limit: data.limit
+							}
+						);
 
-			ipcMain.handle("shell_export", async (event, data: ExportData) => {
-				try {
-					const shell = shells.get(data.shell);
-					if (!shell) throw new Error("Invalid shell");
-					await shell.executor.export(data.code, shell.database, data.connectionId, data.options);
-					return;
-				} catch (err) {
-					console.error("`shell_export` error");
-					console.error(err);
-					return Promise.reject(err);
-				}
-			});
+						const result: ShellEvalResult = {
+							result: bson.serialize(evalResult),
+							editable: false
+						};
 
-			ipcMain.handle("shell_destroy", async (event, data: DestroyShell) => {
-				try {
-					const shell = shells.get(data.shell);
-					if (!shell) throw new Error("No shell to destroy");
-					await shell.executor.disconnect();
-					console.log(`shell destroy id=${shell.id} db=${shell.database}`);
-					shells.drop(data.shell);
-					return { id: data.shell };
-				} catch (err) {
-					console.error("`shell_destroy` error");
-					console.error(err);
-					return { err };
-				}
-			});
+						if (Array.isArray(evalResult)
+							&& evalResult.every(document =>
+								document._id && isObjectId(document._id)
+							)
+						) {
+							result.editable = true;
+						}
 
-			ipcMain.handle("browse_fs", async (event, data: BrowseFS) => {
-				const { buttonLabel, title, type } = data;
-				if (type === "dir") {
-					const result = await dialog.showOpenDialog(window, {
-						title,
-						buttonLabel,
-						properties: ["openDirectory"]
-					});
-					return {
-						dirs: result.filePaths
-					};
-				} else if (type === "file") {
-					const result = await dialog.showOpenDialog(window, {
-						title,
-						buttonLabel,
-						properties: ["openFile"]
-					});
-					return {
-						path: result.filePaths[0]
-					};
-				}
-			});
+						return result;
+					}
+				})
+			);
 
-			ipcMain.handle("script_actions", async (event, data: ScriptActionData) => {
-				try {
-					if (data.action === 'open') {
-						const { fileLocation, storedConnectionId } = data.params;
+			ipcMain.handle(
+				...ipcHandlers<ExportData>({
+					channel: "shell_export",
+					controller: async (data) => {
+						const shell = shells.get(data.shell);
+						if (!shell) throw new Error("Invalid shell");
+						await shell.executor.export(data.code, shell.database, data.connectionId, data.options);
+						return;
+					}
+				})
+			);
 
-						if (fileLocation && storedConnectionId) {
-							const [fileName] = fileLocation.match(/(?<=\/)[ \w-]+?(\.)js/i) || [];
-							const code = (await fs.promises.readFile(fileLocation)).toString();
+			ipcMain.handle(
+				...ipcHandlers<DestroyShell>({
+					channel: "shell_destroy",
+					controller: async (data) => {
+						const shell = shells.get(data.shell);
+						if (!shell) throw new Error("No shell to destroy");
+						await shell.executor.disconnect();
+						console.log(`shell destroy id=${shell.id} db=${shell.database}`);
+						shells.drop(data.shell);
+						return { id: data.shell };
+
+					}
+				})
+			);
+
+			ipcMain.handle(
+				...ipcHandlers<BrowseFS>({
+					channel: "browse_fs",
+					controller: async (data) => {
+						const { buttonLabel, title, type } = data;
+						if (type === "dir") {
+							const result = await dialog.showOpenDialog(window, {
+								title,
+								buttonLabel,
+								properties: ["openDirectory"]
+							});
+							return {
+								dirs: result.filePaths
+							};
+						} else if (type === "file") {
+							const result = await dialog.showOpenDialog(window, {
+								title,
+								buttonLabel,
+								properties: ["openFile"]
+							});
+							return {
+								path: result.filePaths[0]
+							};
+						}
+
+					}
+				})
+			);
+
+			ipcMain.handle(
+				...ipcHandlers<ScriptActionData>({
+					channel: "script_actions",
+					controller: async (data) => {
+						if (data.action === 'open') {
+							const { fileLocation, storedConnectionId } = data.params;
+
+							if (fileLocation && storedConnectionId) {
+								const [fileName] = fileLocation.match(/(?<=\/)[ \w-]+?(\.)js/i) || [];
+								const code = (await fs.promises.readFile(fileLocation)).toString();
+
+								const id = nanoid();
+
+								const script: StoredScript = {
+									id,
+									storedConnectionId,
+									fullpath: fileLocation,
+									fileName
+								};
+
+								await scriptDiskStore.set(id, script);
+
+								return {
+									code,
+									script
+								};
+							} else {
+								throw new Error("Invalid input to open");
+							}
+
+						} else if (data.action === "save") {
+							const { code, id } = data.params;
+
+							const storedScript = await scriptDiskStore.get(id);
+
+							if (!storedScript) {
+								throw new Error("Script does not exist.");
+							}
+
+							const { fullpath } = storedScript;
+
+							await fs.promises.writeFile(fullpath, code);
+
+							return storedScript;
+						} else if (data.action === "save_as") {
+
+							const { code, saveLocation, storedConnectionId, fileName } = data.params;
+
+							const fullpath = path.join(
+								saveLocation
+									? saveLocation
+									: '',
+								fileName
+									? fileName
+									: 'untitled-ark-script.js'
+							);
+
+							await fs.promises.writeFile(fullpath, code);
+
 
 							const id = nanoid();
 
 							const script: StoredScript = {
 								id,
 								storedConnectionId,
-								fullpath: fileLocation,
+								fullpath,
 								fileName
 							};
 
 							await scriptDiskStore.set(id, script);
 
-							return {
-								code,
-								script
-							};
-						} else {
-							throw new Error("Invalid input to open");
+							return script;
+						} else if (data.action === "delete") {
+							const { scriptId } = data.params;
 						}
+					}
+				})
+			);
 
-					} else if (data.action === "save") {
-						const { code, id } = data.params;
-
-						const storedScript = await scriptDiskStore.get(id);
-
-						if (!storedScript) {
-							throw new Error("Script does not exist.");
+			ipcMain.handle(
+				...ipcHandlers<SettingsAction>({
+					channel: "settings_actions",
+					controller: async (data) => {
+						if (data.action === 'save') {
+							const { settings } = data;
+							await settingsStore.set(data.type, settings);
+						} else if (data.action === 'fetch') {
+							return await settingsStore.get(data.type);
 						}
-
-						const { fullpath } = storedScript;
-
-						await fs.promises.writeFile(fullpath, code);
-
-						return storedScript;
-					} else if (data.action === "save_as") {
-
-						const { code, saveLocation, storedConnectionId, fileName } = data.params;
-
-						const fullpath = path.join(
-							saveLocation
-								? saveLocation
-								: '',
-							fileName
-								? fileName
-								: 'untitled-ark-script.js'
-						);
-
-						await fs.promises.writeFile(fullpath, code);
-
-
-						const id = nanoid();
-
-						const script: StoredScript = {
-							id,
-							storedConnectionId,
-							fullpath,
-							fileName
-						};
-
-						await scriptDiskStore.set(id, script);
-
-						return script;
-					} else if (data.action === "delete") {
-						const { scriptId } = data.params;
 					}
-				} catch (err) {
-					console.error("`script_actions` error");
-					console.error(err);
-					return { err };
-				}
-			});
+				})
+			);
 
-			ipcMain.handle("settings_actions", async (event, data: SettingsAction) => {
-				try {
-					if (data.action === 'save') {
-						const { settings } = data;
-						await settingsStore.set(data.type, settings);
-					} else if (data.action === 'fetch') {
-						return await settingsStore.get(data.type);
-					}
-				} catch (err) {
-					console.error("`settings_action` error");
-					console.error(err);
-					return { err };
-				}
-			});
-
-			ipcMain.handle("title_actions", async (event, data: TitlebarActions) => {
-				try {
-					if (data.action === 'close') {
-						window.close();
-					} else if (data.action === "maximize") {
-						if (window.isMaximized()) {
-							window.unmaximize()
-						} else {
-							window.maximize();
+			ipcMain.handle(
+				...ipcHandlers<TitlebarActions>({
+					channel: "title_actions",
+					controller: async (data) => {
+						if (data.action === 'close') {
+							window.close();
+						} else if (data.action === "maximize") {
+							if (window.isMaximized()) {
+								window.unmaximize()
+							} else {
+								window.maximize();
+							}
+						} else if (data.action === "minimize") {
+							window.minimize();
 						}
-					} else if (data.action === "minimize") {
-						window.minimize();
 					}
-				} catch (err) {
-					console.error("title_actions error");
-					console.error(err);
-					return { err };
-				}
-			});
+				})
+			);
 		}
 	}
 }

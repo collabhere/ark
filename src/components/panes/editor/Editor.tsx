@@ -8,11 +8,7 @@ import { DownOutlined } from "@ant-design/icons";
 import { VscGlobe, VscDatabase, VscAccount } from "react-icons/vsc";
 
 import { dispatch, listenEffect } from "../../../common/utils/events";
-import {
-	getConnectionUri,
-	handleErrors,
-	notify,
-} from "../../../common/utils/misc";
+import { handleErrors, notify } from "../../../common/utils/misc";
 import { ResultViewer, ResultViewerProps } from "./ResultViewer/ResultViewer";
 import { Button } from "../../../common/components/Button";
 import { CircularLoading } from "../../../common/components/Loading";
@@ -164,28 +160,17 @@ export const Editor: FC<EditorProps> = (props) => {
 
 	const switchReplicaShell = useCallback(
 		(member: ReplicaSetMember) => {
-			console.log(`[switch replica] ${member.name} ${member.stateStr}`);
-			return window.ark.driver
-				.run("connection", "load", {
-					id: storedConnectionId,
-				})
-				.then((storedConnection) => {
-					const uri = getConnectionUri({
-						...storedConnection,
-						hosts: [member.name],
-					});
+			console.log(
+				`[switch replica] creating shell ${member.name} ${member.stateStr}`
+			);
+			return window.ark.shell
+				.create(contextDB, storedConnectionId)
+				.then(({ id }) => {
 					console.log(
-						`[switch replica] creating shell ${member.name} ${member.stateStr}`
+						`[switch replica] created shell ${id} ${member.name} ${member.stateStr}`
 					);
-					return window.ark.shell
-						.create(uri, contextDB, storedConnectionId)
-						.then(({ id }) => {
-							console.log(
-								`[switch replica] created shell ${id} ${member.name} ${member.stateStr}`
-							);
-							setShellId(id);
-							setCurrentReplicaHost(member);
-						});
+					setShellId(id);
+					setCurrentReplicaHost(member);
 				});
 		},
 		[contextDB, storedConnectionId]
@@ -269,7 +254,7 @@ export const Editor: FC<EditorProps> = (props) => {
 					} else {
 						console.log("[editor onload] single-host");
 						return Promise.all([
-							window.ark.shell.create(uri, contextDB, storedConnectionId),
+							window.ark.shell.create(contextDB, storedConnectionId),
 							window.ark.driver.run("connection", "info", {
 								id: storedConnectionId,
 							}),

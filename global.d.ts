@@ -129,7 +129,6 @@ declare global {
 
 		interface Shell {
 			create: (
-				uri: string,
 				contextDB: string,
 				storedConnectionId: string
 			) => Promise<{ id: string }>;
