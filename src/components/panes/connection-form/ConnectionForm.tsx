@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Input, Button, Checkbox, Menu, Dropdown, Upload } from "antd";
+import { Input, Button, Menu, Dropdown, Upload } from "antd";
 import { dispatch } from "../../../common/utils/events";
 import "../styles.less";
 import "../../../common/styles/layout.less";
@@ -8,6 +8,7 @@ import { parse } from "mongodb-uri";
 import { RcFile } from "antd/lib/upload";
 import { UploadFile } from "antd/lib/upload/interface";
 const { TextArea } = Input;
+import { Checkbox } from "@blueprintjs/core";
 
 export interface ConnectionFormProps {
 	connectionParams?: Ark.StoredConnection;
@@ -565,14 +566,12 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 						{form === "ssh" && (
 							<div className="Form">
 								<div className="flex-inline">
-									<div className="Label">
-										<span style={{ margin: "auto" }}>Use SSH Tunnel</span>
-									</div>
 									<Checkbox
-										value={connectionDetails.ssh.useSSH}
+										checked={connectionData.ssh.useSSH}
 										onChange={() =>
 											editSSHDetails("useSSH", !connectionData.ssh.useSSH)
 										}
+										label="Use SSH Tunnel"
 									/>
 								</div>
 								<div className="flex-inline">
@@ -723,9 +722,6 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 						{form === "tls" && (
 							<div className="Form Gap">
 								<div className="flex-inline">
-									<div className="Label">
-										<span style={{ margin: "auto" }}>Use TLS protocol</span>
-									</div>
 									<Checkbox
 										checked={connectionData.options.tls}
 										onChange={(e) =>
@@ -734,6 +730,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 												tls: e.target.checked,
 											})
 										}
+										label="Use TLS protocol"
 									/>
 								</div>
 								<div>
