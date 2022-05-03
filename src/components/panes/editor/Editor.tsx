@@ -19,7 +19,7 @@ import { CircularLoading } from "../../../common/components/Loading";
 import { useRefresh } from "../../../hooks/useRefresh";
 import { bsonTest } from "../../../../util/misc";
 import { useContext } from "react";
-import { SettingsContext } from "../../../App";
+import { SettingsContext } from "../../layout/BaseContextProvider";
 
 const createDefaultCodeSnippet = (collection: string) => `// Mongo shell
 db.getCollection('${collection}').find({});
@@ -484,7 +484,7 @@ export const Editor: FC<EditorProps> = (props) => {
 					bson={currentResult.bson}
 					type={currentResult.type}
 					allowDocumentEdits={currentResult.allowDocumentEdits}
-					shellConfig={shellConfig}
+					shellConfig={{ ...shellConfig, database: contextDB }}
 					driverConnectionId={storedConnectionId}
 					code={code}
 					switchViews={switchViews}

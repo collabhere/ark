@@ -193,7 +193,7 @@ async function evaluate(
 				limit || 50,
 				timeout
 			).toArray();
-		} else if ("toArray" in result) {
+		} else if (typeof result === "object" && "toArray" in result) {
 			result = result.toArray();
 		}
 	}

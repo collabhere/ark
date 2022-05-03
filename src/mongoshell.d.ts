@@ -7,7 +7,7 @@ declare global {
     export const db: Database;
     export const sh: Shard;
     export const rs: ReplicaSet;
-    export const ObjectId: typeof bson.ObjectId;
+    export const ObjectId: ObjectId;
     export const Int32: typeof bson.Int32;
     export const Long: typeof bson.Long;
     export const Decimal128: typeof bson.Decimal128;
