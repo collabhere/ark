@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Input, Button, Menu, Dropdown, Upload } from "antd";
+import { Button, Menu, Dropdown, Upload } from "antd";
 import { dispatch } from "../../../common/utils/events";
 import "../styles.less";
 import "../../../common/styles/layout.less";
@@ -7,7 +7,7 @@ import { notify } from "../../../common/utils/misc";
 import { parse } from "mongodb-uri";
 import { RcFile } from "antd/lib/upload";
 import { UploadFile } from "antd/lib/upload/interface";
-const { TextArea } = Input;
+import TextArea from "antd/lib/input/TextArea";
 import { Checkbox, InputGroup } from "@blueprintjs/core";
 
 export interface ConnectionFormProps {
