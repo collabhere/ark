@@ -9,7 +9,6 @@ import { ARK_FOLDER_PATH } from "./utils/constants";
 
 (async function main() {
 	try {
-		app.allowRendererProcessReuse = true;
 
 		await app.whenReady();
 
@@ -33,11 +32,11 @@ import { ARK_FOLDER_PATH } from "./utils/constants";
 		});
 
 		if (process.env.ARK_ENABLE_DEV_TOOLS && process.env.ARK_DEV_TOOLS_PATH)
-			await enableDevTools(process.env.ARK_DEV_TOOLS_PATH);
+			await enableDevTools(window, process.env.ARK_DEV_TOOLS_PATH);
 
 		const loadURL =
 			process.env.ARK_ENTRY_URL ||
-			`file://${path.join(__dirname, "../index.html")}`;
+			`file://${path.join(__dirname, "../../index.html")}`;
 
 		await window.loadURL(loadURL);
 	} catch (e) {
