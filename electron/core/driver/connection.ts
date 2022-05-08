@@ -110,14 +110,19 @@ export interface Connection {
 }
 
 export const Connection: Connection = {
-	info: async ({ memoryStore }, { id }) => {
-		const client = memoryStore.get(id).connection;
+	info: async ({ memoryStore, diskStore }, { id }) => {
+		const storeEntry = memoryStore.get(id);
+		const diskEntry = await diskStore.get(id);
+		const client = storeEntry.connection;
 		if (client) {
-			const replSet = await getReplicaSetDetails(client);
 			const result: GetConnectionResult = {};
 
-			if (replSet) {
-				result.replicaSetDetails = replSet;
+			if (diskEntry.hosts && diskEntry.hosts.length > 1) {
+				const replSet = await getReplicaSetDetails(client);
+
+				if (replSet) {
+					result.replicaSetDetails = replSet;
+				}
 			}
 
 			return result;
@@ -134,7 +139,7 @@ export const Connection: Connection = {
 		const uri = getConnectionUri(config);
 		return { ...config, uri };
 	},
-	copyIcon: async ({}, { path, name }) => {
+	copyIcon: async ({ }, { path, name }) => {
 		const destinationPath = `${ARK_FOLDER_PATH}/icons`;
 		if (!fs.existsSync(destinationPath)) {
 			await fs.promises.mkdir(destinationPath);
@@ -157,11 +162,6 @@ export const Connection: Connection = {
 					throw new Error("Unable to make ssh connection.");
 				}
 			}
-
-			config.password =
-				config.password && config.key && config.iv
-					? decrypt(config.password, config.key, config.iv)
-					: config.password;
 
 			const connectionUri = getConnectionUri(config);
 			const client = new MongoClient(connectionUri);
@@ -235,8 +235,8 @@ export const Connection: Connection = {
 					err && err instanceof Error
 						? err.message
 						: typeof err === "string"
-						? err
-						: "",
+							? err
+							: "",
 			};
 		}
 	},
@@ -304,13 +304,17 @@ const sshTunnel = async (
 	});
 };
 
-const getConnectionUri = ({
-	hosts,
-	database = "admin",
-	username,
-	password,
-	options,
-}: Ark.StoredConnection) => {
+export const getConnectionUri = (
+	{
+		hosts,
+		database = "admin",
+		username,
+		password,
+		options,
+		iv,
+		key
+	}: Ark.StoredConnection
+) => {
 	const uri = mongoUri.format({
 		hosts: hosts.map((host) => ({
 			host: host.split(":")[0],
@@ -320,7 +324,9 @@ const getConnectionUri = ({
 		database,
 		options,
 		username,
-		password,
+		password: (password && key && iv)
+			? decrypt(password, key, iv)
+			: password,
 	});
 
 	return uri;

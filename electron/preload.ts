@@ -14,7 +14,7 @@ const arkContext: Ark.Context = {
 	browseForDirs: (title, buttonLabel) => invoke("browse_fs", { type: "dir", title, buttonLabel }),
 	copyText: (text) => clipboard.writeText(text),
 	titlebar: {
-		close: () => { 
+		close: () => {
 			invoke("title_actions", { action: "close" })
 		},
 		minimize: () => invoke("title_actions", { action: "minimize" }),
@@ -27,10 +27,10 @@ const arkContext: Ark.Context = {
 		delete: (scriptId) => invoke("script_actions", { action: "delete", params: { scriptId } })
 	},
 	shell: {
-		create: (uri, contextDB, storedConnectionId) =>
-			invoke("shell_create", { uri, contextDB, storedConnectionId }),
+		create: (contextDB, connectionId) =>
+			invoke("shell_create", { contextDB, connectionId }),
 		eval: (shell, code, connectionId, options) =>
-			invoke("shell_eval", { code, shell, connectionId, ...options}),
+			invoke("shell_eval", { code, shell, connectionId, ...options }),
 		export: (shell, code, connectionId, options) =>
 			invoke("shell_export", { code, shell, connectionId, options }),
 		destroy: (shell) => invoke("shell_destroy", { shell }),

@@ -7,7 +7,6 @@ function createWindow(
 ) {
 	const window = new BrowserWindow(windowOptions);
 	window.removeMenu();
-	window.webContents.openDevTools();
 	return window;
 }
 
