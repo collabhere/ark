@@ -65,8 +65,6 @@ interface ToastProps {
 export const notify = (props: ToastProps): void => {
 	const { title, description, onClick, type } = props;
 
-	console.log(props);
-
 	const intent: any = {
 		success: Intent.SUCCESS,
 		error: Intent.DANGER,
