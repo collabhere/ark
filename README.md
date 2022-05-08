@@ -1,19 +1,30 @@
-# ark
+# Ark
 
-A MongoDB client.
+A workspace for developers who use MongoDB.
 
-## Setup
+## Features
 
-* Install dependencies using `npm i`.
-* Create a folder `bin` in root of the repository.
-* Download the `mongosh` binary from [here](https://www.mongodb.com/try/download/shell) for your platform. Use the tarball/zip downloads and get the binary.
+- A script editor with full mongosh support and intellisense.
+- Tree and plain text views of script results.
+- Inline document editing support of results in tree view.
+
+## Development
+
+Install dependencies using `npm i`.
+
+### Running in VSCode
+
+1. To build the main process (electron), run `npm run dev:electron`.
+2. Run the VSCode launch configuration named "Electron: All".
+
+### Running on a terminal
+
+1. To build the main process (electron), run `npm run dev:electron`.
+2. Run `npm run start` in another terminal.
 
 ## Building a distributable
 
 **Note: You require node v14+ to build using electron-builder**
 
-* Run `npm run build`.
-* The npm scripts `dist:linux`, `dist:windows` and `dist:macos` are available for creating a distributable for respective platforms.
-
-## Developing the react app only
-* Run the application using `npm start`.
+- Run `npm run build`.
+- The npm scripts `dist:linux`, `dist:windows` and `dist:macos` are available for creating a distributable for respective platforms.
