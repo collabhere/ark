@@ -43,7 +43,7 @@ interface ExportData extends InvokeJS {
 
 interface CreateShell {
 	contextDB: string;
-	storedConnectionId: string;
+	connectionId: string;
 }
 
 interface DestroyShell {
@@ -149,6 +149,7 @@ function ipcHandlers<ArgType, ReturnType = any>({
 			const result = await controller(data);
 			return result;
 		} catch (err) {
+			console.log(err);
 			return { err };
 		}
 	}
@@ -187,10 +188,10 @@ function IPC() {
 				...ipcHandlers<CreateShell>({
 					channel: "shell_create",
 					controller: async (data) => {
-						const { contextDB, storedConnectionId } = data;
+						const { contextDB, connectionId } = data;
 
-						const storedConnection = await driver.run("connection", "load", { id: storedConnectionId });
-						const driverConnection = await driver.run("connection", "info", { id: storedConnectionId });
+						const storedConnection = await driver.run("connection", "load", { id: connectionId });
+						const driverConnection = await driver.run("connection", "info", { id: connectionId });
 
 						const uri = getConnectionUri(storedConnection);
 
@@ -211,7 +212,7 @@ function IPC() {
 							uri
 						};
 						shells.save(shell.id, shell);
-						console.log(`shell_create id=${shell.id} storedConnectionId=${storedConnectionId} uri=${uri} db=${contextDB}`);
+						console.log(`shell_create id=${shell.id} storedConnectionId=${connectionId} uri=${uri} db=${contextDB}`);
 						return { id: shell.id };
 					}
 				})
