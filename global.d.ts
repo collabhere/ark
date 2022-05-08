@@ -1,4 +1,3 @@
-import type { EvalResult } from "./electron/core/evaluator";
 import type { Connection, Database } from "./electron/core/driver";
 import type { MongoClientOptions } from "@mongosh/service-provider-server";
 import type { MemoryStore } from "./electron/core/stores/memory";
@@ -8,10 +7,12 @@ import type {
 	ScriptSaveActionData,
 	ScriptSaveAsActionData,
 	ScriptOpenActionData,
+	ShellEvalResult,
 } from "./electron/modules/ipc";
 import type { DiskStore } from "./electron/core/stores/disk";
 import { UploadFile } from "antd/lib/upload/interface";
 import { ObjectId } from "bson";
+import { Query } from "./electron/core/driver/query";
 
 declare global {
 	namespace Ark {
@@ -91,6 +92,11 @@ declare global {
 				action: C,
 				arg: Parameters<Connection[C]>[1]
 			): ReturnType<Connection[C]>;
+			run<Q extends keyof Query>(
+				library: "query",
+				action: Q,
+				arg: Parameters<Query[Q]>[1]
+			): ReturnType<Query[Q]>;
 		}
 
 		interface ShellConfig {
@@ -123,7 +129,6 @@ declare global {
 
 		interface Shell {
 			create: (
-				uri: string,
 				contextDB: string,
 				storedConnectionId: string
 			) => Promise<{ id: string }>;
@@ -133,7 +138,7 @@ declare global {
 				code: string,
 				connectionId: string,
 				options: QueryOptions
-			) => Promise<EvalResult>;
+			) => Promise<ShellEvalResult>;
 			export: (
 				shellId: string,
 				code: string,
@@ -141,6 +146,12 @@ declare global {
 				options: ExportCsvOptions | ExportNdjsonOptions
 			) => Promise<void>;
 		}
+		interface Titlebar {
+			close: () => void;
+			maximize: () => void;
+			minimize: () => void;
+		}
+
 		interface Scripts {
 			open(
 				params: ScriptOpenActionData["params"]
@@ -169,12 +180,17 @@ declare global {
 			driver: Driver;
 			settings: GeneralSettings;
 			shell: Shell;
+			titlebar: Titlebar;
 			[k: string]: any;
 		}
 
 		interface Settings {
 			timezone?: "local" | "utc";
 			shellTimeout?: number;
+			lineNumbers?: "on" | "off";
+			miniMap?: "on" | "off";
+			autoUpdates?: "on" | "off";
+			hotKeys?: "on" | "off";
 		}
 	}
 	interface Window {

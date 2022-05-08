@@ -15,7 +15,11 @@ export type ResultViewerProps = {
 	bson: Ark.BSONArray;
 } & {
 	code?: string;
+	shellConfig: Ark.ShellConfig;
+	driverConnectionId: string;
+	allowDocumentEdits?: boolean;
 	onExport?: (params?: any) => void;
+	onRefresh: () => void;
 	switchViews?: (type: "tree" | "json") => void;
 	paramsState?: {
 		queryParams: Ark.QueryOptions;
@@ -27,7 +31,18 @@ export type ResultViewerProps = {
 };
 
 export const ResultViewer: FC<ResultViewerProps> = (props) => {
-	const { code, type, onExport, switchViews, paramsState } = props;
+	const {
+		bson,
+		code,
+		type,
+		paramsState,
+		driverConnectionId,
+		shellConfig,
+		allowDocumentEdits,
+		onExport,
+		onRefresh,
+		switchViews,
+	} = props;
 
 	const [exportDialog, toggleExportDialog] = useState<boolean>(false);
 	const [exportOptions, setExportOptions] = useState<
@@ -88,85 +103,103 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 
 	return (
 		<>
-			<div className="ResultViewer">
-				<div className="ResultViewerHeader">
-					<Button
-						size="small"
-						icon={"code-block"}
-						onClick={() => switchViews && switchViews("tree")}
-						popoverOptions={{
-							hover: { content: "Switch to Tree View" },
-						}}
-					/>
-
-					<Button
-						size="small"
-						icon={"group-objects"}
-						onClick={() => switchViews && switchViews("json")}
-						popoverOptions={{
-							hover: { content: "Switch to JSON View" },
-						}}
-					/>
-					<Button
-						size="small"
-						icon={"arrow-up"}
-						onClick={() => toggleExportDialog(true)}
-						popoverOptions={{ hover: { content: "Export data" } }}
-					/>
-				</div>
-				<div className="ResultViewerHeader">
+			<div className="result-viewer">
+				<div className="header">
 					<div>
-						{ paramsState &&
+						{paramsState && (
 							<span>
-								Showing {
-									(paramsState.queryParams.page - 1) *
-									(paramsState.queryParams.limit) + 1
-								} to {
-									(paramsState.queryParams.page - 1) *
-									(paramsState.queryParams.limit) +
-									(paramsState.queryParams.limit)
-								}
+								Showing{" "}
+								{(paramsState.queryParams.page - 1) *
+									paramsState.queryParams.limit +
+									1}{" "}
+								to{" "}
+								{(paramsState.queryParams.page - 1) *
+									paramsState.queryParams.limit +
+									paramsState.queryParams.limit}
 							</span>
-						}
+						)}
 					</div>
-					<Button
-						size="small"
-						icon={"arrow-left"}
-						disabled={paramsState && paramsState.queryParams.page <= 0}
-						onClick={() => {
-							if (paramsState && paramsState.queryParams.page > 1) {
+					<div className="button">
+						<Button
+							size="small"
+							icon={"arrow-left"}
+							disabled={paramsState && paramsState.queryParams.page <= 0}
+							onClick={() => {
+								if (paramsState && paramsState.queryParams.page > 1) {
+									paramsState?.changeQueryParams(
+										"page",
+										paramsState?.queryParams.page - 1
+									);
+								}
+							}}
+						/>
+					</div>
+					<div className="button">
+						<InputGroup
+							size={2}
+							value={paramsState?.queryParams.limit.toString()}
+							onChange={(e) => {
+								if (!isNaN(Number(e.target.value))) {
+									paramsState?.changeQueryParams(
+										"limit",
+										Number(e.target.value)
+									);
+								}
+							}}
+						/>
+					</div>
+					<div className="button">
+						<Button
+							size="small"
+							icon={"arrow-right"}
+							onClick={() =>
 								paramsState?.changeQueryParams(
 									"page",
-									paramsState?.queryParams.page - 1
-								);
+									paramsState?.queryParams.page + 1
+								)
 							}
-						}}
-					/>
-					<InputGroup
-						size={2}
-						value={paramsState?.queryParams.limit.toString()}
-						onChange={(e) => {
-							if (!isNaN(Number(e.target.value))) {
-								paramsState?.changeQueryParams("limit", Number(e.target.value));
-							}
-						}}
-					/>
-					<Button
-						size="small"
-						icon={"arrow-right"}
-						onClick={() =>
-							paramsState?.changeQueryParams(
-								"page",
-								paramsState?.queryParams.page + 1
-							)
-						}
-					/>
+						/>
+					</div>
+					<div className="button">
+						<Button
+							size="small"
+							icon={"diagram-tree"}
+							onClick={() => switchViews && switchViews("tree")}
+							popoverOptions={{
+								hover: { content: "Switch to Tree View" },
+							}}
+						/>
+					</div>
+					<div className="button">
+						<Button
+							size="small"
+							icon={"list-detail-view"}
+							onClick={() => switchViews && switchViews("json")}
+							popoverOptions={{
+								hover: { content: "Switch to JSON View" },
+							}}
+						/>
+					</div>
+					<div className="button">
+						<Button
+							size="small"
+							icon={"export"}
+							onClick={() => toggleExportDialog(true)}
+							popoverOptions={{ hover: { content: "Export data" } }}
+						/>
+					</div>
 				</div>
-				<div className="ResultViewerContainer">
+				<div className="container">
 					{type === "json" ? (
-						<JSONViewer bson={props.bson} />
+						<JSONViewer bson={bson} />
 					) : type === "tree" ? (
-						<TreeViewer bson={props.bson} />
+						<TreeViewer
+							bson={bson}
+							driverConnectionId={driverConnectionId}
+							shellConfig={shellConfig}
+							onRefresh={onRefresh}
+							allowDocumentEdits={allowDocumentEdits || false}
+						/>
 					) : (
 						<div>{"Incorrect view type!"}</div>
 					)}

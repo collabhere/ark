@@ -18,6 +18,7 @@ import { handleErrors, notify } from "../../common/utils/misc";
 import { Button } from "../../common/components/Button";
 import { DangerousActionPrompt } from "../dialogs/DangerousActionPrompt";
 import { TextInputPrompt } from "../dialogs/TextInputPrompt";
+import { SpinnerSize } from "@blueprintjs/core";
 
 type Databases = ListDatabasesResult["databases"];
 type DatabasesWithInformation = (ListDatabasesResult["databases"][0] & {
@@ -157,7 +158,11 @@ export const Explorer: FC<ExplorerProps> = () => {
 	const setDatabaseNodeLoading = useCallback(
 		(key: string, loading: boolean) => {
 			updateNodeProperties(key, {
-				icon: loading ? <CircularLoading size="small" /> : <VscDatabase />,
+				icon: loading ? (
+					<CircularLoading size={SpinnerSize.SMALL} />
+				) : (
+					<VscDatabase />
+				),
 				disabled: loading,
 			});
 		},
@@ -406,7 +411,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 							</div>
 							<div className={"ExplorerHeaderMenu"}>
 								<Button
-									icon={<VscRefresh />}
+									icon="refresh"
 									size="small"
 									variant="primary"
 									popoverOptions={{
@@ -447,11 +452,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 									}
 									trigger={["click"]}
 								>
-									<Button
-										icon={<VscKebabVertical />}
-										size="small"
-										variant="primary"
-									/>
+									<Button icon="more" size="small" variant="primary" />
 								</Dropdown>
 							</div>
 						</div>

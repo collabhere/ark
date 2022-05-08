@@ -4,7 +4,6 @@ import React, { FC, useState, useMemo } from "react";
 import { Button as BPButton, ActionProps, IconName } from "@blueprintjs/core";
 import { Popover2 } from "@blueprintjs/popover2";
 import { PromiseCompleteCallback, asyncEventOverload } from "../utils/misc";
-import { Popover } from "./Popover";
 
 export interface PromiseButtonMouseEventHandler {
 	promise: (e: React.MouseEvent) => Promise<void>;
@@ -21,6 +20,7 @@ export interface ButtonProps {
 	shape?: "round" | "circle";
 	text?: string;
 	icon?: IconName;
+	rightIcon?: IconName;
 	size?: "large" | "small";
 	disabled?: boolean;
 	dropdownOptions?: {
@@ -36,13 +36,14 @@ export interface ButtonProps {
 export const Button: FC<ButtonProps> = (props) => {
 	const {
 		icon,
+		rightIcon,
 		text,
 		onClick,
 		popoverOptions,
 		dropdownOptions,
 		size,
 		variant,
-		disabled
+		disabled,
 	} = props;
 
 	const [loading, setLoading] = useState(false);
@@ -59,12 +60,23 @@ export const Button: FC<ButtonProps> = (props) => {
 				loading={icon ? loading : undefined}
 				large={size === "large"}
 				small={size === "small"}
-				outlined={variant === "link"}
+				minimal={variant === "link"}
 				intent={variant !== "link" ? variant : undefined}
 				icon={icon ? icon : undefined}
+				rightIcon={rightIcon ? rightIcon : undefined}
 			/>
 		),
-		[disabled, icon, loading, onClick, popoverOptions, size, text, variant]
+		[
+			icon,
+			loading,
+			onClick,
+			popoverOptions,
+			size,
+			text,
+			variant,
+			rightIcon,
+			disabled,
+		]
 	);
 
 	const buttonWithPopovers = useMemo(
@@ -73,13 +85,9 @@ export const Button: FC<ButtonProps> = (props) => {
 				? Object.keys(popoverOptions).reduce((children, trigger) => {
 						const options = popoverOptions[trigger];
 						return options ? (
-							<Popover
-								trigger={trigger as "click" | "hover"}
-								content={options.content}
-								title={options.title}
-							>
+							<Popover2 content={options.content}>
 								{React.Children.toArray(children)}
-							</Popover>
+							</Popover2>
 						) : (
 							React.cloneElement(children)
 						);

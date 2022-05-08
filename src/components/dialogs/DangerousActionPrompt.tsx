@@ -5,7 +5,7 @@ import { PromiseCompleteCallback } from "../../common/utils/misc";
 interface DangerousActionPromptProps {
 	title: string;
 	confirmButtonText?: string;
-	prompt: string;
+	prompt: string | React.ReactNode;
 	dangerousAction: (e: React.MouseEvent) => Promise<any>;
 	onCancel: () => void;
 	dangerousActionCallback: PromiseCompleteCallback;

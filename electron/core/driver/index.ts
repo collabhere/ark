@@ -1,18 +1,18 @@
-import type { MemoryStore } from "../stores/memory";
-import type { DiskStore } from "../stores/disk";
-import type { MemEntry } from "../../modules/ipc";
 import { Connection } from "./connection";
 import { Database } from "./database";
+import { Query } from "./query";
 
 export interface DriverModules {
     connection: Connection;
     database: Database;
+    query: Query;
 }
 
 export function createDriver(DriverDependency: Ark.DriverDependency) {
     const modules: DriverModules = {
         connection: Connection,
-        database: Database
+        database: Database,
+        query: Query
     };
 
     const driver: Ark.Driver = {

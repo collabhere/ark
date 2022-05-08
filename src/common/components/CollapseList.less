@@ -1,0 +1,36 @@
+@import "../styles/variables.less";
+
+.collapse-list {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	height: 100%;
+	// background-color: @primary-tint-6;
+	// color: @primary-tint-1;
+
+	.item {
+		cursor: pointer;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		width: 100%;
+		height: 38px;
+		margin-left: 1px;
+		padding: 4px 8px;
+		// background-color: @primary-tint-3;
+
+		&.primary {
+			// background-color: @primary-tint-4;
+		}
+
+		.heading {
+			width: 100%;
+			flex-grow: 1;
+			min-width: 0;
+		}
+
+		.top-right-element {
+			align-self: center;
+		}
+	}
+}

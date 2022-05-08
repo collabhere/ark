@@ -1,46 +1,131 @@
-.ResultViewer {
+@import "../../../../common/styles/variables.less";
+
+.updates-list {
+	overflow: auto;
+	max-height: 250px;
+
+	.item {
+		margin-top: 8px;
+	}
+}
+
+.result-viewer {
 	display: flex;
 	flex-direction: column;
 	flex-grow: 1;
 	min-height: 0;
-}
-.ResultViewerHeader {
-	display: flex;
-	justify-content: flex-end;
-	flex-grow: 1;
-	gap: 10px;
-	min-height: 40px;
-	padding: 8px;
-}
-.ResultViewerContainer {
-	display: flex;
-	min-height: 0;
-	width: 100%;
-	height: calc(100% - 40px);
-	padding: 4px;
-}
-.TreeViewer {
-	display: flex;
-	flex-direction: column;
-	flex-grow: 1;
-	min-height: 0;
-}
-.TreeViewerHeader {
-	height: 30px;
-}
-.TreeViewerContent {
-	overflow-y: scroll;
-	display: flex;
-	flex-direction: column;
-	flex-grow: 0;
-	min-height: calc(100% - 30px);
-}
-.JSONViewer {
-	overflow-y: scroll;
-	display: flex;
-	flex-direction: column;
-	width: 100%;
-	flex-grow: 0;
-	min-height: 0;
-	white-space: pre-wrap;
+
+	.header {
+		display: flex;
+		justify-content: flex-end;
+		flex-grow: 1;
+		min-height: 40px;
+		padding: 8px;
+
+		.button {
+			padding: 4px;
+		}
+	}
+	.container {
+		display: flex;
+		min-height: 0;
+		width: 100%;
+		height: calc(100% - 40px);
+		padding: 4px;
+	}
+
+	.tree-viewer {
+		display: flex;
+		flex-direction: column;
+		flex-grow: 1;
+		min-height: 0;
+
+		@tree-view-header-height: 30px;
+
+		.header {
+			height: @tree-view-header-height;
+			gap: 10px;
+		}
+
+		.content {
+			overflow-y: scroll;
+			overflow-x: hidden;
+			display: flex;
+			flex-direction: column;
+			flex-grow: 0;
+			min-height: calc(100% - @tree-view-header-height);
+
+			.document-header-buttons {
+				display: flex;
+				* {
+					padding: 4px;
+				}
+			}
+		}
+
+		.context-menu {
+			display: flex;
+			flex-grow: 1;
+		}
+
+		.new-field-row {
+			display: flex;
+		}
+
+		.content-row {
+			@content-row-modified-width: 20px;
+
+			display: flex;
+			flex-grow: 1;
+
+			.button-container {
+				display: flex;
+			}
+
+			.left {
+				width: 50%;
+			}
+
+			.right {
+				width: 50%;
+			}
+
+			.modified {
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				width: @content-row-modified-width;
+			}
+
+			.button {
+				// width: calc(@content-row-modified-width + 20px);
+			}
+		}
+
+		.switchable-input {
+			display: flex;
+			flex-grow: 1;
+			align-items: center;
+
+			.object-id {
+				display: flex;
+			}
+
+			.switchable-input-child {
+				display: flex;
+				flex-grow: 1;
+			}
+		}
+	}
+
+	.json-viewer {
+		overflow-y: scroll;
+		overflow-x: hidden;
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+		flex-grow: 0;
+		min-height: 0;
+		white-space: pre-wrap;
+	}
 }

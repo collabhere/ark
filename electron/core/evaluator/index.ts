@@ -22,11 +22,6 @@ import { MemoryStore } from "../stores/memory";
 import { MemEntry } from "../../modules/ipc";
 import { ERRORS } from "../../../util/constants";
 
-export interface EvalResult {
-	result?: Buffer;
-	err?: Error;
-}
-
 export interface Evaluator {
 	evaluate(
 		code: string,
@@ -198,7 +193,7 @@ async function evaluate(
 				limit || 50,
 				timeout
 			).toArray();
-		} else if ("toArray" in result) {
+		} else if (typeof result === "object" && "toArray" in result) {
 			result = result.toArray();
 		}
 	}

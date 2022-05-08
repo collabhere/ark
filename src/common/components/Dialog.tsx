@@ -4,6 +4,8 @@ import "./Dialog.less";
 import { Button } from "./Button";
 import { EventOverloadMethod } from "../utils/misc";
 
+import { Dialog as BPDialog } from "@blueprintjs/core";
+
 interface ModalProps {
 	size: "small" | "large";
 	variant?: "regular" | "danger";
@@ -61,11 +63,11 @@ export function Dialog({
 
 	return rootElement ? (
 		<Modal
-			isOpen={true}
+			isOpen
+			usePortal
 			title={<span className={Classes.DIALOG_HEADER}>{title}</span>}
 			onClose={onCancel}
 			portalContainer={rootElement}
-			usePortal={true}
 			className={sizeClass}
 		>
 			<div className={Classes.DIALOG_BODY}>{children}</div>
