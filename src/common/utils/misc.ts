@@ -2,21 +2,22 @@ import notification, { NotificationInstance } from "antd/lib/notification";
 import { ERRORS } from "../../../util/constants";
 import { dispatch } from "./events";
 import { pick } from "../../../util/misc";
+import { Toaster, Intent } from "@blueprintjs/core";
 
 export type PromiseCompleteCallback = (err?: Error, data?: any) => void;
 
 export type OneKey<K extends string, V = any> = {
 	[P in K]: Record<P, V> & Partial<Record<Exclude<K, P>, never>> extends infer O
-	? { [Q in keyof O]: O[Q] }
-	: never;
+		? { [Q in keyof O]: O[Q] }
+		: never;
 }[K];
 
 export type EventOverloadMethod =
 	| ((...args) => void)
 	| {
-		promise: (...args) => Promise<any>;
-		callback: PromiseCompleteCallback;
-	}
+			promise: (...args) => Promise<any>;
+			callback: PromiseCompleteCallback;
+	  };
 
 export const asyncEventOverload = (
 	loadingFn: (val: boolean) => void,
@@ -46,24 +47,29 @@ interface ToastProps {
 	>;
 }
 
-export const notify = ({
-	title,
-	description,
-	onClick,
-	type,
-}: ToastProps): void => {
-	const rootElement = document.getElementById("root");
-	const notifyFunc = notification[type];
+export const notify = (props: ToastProps): void => {
+	const { title, description, onClick, type } = props;
 
-	if (rootElement && notifyFunc) {
-		notifyFunc({
-			message: title,
-			description,
-			onClick,
-			getContainer: () => rootElement,
-			className: "notification",
-		});
-	}
+	const intent: any = {
+		success: Intent.SUCCESS,
+		error: Intent.DANGER,
+		warning: Intent.WARNING,
+		info: Intent.NONE,
+	};
+
+	const icon: any = {
+		success: "tick-circle",
+		error: "error",
+		warning: "warning-sign",
+		info: "info-sign",
+	};
+
+	const toast = Toaster.create({
+		className: "toast",
+		position: "top-right",
+	});
+
+	toast.show({ message: description, intent: intent[type], icon: icon[type] });
 };
 
 export const handleErrors = (
@@ -74,8 +80,8 @@ export const handleErrors = (
 		err instanceof Error
 			? err.message
 			: typeof err === "string"
-				? err
-				: undefined;
+			? err
+			: undefined;
 
 	switch (error) {
 		case ERRORS.AR600:

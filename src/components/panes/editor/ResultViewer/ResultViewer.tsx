@@ -1,5 +1,3 @@
-import { Input, Radio, Switch } from "antd";
-import TextArea from "antd/lib/input/TextArea";
 import React, { FC, useCallback, useState } from "react";
 import { Button } from "../../../../common/components/Button";
 import { Dialog } from "../../../../common/components/Dialog";
@@ -8,7 +6,13 @@ import "../../../../common/styles/layout.less";
 import "./styles.less";
 import { TreeViewer } from "./TreeViewer";
 import { JSONViewer } from "./JSONViewer";
-import { InputGroup } from "@blueprintjs/core";
+import {
+	InputGroup,
+	TextArea,
+	RadioGroup,
+	Radio,
+	Switch,
+} from "@blueprintjs/core";
 
 export type ResultViewerProps = {
 	type: "json" | "tree";
@@ -220,14 +224,24 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 									<span>Export as: </span>
 								</div>
 								<div>
-									<Radio.Group
+									{/* <Radio.Group
 										options={["CSV", "NDJSON"]}
 										value={exportOptions.type}
 										buttonStyle={"solid"}
 										onChange={(e) => {
 											changeExportOptions("type", e);
 										}}
-									/>
+									/> */}
+									<RadioGroup
+										label="Export as:"
+										selectedValue={exportOptions.type}
+										onChange={(e) => {
+											changeExportOptions("type", e);
+										}}
+									>
+										<Radio label="CSV" value="CSV" />
+										<Radio label="NDJSON" value="NDJSON" />
+									</RadioGroup>
 								</div>
 							</div>
 							<div className={"export-type"}>
@@ -235,7 +249,7 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 									<span>File name: </span>
 								</div>
 								<div>
-									<Input
+									<InputGroup
 										value={exportOptions.fileName}
 										onChange={(e) => changeExportOptions("fileName", e)}
 									/>
@@ -245,10 +259,8 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 								<div>
 									<div className={"export-suboptions"}>
 										<div>
-											<span>Destructure data: </span>
-										</div>
-										<div>
 											<Switch
+												label="Destructure data:"
 												checked={!!exportOptions.destructureData}
 												onChange={() => changeExportOptions("destructure")}
 											/>
