@@ -4,13 +4,13 @@
         {
             "isBackground": true,
             "type": "npm",
-            "script": "build:react",
+            "script": "dev:react",
             "label": "Run:vite-dev-server",
         },
         {
             "isBackground": true,
             "type": "npm",
-            "script": "build:electron",
+            "script": "dev:electron",
             "label": "Run:electron-watcher",
         }
     ]

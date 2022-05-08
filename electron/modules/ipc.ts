@@ -350,7 +350,7 @@ function IPC() {
 
 							const { fullpath } = storedScript;
 
-							await fs.promises.writeFile(fullpath, code);
+							await fs.promises.writeFile(fullpath, code || '');
 
 							return storedScript;
 						} else if (data.action === "save_as") {
@@ -366,7 +366,7 @@ function IPC() {
 									: 'untitled-ark-script.js'
 							);
 
-							await fs.promises.writeFile(fullpath, code);
+							await fs.promises.writeFile(fullpath, code || '');
 
 
 							const id = nanoid();
