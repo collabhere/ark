@@ -113,7 +113,7 @@ export const Editor: FC<EditorProps> = (props) => {
 			setCurrentResult(undefined);
 			shellId
 				? window.ark.shell
-						.eval(shellId, _code, storedConnectionId, queryParams)
+						.eval(shellId, _code, queryParams)
 						.then(function ({ editable, result, err }) {
 							if (err) {
 								console.log("exec shell");
@@ -180,7 +180,7 @@ export const Editor: FC<EditorProps> = (props) => {
 			const _code = code.replace(/(\/\/.*)|(\n)/g, "");
 			shellId &&
 				window.ark.shell
-					.export(shellId, _code, storedConnectionId, options)
+					.export(shellId, _code, options)
 					.then(() => {
 						console.log("Export complete");
 						notify({
@@ -198,7 +198,7 @@ export const Editor: FC<EditorProps> = (props) => {
 						console.error("exec shell error: ", err);
 					});
 		},
-		[shellId, storedConnectionId]
+		[shellId]
 	);
 
 	const terminateExecution = useCallback(() => {

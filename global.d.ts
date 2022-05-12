@@ -7,8 +7,8 @@ import type {
 	ScriptSaveActionData,
 	ScriptSaveAsActionData,
 	ScriptOpenActionData,
-	ShellEvalResult,
-} from "./electron/modules/ipc";
+} from "./electron/modules/ipc/types";
+import type { ShellEvalResult } from "./electron/core/shell-manager/types";
 import type { DiskStore } from "./electron/core/stores/disk";
 import { UploadFile } from "antd/lib/upload/interface";
 import { ObjectId } from "bson";
@@ -16,11 +16,25 @@ import { Query } from "./electron/core/driver/query";
 
 declare global {
 	namespace Ark {
-		interface DriverDependency {
+
+		interface DriverArgs {
+			id?: string;
+			[k: string]: any;
+		}
+
+
+		interface DriverStores {
 			memoryStore: MemoryStore<MemEntry>;
 			diskStore: DiskStore<StoredConnection>;
 			iconStore: DiskStore<UploadFile<Blob>>;
 		}
+		interface DriverDependency {
+			_stores: DriverStores;
+			memEntry: MemEntry | undefined;
+			storedConnection: StoredConnection | undefined;
+			icon: UploadFile<Blob> | undefined;
+		}
+
 		interface StoredConnection {
 			id: string;
 			name: string;
@@ -136,13 +150,11 @@ declare global {
 			eval: (
 				shellId: string,
 				code: string,
-				connectionId: string,
 				options: QueryOptions
 			) => Promise<ShellEvalResult>;
 			export: (
 				shellId: string,
 				code: string,
-				connectionId: string,
 				options: ExportCsvOptions | ExportNdjsonOptions
 			) => Promise<void>;
 		}
@@ -177,7 +189,9 @@ declare global {
 			) => Promise<{ path: string }>;
 			copyText(text: string): void;
 			scripts: Scripts;
-			driver: Driver;
+			driver: {
+				run: Driver["run"]
+			};
 			settings: GeneralSettings;
 			shell: Shell;
 			titlebar: Titlebar;

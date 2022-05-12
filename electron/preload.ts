@@ -29,10 +29,10 @@ const arkContext: Ark.Context = {
 	shell: {
 		create: (contextDB, connectionId) =>
 			invoke("shell_create", { contextDB, connectionId }),
-		eval: (shell, code, connectionId, options) =>
-			invoke("shell_eval", { code, shell, connectionId, ...options }),
-		export: (shell, code, connectionId, options) =>
-			invoke("shell_export", { code, shell, connectionId, options }),
+		eval: (shell, code, options) =>
+			invoke("shell_eval", { code, shell, ...options }),
+		export: (shell, code, options) =>
+			invoke("shell_export", { code, shell, options }),
 		destroy: (shell) => invoke("shell_destroy", { shell }),
 	},
 	driver: {
