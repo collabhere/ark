@@ -4,7 +4,6 @@ jobs:
   build_linux:
     docker:
       - image: node:16
-    working_directory: /tmp
     steps:
       - checkout
       - run:
@@ -16,6 +15,9 @@ jobs:
       - run:
           name: "Build distributable"
           command: "npm run dist:linux"
+      - run:
+          name: "Move necessary build output"
+          command: "mkdir -p /tmp/release && mv ./release/*.AppImage /tmp/release"
       - store_artifacts:
           path: /tmp/release
 
