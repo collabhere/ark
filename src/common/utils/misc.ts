@@ -1,23 +1,21 @@
-import notification, { NotificationInstance } from "antd/lib/notification";
-import { ERRORS } from "../../../util/constants";
 import { dispatch } from "./events";
-import { pick } from "../../../util/misc";
 import { Toaster, Intent } from "@blueprintjs/core";
+import { ERR_CODES, getErrorMessageForCode, isValidErrorCode } from "../../../util/errors";
 
 export type PromiseCompleteCallback = (err?: Error, data?: any) => void;
 
 export type OneKey<K extends string, V = any> = {
 	[P in K]: Record<P, V> & Partial<Record<Exclude<K, P>, never>> extends infer O
-		? { [Q in keyof O]: O[Q] }
-		: never;
+	? { [Q in keyof O]: O[Q] }
+	: never;
 }[K];
 
 export type EventOverloadMethod =
 	| ((...args) => void)
 	| {
-			promise: (...args) => Promise<any>;
-			callback: PromiseCompleteCallback;
-	  };
+		promise: (...args) => Promise<any>;
+		callback: PromiseCompleteCallback;
+	};
 
 export const asyncEventOverload = (
 	loadingFn: (val: boolean) => void,
@@ -33,7 +31,7 @@ export const asyncEventOverload = (
 			.then((result) => (loadingFn(false), fn.callback(undefined, result)))
 			.catch((err) => fn.callback(err));
 	} else {
-		return Promise.reject(new Error("Invalid table event handler"));
+		return Promise.reject(new Error(ERR_CODES.UTILS$ASYNC_OVERLOAD$INVALID_HANDLER_TYPE));
 	}
 };
 
@@ -41,10 +39,7 @@ interface ToastProps {
 	title?: string;
 	description: string;
 	onClick?: () => void;
-	type: Extract<
-		keyof NotificationInstance,
-		"success" | "error" | "warning" | "info"
-	>;
+	type: "success" | "error" | "warning" | "info";
 }
 
 export const notify = (props: ToastProps): void => {
@@ -80,17 +75,17 @@ export const handleErrors = (
 		err instanceof Error
 			? err.message
 			: typeof err === "string"
-			? err
-			: undefined;
+				? err
+				: undefined;
 
 	switch (error) {
-		case ERRORS.AR600:
-		case ERRORS.AR601: {
+		case ERR_CODES.CORE$DRIVER$NO_CACHED_CONNECTION:
+		case ERR_CODES.CORE$DRIVER$NO_STORED_CONNECTION:
+		case ERR_CODES.CORE$DRIVER$SSH_TUNNEL_CLOSED: {
 			console.log(error);
 			if (connectionId) {
 				dispatch("connection_manager:disconnect", { connectionId });
 			}
-
 			break;
 		}
 		default: {
@@ -100,7 +95,7 @@ export const handleErrors = (
 
 	if (error) {
 		notify({
-			description: error,
+			description: isValidErrorCode(error) ? getErrorMessageForCode(error) : error,
 			type: "error",
 		});
 	}

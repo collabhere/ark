@@ -1,6 +1,5 @@
 import React, { FC, useContext, useEffect, useState } from "react";
 import { useCallback } from "react";
-import { StoredScript } from "../../../electron/modules/ipc";
 import { Dialog } from "../../common/components/Dialog";
 import { CircularLoading } from "../../common/components/Loading";
 import { dispatch } from "../../common/utils/events";

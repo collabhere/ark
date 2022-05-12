@@ -39,7 +39,7 @@ export const Shell: FC<ShellProps> = (props) => {
 				command: exec,
 			},
 			{
-				key: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KEY_N,
+				key: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyN,
 				command: cloneCurrentTab,
 			},
 		],
