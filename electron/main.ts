@@ -37,6 +37,9 @@ import { ARK_FOLDER_PATH } from "./utils/constants";
 		if (process.env.ARK_ENABLE_DEV_TOOLS && process.env.ARK_DEV_TOOLS_PATH)
 			await enableDevTools(mainWindow, process.env.ARK_DEV_TOOLS_PATH);
 
+		if (process.env.ARK_OPEN_DEV_TOOLS === "true")
+			mainWindow.webContents.openDevTools();
+
 		const loadURL =
 			process.env.ARK_ENTRY_URL ||
 			`file://${path.join(__dirname, "../../index.html")}`;

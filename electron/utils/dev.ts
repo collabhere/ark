@@ -6,6 +6,4 @@ export const enableDevTools = async (window: BrowserWindow, extensionPath: strin
 	const reactDevToolsPath = path.join(os.homedir(), extensionPath);
 
 	await session.defaultSession.loadExtension(reactDevToolsPath);
-
-	window.webContents.openDevTools();
 };

@@ -28,7 +28,8 @@
             ],
             "env": {
                 "ARK_ENTRY_URL": "http://localhost:3000",
-                "BROWSER": "none"
+                "BROWSER": "none",
+                "ARK_OPEN_DEV_TOOLS": "true"
             },
             "type": "pwa-node",
         },
