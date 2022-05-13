@@ -12,6 +12,8 @@ A workspace for developers who use MongoDB.
 
 ## Development
 
+NodeJS Version - 16.X
+
 Install dependencies using `npm i`.
 
 ### Running in VSCode

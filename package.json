@@ -13,8 +13,10 @@
 		"build:main": "tsc --build electron/tsconfig.json",
 		"build": "rimraf build && npm run build:renderer && npm run build:main",
 		"pack": "electron-builder --dir",
-		"dist:macos": "electron-builder --macos",
-		"dist:linux": "electron-builder --linux",
+		"dist:app_image": "electron-builder --linux",
+		"dist:deb": "electron-builder --linux deb",
+		"dist:macos_dmg": "electron-builder --macos",
+		"dist:macos_deb": "echo 'Not supported for now'",
 		"dist:windows": "electron-builder --windows",
 		"storybook": "start-storybook -p 6006",
 		"build-storybook": "build-storybook"
@@ -51,9 +53,8 @@
 			"app": "./"
 		},
 		"mac": {
-			"target": [
-				"dmg"
-			],
+			"category": "public.app-category.developer-tools",
+			"target": "default",
 			"type": "distribution",
 			"hardenedRuntime": true,
 			"gatekeeperAssess": false
@@ -75,6 +76,16 @@
 		"win": {
 			"target": [
 				"nsis"
+			]
+		},
+		"deb": {
+			"maintainer": "contact@shashank.gg",
+			"depends": [
+				"gconf2",
+				"gconf-service",
+				"libnotify4",
+				"libxtst6",
+				"libnss3"
 			]
 		},
 		"linux": {
