@@ -99,8 +99,8 @@
 		],
 		"publish": {
 			"provider": "github",
-			"owner": "wheredevsdev",
-			"repo": "ark"
+			"owner": "makeark",
+			"repo": "ark-foss"
 		}
 	},
 	"devDependencies": {
