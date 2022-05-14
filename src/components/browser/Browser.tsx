@@ -11,6 +11,7 @@ import {
 } from "../panes/connection-form/ConnectionForm";
 import { EmptyState } from "../onboarding/EmptyState";
 import { DraggableTabs } from "./DraggableTabs";
+import { Index } from "../panes/indexes/Index";
 
 const { TabPane } = Tabs;
 
@@ -25,6 +26,8 @@ type EditorTab = { type: "editor" } & EditorProps & BaseTab;
 type ConnectionFormTab = { type: "connection_form" } & ConnectionFormProps &
 	BaseTab;
 
+type IndexTab = { type: "index" } & BaseTab;
+
 interface CreateEditorTabArgs {
 	shellConfig: Ark.ShellConfig;
 	contextDB: string;
@@ -34,8 +37,8 @@ interface DeleteEditorTabArgs {
 	id: string;
 }
 
-export type TabType = "editor" | "connection_form";
-export type Tab = EditorTab | ConnectionFormTab;
+export type TabType = "editor" | "connection_form" | "indexes";
+export type Tab = EditorTab | ConnectionFormTab | IndexTab;
 export type TabComponentProps = EditorProps | ConnectionFormProps;
 export interface TabComponentMap {
 	editor: EditorProps;
@@ -45,6 +48,7 @@ export interface TabComponentMap {
 const TAB_PANES = {
 	editor: Editor,
 	connection_form: ConnectionForm,
+	index: Index,
 } as const;
 
 export const Browser = (): JSX.Element => {
@@ -129,6 +133,28 @@ export const Browser = (): JSX.Element => {
 		[activeKey]
 	);
 
+	const indexTab = useCallback(
+		(args: any) => {
+			const id = "e-" + nanoid();
+			setTabs((tabs) => {
+				const title = `Untitled-${untitledCount + 1}`;
+				return [
+					...tabs,
+					{
+						type: "index",
+						title,
+						id: "" + id,
+						closable: true,
+						...args,
+					},
+				];
+			});
+			setUntitledCount((count) => (count += 1));
+			setActiveKey(() => id);
+		},
+		[untitledCount]
+	);
+
 	/** Register browser event listeners */
 	useEffect(
 		() =>
@@ -149,8 +175,16 @@ export const Browser = (): JSX.Element => {
 					event: "browser:delete_tab:connection_form",
 					cb: (e, payload) => deleteTab(payload),
 				},
+				{
+					event: "browser:create_tab:indexes",
+					cb: (e, payload) => indexTab(payload),
+				},
+				{
+					event: "browser:delete_tab:indexes",
+					cb: (e, payload) => deleteTab(payload),
+				},
 			]),
-		[createEditorTab, deleteTab, createConnectionFormTab]
+		[createEditorTab, deleteTab, createConnectionFormTab, indexTab]
 	);
 
 	return (

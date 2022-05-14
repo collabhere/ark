@@ -187,6 +187,33 @@ export const Explorer: FC<ExplorerProps> = () => {
 		[storedConnectionId]
 	);
 
+	const openIndexTab = useCallback(
+		(db: string, collection: string) => {
+			storedConnectionId &&
+				Promise.all([
+					window.ark.driver.run("database", "getCollectionStats", {
+						id: storedConnectionId,
+						database: db,
+						collection: collection,
+					}),
+					window.ark.driver.run("database", "listIndexes", {
+						id: storedConnectionId,
+						database: db,
+						collection: collection,
+					}),
+				]).then(([collectionStats, indexStats]) => {
+					dispatch("browser:create_tab:indexes", {
+						contextDB: db,
+						collection,
+						storedConnectionId,
+						indexes: indexStats,
+						collectionStats,
+					});
+				});
+		},
+		[storedConnectionId]
+	);
+
 	const setCollectionListToTree = useCallback(
 		(db: string, collections: CollectionInfo[]) => {
 			const children = collections.map((collection) => {
@@ -197,7 +224,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 								item: "Open shell",
 								cb: () => openShell(db, collection.name),
 							},
-							{ item: "Indexes", cb: () => {} },
+							{ item: "Indexes", cb: () => openIndexTab(db, collection.name) },
 							{
 								danger: true,
 								item: "Drop collection",
