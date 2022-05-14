@@ -39,7 +39,7 @@ export const Shell: FC<ShellProps> = (props) => {
 				command: exec,
 			},
 			{
-				key: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KEY_N,
+				key: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyN,
 				command: cloneCurrentTab,
 			},
 		],
@@ -69,22 +69,22 @@ export const Shell: FC<ShellProps> = (props) => {
 						enabled: settings?.miniMap === "on" ? true : false,
 					},
 				}}
-				theme={"ark"}
+				// theme={"ark"}
 				beforeMount={(monaco) => {
 					mountMonaco(monaco, { collections: allCollections });
-					monaco.editor.defineTheme("ark", {
-						base: "vs-dark",
-						inherit: true,
-						rules: [],
-						colors: {
-							"editor.foreground": "#000000",
-							"editor.background": "#060a21",
-							"editorCursor.foreground": "#8B0000",
-							"editor.lineHighlightBackground": "#0000FF20",
-							"editor.selectionBackground": "#8B0000",
-							"editor.inactiveSelectionBackground": "#88000015",
-						},
-					});
+					// monaco.editor.defineTheme("ark", {
+					// 	base: "vs-dark",
+					// 	inherit: true,
+					// 	rules: [],
+					// 	colors: {
+					// 		"editor.foreground": "#000000",
+					// 		"editor.background": "#060a21",
+					// 		"editorCursor.foreground": "#8B0000",
+					// 		"editor.lineHighlightBackground": "#0000FF20",
+					// 		"editor.selectionBackground": "#8B0000",
+					// 		"editor.inactiveSelectionBackground": "#88000015",
+					// 	},
+					// });
 				}}
 				onMount={(editor: editor.IStandaloneCodeEditor) => {
 					setMonacoEditor(editor);

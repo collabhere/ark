@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import React, { FC, useContext } from "react";
-import { SettingsContext } from "../../../../App";
+import { SettingsContext } from "../../../layout/BaseContextProvider";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);

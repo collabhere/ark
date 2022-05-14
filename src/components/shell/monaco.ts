@@ -26,7 +26,7 @@ export async function mountMonaco(monaco: Monaco, intellisense: Intellisense): P
         module: monaco.languages.typescript.ModuleKind.CommonJS,
         noEmit: true,
         noLib: true,
-        typeRoots: ["node_modules/@types", "node_modules/@mongosh"],
+        // typeRoots: ["node_modules/@types", "node_modules/@mongosh"],
     });
 
     // Add all of @mongosh/shell-api's definitions along with a custom global.d.ts with editor globals.

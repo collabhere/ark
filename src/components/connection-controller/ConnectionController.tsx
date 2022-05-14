@@ -1,85 +1,32 @@
 import "./styles.less";
-import React, { FC, useCallback, useEffect, useState } from "react";
-import { Card } from "antd";
-import {
-	VscDatabase,
-	VscEdit,
-	VscRepoClone,
-	VscTrash,
-	VscAdd,
-	VscGlobe,
-	VscDebugDisconnect,
-} from "react-icons/vsc";
+import React, { FC, useCallback, useContext, useEffect, useState } from "react";
+import { Icon, Card, Elevation } from "@blueprintjs/core";
 import { dispatch, listenEffect } from "../../common/utils/events";
 import { Resizable } from "re-resizable";
 import { Button } from "../../common/components/Button";
-
-interface ManagedConnection extends Ark.StoredConnection {
-	active?: boolean;
-}
+import {
+	ConnectionsContext,
+	ManagedConnection,
+} from "../layout/BaseContextProvider";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface ConnectionManagerProps {}
 
-export const ConnectionManager: FC<ConnectionManagerProps> = () => {
+export const ConnectionController: FC<ConnectionManagerProps> = () => {
+	const {
+		connections,
+		setConnections,
+		load,
+		connect,
+		disconnect,
+		deleteConnectionOnDisk,
+	} = useContext(ConnectionsContext);
+
 	const [isOpen, setIsOpen] = useState(false);
-	const [connections, setConnections] = useState<ManagedConnection[]>([]);
 	const [listViewMode, setListViewMode] = useState<"detailed" | "compact">(
 		"detailed"
 	);
-
-	const connect = useCallback((id: string) => {
-		window.ark.driver.run("connection", "connect", { id }).then(() =>
-			Promise.all([
-				window.ark.driver.run("connection", "load", { id }),
-				window.ark.driver.run("connection", "fetchIcon", { id }),
-			]).then(([connection, icon]) => {
-				const managed: ManagedConnection = { ...connection, active: true };
-				setConnections((connections) => [
-					...connections.filter((conn) => conn.id !== managed.id),
-					managed,
-				]);
-				dispatch("sidebar:add_item", {
-					id: connection.id,
-					name: connection.name,
-					icon: connection.icon ? icon : undefined,
-				});
-			})
-		);
-	}, []);
-
-	const disconnect = useCallback((id: string) => {
-		window.ark.driver.run("connection", "disconnect", { id }).then(() => {
-			setConnections((connections) => {
-				const idx = connections.findIndex((c) => c.id === id);
-				connections[idx].active = false;
-				return [...connections];
-			});
-			dispatch("sidebar:remove_item", id);
-		});
-	}, []);
-
-	const deleteConnection = useCallback(
-		(id: string) => {
-			const connection = connections.find((c) => c.id === id);
-			if (connection) {
-				if (connection.active) {
-					disconnect(id);
-				}
-
-				window.ark.driver
-					.run("connection", "delete", { id: connection.id })
-					.then(() => {
-						setConnections((connections) => {
-							const connectionIdx = connections.findIndex((c) => c.id === id);
-							connections.splice(connectionIdx, 1);
-							return [...connections];
-						});
-					});
-			}
-		},
-		[connections, disconnect]
-	);
+	const [listLoadError, setListLoadError] = useState<JSX.Element>();
 
 	const openEditOrCloneConnection = useCallback(
 		(connectionDetails: ManagedConnection, mode: "edit" | "clone") => {
@@ -97,13 +44,15 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 
 	/** On-load effect */
 	useEffect(() => {
-		window.ark.driver
-			.run("connection", "list", undefined)
-			.then((connections) => {
-				setConnections(Object.values(connections));
-			});
-		return () => setConnections([]);
-	}, []);
+		load().catch((err) => {
+			setListLoadError(
+				<div>
+					<span>Something went wrong with loading the list.</span>
+					<p>Error: {err.message}</p>
+				</div>
+			);
+		});
+	}, [load]);
 
 	useEffect(
 		() =>
@@ -151,7 +100,7 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 					},
 				},
 			]),
-		[disconnect]
+		[disconnect, setConnections]
 	);
 
 	return isOpen ? (
@@ -175,7 +124,7 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 						<div>
 							<Button
 								shape="round"
-								icon={<VscAdd />}
+								icon="add"
 								text="Create"
 								variant="primary"
 								onClick={() => openCreateConnection()}
@@ -186,11 +135,12 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 				<ConnectionsList
 					listViewMode={listViewMode}
 					connections={connections}
+					error={listLoadError}
 					onConnect={(conn) => connect(conn.id)}
 					onDisconnect={(conn) => disconnect(conn.id)}
 					onEdit={(conn) => openEditOrCloneConnection(conn, "edit")}
 					onClone={(conn) => openEditOrCloneConnection(conn, "clone")}
-					onDelete={(conn) => deleteConnection(conn.id)}
+					onDelete={(conn) => deleteConnectionOnDisk(conn.id)}
 				/>
 			</div>
 		</Resizable>
@@ -202,12 +152,14 @@ export const ConnectionManager: FC<ConnectionManagerProps> = () => {
 interface ConnectionsListProps extends ConnectionCardFunctions {
 	connections: Ark.StoredConnection[];
 	listViewMode: "detailed" | "compact";
+	error?: JSX.Element;
 }
 
 export const ConnectionsList: FC<ConnectionsListProps> = (props) => {
 	const {
 		connections,
 		listViewMode,
+		error,
 		onEdit,
 		onDisconnect,
 		onDelete,
@@ -216,30 +168,34 @@ export const ConnectionsList: FC<ConnectionsListProps> = (props) => {
 	} = props;
 	return (
 		<div className="Container">
-			{connections && connections.length ? (
-				connections.map((conn) => (
-					<div key={conn.id} className="ConnectionDetails">
-						{listViewMode === "detailed"
-							? React.createElement(DetailedConnectionCard, {
-									conn,
-									onConnect: onConnect && (() => onConnect(conn)),
-									onDisconnect: onDisconnect && (() => onDisconnect(conn)),
-									onEdit: onEdit && (() => onEdit(conn)),
-									onClone: onClone && (() => onClone(conn)),
-									onDelete: onDelete && (() => onDelete(conn)),
-							  })
-							: React.createElement(CompactConnectionCard, {
-									conn,
-									onConnect: onConnect && (() => onConnect(conn)),
-									onDisconnect: onDisconnect && (() => onDisconnect(conn)),
-									onEdit: onEdit && (() => onEdit(conn)),
-									onClone: onClone && (() => onClone(conn)),
-									onDelete: onDelete && (() => onDelete(conn)),
-							  })}
-					</div>
-				))
+			{!error ? (
+				connections && connections.length ? (
+					connections.map((conn) => (
+						<div key={conn.id} className="ConnectionDetails">
+							{listViewMode === "detailed"
+								? React.createElement(DetailedConnectionCard, {
+										conn,
+										onConnect: onConnect && (() => onConnect(conn)),
+										onDisconnect: onDisconnect && (() => onDisconnect(conn)),
+										onEdit: onEdit && (() => onEdit(conn)),
+										onClone: onClone && (() => onClone(conn)),
+										onDelete: onDelete && (() => onDelete(conn)),
+								  })
+								: React.createElement(CompactConnectionCard, {
+										conn,
+										onConnect: onConnect && (() => onConnect(conn)),
+										onDisconnect: onDisconnect && (() => onDisconnect(conn)),
+										onEdit: onEdit && (() => onEdit(conn)),
+										onClone: onClone && (() => onClone(conn)),
+										onDelete: onDelete && (() => onDelete(conn)),
+								  })}
+						</div>
+					))
+				) : (
+					<></>
+				)
 			) : (
-				<></>
+				<p className="FlexAbsoluteCenter">{error}</p>
 			)}
 		</div>
 	);
@@ -261,14 +217,13 @@ export const DetailedConnectionCard = (
 ): JSX.Element => {
 	const { conn, onConnect, onDisconnect, onEdit, onClone, onDelete } = props;
 	return (
-		<Card
-			title={CardTitle(
-				conn.name,
-				() => onConnect && onConnect(conn),
-				() => onDisconnect && onDisconnect(conn),
-				conn.active
-			)}
-		>
+		<Card interactive={false}>
+			<CardTitle
+				title={conn.name}
+				inactiveClick={() => onConnect && onConnect(conn)}
+				activeClick={() => onDisconnect && onDisconnect(conn)}
+				active={conn.active}
+			/>
 			<div className="FlexboxWithGap">
 				<div className="CellInfo FlexFill TrimText">
 					<div className="CellInfoTitle">Host</div>
@@ -295,7 +250,7 @@ export const DetailedConnectionCard = (
 				{onEdit && (
 					<Button
 						shape="round"
-						icon={<VscEdit />}
+						icon="edit"
 						size="small"
 						onClick={() => onEdit(conn)}
 					/>
@@ -304,7 +259,7 @@ export const DetailedConnectionCard = (
 				{onClone && (
 					<Button
 						shape="round"
-						icon={<VscRepoClone />}
+						icon={"add-row-bottom"}
 						size="small"
 						onClick={() => onClone(conn)}
 					/>
@@ -313,7 +268,7 @@ export const DetailedConnectionCard = (
 				{onDelete && (
 					<Button
 						shape="round"
-						icon={<VscTrash />}
+						icon="trash"
 						size="small"
 						onClick={() => onDelete(conn)}
 					/>
@@ -363,68 +318,59 @@ export const CompactConnectionCard = (
 				</div>
 			</div>
 			{!conn.active && onConnect && (
-				<Button
-					shape="round"
-					icon={<VscGlobe />}
-					size="small"
-					onClick={onConnect}
-				/>
+				<Button shape="round" icon="globe" size="small" onClick={onConnect} />
 			)}
 			{conn.active && onDisconnect && (
 				<Button
 					shape="round"
-					icon={<VscDebugDisconnect />}
+					icon="th-disconnect"
 					size="small"
 					variant="danger"
 					onClick={onDisconnect}
 				/>
 			)}
 			{onEdit && (
-				<Button
-					shape="round"
-					icon={<VscEdit />}
-					size="small"
-					onClick={onEdit}
-				/>
+				<Button shape="round" icon="edit" size="small" onClick={onEdit} />
 			)}
 			{onClone && (
 				<Button
 					shape="round"
-					icon={<VscRepoClone />}
+					icon="add-row-bottom"
 					size="small"
 					onClick={onClone}
 				/>
 			)}
 			{onDelete && (
-				<Button
-					shape="round"
-					icon={<VscTrash />}
-					size="small"
-					onClick={onDelete}
-				/>
+				<Button shape="round" icon="trash" size="small" onClick={onDelete} />
 			)}
 		</div>
 	);
 };
 
-const CardTitle = (
-	title: string,
-	inactiveClick: () => void,
-	activeClick: () => void,
-	active?: boolean
-) => (
+interface CardTitleProps {
+	title: string;
+	inactiveClick: () => void;
+	activeClick: () => void;
+	active?: boolean;
+}
+
+const CardTitle: FC<CardTitleProps> = ({
+	activeClick,
+	inactiveClick,
+	title,
+	active,
+}) => (
 	<div className="CardTitle">
 		<div className="CardTitleSection">
-			<VscDatabase size="20" />
+			<Icon icon="database" />
 			<span className="FlexFill TrimText">{title}</span>
 		</div>
 		{!active && (
 			<Button
 				shape="round"
-				icon={<VscGlobe />}
+				icon="globe"
 				size="small"
 				text="Connect"
-				// onClick={() => connect(id)}
 				onClick={inactiveClick}
 			/>
 		)}
@@ -432,11 +378,10 @@ const CardTitle = (
 		{active && (
 			<Button
 				shape="round"
-				icon={<VscDebugDisconnect />}
+				icon="small-cross"
 				size="small"
 				variant="danger"
 				text="Disconnect"
-				// onClick={() => disconnect(id)}
 				onClick={activeClick}
 			/>
 		)}

@@ -19,8 +19,14 @@ export const pick = <T extends Record<string, any>>(
 		{} as Record<string, any>
 	);
 
-export const bsonTest = (bson: any): boolean =>
-	Boolean(bson && (bson["0"] || bson["1"]));
+export const bsonTest = (bson: any): boolean => Boolean(bson && bson["0"]);
+
+export const isObjectId = (possibleObjectId: any): boolean =>
+	/^[0-9a-fA-F]{24}$/.test(
+		(typeof possibleObjectId === "string" || typeof possibleObjectId !== 'object')
+			? possibleObjectId
+			: possibleObjectId.toString()
+	);
 
 export const formatBytes = (bytes: number, decimals = 2): string => {
 	if (bytes === 0) return "0 Bytes";

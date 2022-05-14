@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Input, Button, Checkbox, Menu, Dropdown, Upload } from "antd";
+import { Button, Menu, Dropdown, Upload } from "antd";
 import { dispatch } from "../../../common/utils/events";
 import "../styles.less";
 import "../../../common/styles/layout.less";
@@ -7,7 +7,7 @@ import { notify } from "../../../common/utils/misc";
 import { parse } from "mongodb-uri";
 import { RcFile } from "antd/lib/upload";
 import { UploadFile } from "antd/lib/upload/interface";
-const { TextArea } = Input;
+import { Checkbox, InputGroup, TextArea } from "@blueprintjs/core";
 
 export interface ConnectionFormProps {
 	connectionParams?: Ark.StoredConnection;
@@ -362,7 +362,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 								<span style={{ margin: "auto" }}>DB URI</span>
 							</div>
 							<div className="InputField">
-								<Input
+								<InputGroup
 									className="Input"
 									onChange={(e) => setMongoURI(e.target.value)}
 									value={mongoURI}
@@ -444,7 +444,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 										<span style={{ margin: "auto" }}>Name</span>
 									</div>
 									<div className="InputField">
-										<Input
+										<InputGroup
 											className="Input"
 											value={connectionData?.name}
 											onChange={(e) => editConnection("name", e.target.value)}
@@ -459,7 +459,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 												<span style={{ margin: "auto" }}>Host</span>
 											</div>
 											<div className="InputField">
-												<Input
+												<InputGroup
 													className="Input"
 													value={host}
 													onChange={(e) => setHost(e.target.value)}
@@ -471,7 +471,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 												<span style={{ margin: "auto" }}>Port</span>
 											</div>
 											<div className="InputField">
-												<Input
+												<InputGroup
 													className="Input"
 													value={port}
 													onChange={(e) => setPort(e.target.value)}
@@ -506,7 +506,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 										<span style={{ margin: "auto" }}>Database</span>
 									</div>
 									<div className="InputField">
-										<Input
+										<InputGroup
 											className="Input"
 											value={connectionData?.database}
 											onChange={(e) =>
@@ -520,7 +520,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 										<span style={{ margin: "auto" }}>Username</span>
 									</div>
 									<div className="InputField">
-										<Input
+										<InputGroup
 											className="Input"
 											value={connectionData?.username}
 											onChange={(e) =>
@@ -536,7 +536,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 											<span style={{ margin: "auto" }}>Password</span>
 										</div>
 										<div className="InputField">
-											<Input
+											<InputGroup
 												className="Input"
 												type="password"
 												value={connectionData?.password}
@@ -565,14 +565,12 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 						{form === "ssh" && (
 							<div className="Form">
 								<div className="flex-inline">
-									<div className="Label">
-										<span style={{ margin: "auto" }}>Use SSH Tunnel</span>
-									</div>
 									<Checkbox
-										value={connectionDetails.ssh.useSSH}
+										checked={connectionData.ssh.useSSH}
 										onChange={() =>
 											editSSHDetails("useSSH", !connectionData.ssh.useSSH)
 										}
+										label="Use SSH Tunnel"
 									/>
 								</div>
 								<div className="flex-inline">
@@ -581,7 +579,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 											<span style={{ margin: "auto" }}>Host</span>
 										</div>
 										<div className="InputField">
-											<Input
+											<InputGroup
 												className="Input"
 												value={connectionData?.ssh?.host}
 												disabled={!connectionData.ssh.useSSH}
@@ -594,7 +592,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 											<span style={{ margin: "auto" }}>Port</span>
 										</div>
 										<div className="InputField">
-											<Input
+											<InputGroup
 												className="Input"
 												value={connectionData?.ssh?.port}
 												disabled={!connectionData.ssh.useSSH}
@@ -609,7 +607,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 											<span style={{ margin: "auto" }}>Mongod host</span>
 										</div>
 										<div className="InputField">
-											<Input
+											<InputGroup
 												className="Input"
 												value={connectionData?.ssh?.mongodHost}
 												disabled={!connectionData.ssh.useSSH}
@@ -624,7 +622,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 											<span style={{ margin: "auto" }}>Mongod port</span>
 										</div>
 										<div className="InputField">
-											<Input
+											<InputGroup
 												className="Input"
 												value={connectionData?.ssh?.mongodPort}
 												disabled={!connectionData.ssh.useSSH}
@@ -640,7 +638,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 										<span style={{ margin: "auto" }}>Username</span>
 									</div>
 									<div className="InputField">
-										<Input
+										<InputGroup
 											className="Input"
 											value={connectionData?.ssh?.username}
 											disabled={!connectionData.ssh.useSSH}
@@ -673,7 +671,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 											<span style={{ margin: "auto" }}>Password</span>
 										</div>
 										<div className="InputField">
-											<Input
+											<InputGroup
 												className="Input"
 												value={connectionData.ssh?.password}
 												disabled={!connectionData.ssh.useSSH}
@@ -690,7 +688,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 											<span style={{ margin: "auto" }}>Private Key</span>
 										</div>
 										<div className="InputField">
-											<Input
+											<InputGroup
 												className="Input"
 												value={connectionData?.ssh?.privateKey}
 												disabled={!connectionData.ssh.useSSH}
@@ -707,7 +705,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 											<span style={{ margin: "auto" }}>Passphrase</span>
 										</div>
 										<div className="InputField">
-											<Input
+											<InputGroup
 												className="Input"
 												value={connectionData?.ssh?.method}
 												disabled={!connectionData.ssh.useSSH}
@@ -723,9 +721,6 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 						{form === "tls" && (
 							<div className="Form Gap">
 								<div className="flex-inline">
-									<div className="Label">
-										<span style={{ margin: "auto" }}>Use TLS protocol</span>
-									</div>
 									<Checkbox
 										checked={connectionData.options.tls}
 										onChange={(e) =>
@@ -734,6 +729,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 												tls: e.target.checked,
 											})
 										}
+										label="Use TLS protocol"
 									/>
 								</div>
 								<div>

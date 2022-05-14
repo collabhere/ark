@@ -1,7 +1,6 @@
-import notification, { NotificationInstance } from "antd/lib/notification";
-import { ERRORS } from "../../../util/constants";
 import { dispatch } from "./events";
-import { pick } from "../../../util/misc";
+import { Toaster, Intent } from "@blueprintjs/core";
+import { ERR_CODES, getErrorMessageForCode, isValidErrorCode } from "../../../util/errors";
 
 export type PromiseCompleteCallback = (err?: Error, data?: any) => void;
 
@@ -16,7 +15,7 @@ export type EventOverloadMethod =
 	| {
 		promise: (...args) => Promise<any>;
 		callback: PromiseCompleteCallback;
-	}
+	};
 
 export const asyncEventOverload = (
 	loadingFn: (val: boolean) => void,
@@ -32,53 +31,40 @@ export const asyncEventOverload = (
 			.then((result) => (loadingFn(false), fn.callback(undefined, result)))
 			.catch((err) => fn.callback(err));
 	} else {
-		return Promise.reject(new Error("Invalid table event handler"));
+		return Promise.reject(new Error(ERR_CODES.UTILS$ASYNC_OVERLOAD$INVALID_HANDLER_TYPE));
 	}
-};
-
-export const getConnectionUri = ({
-	hosts,
-	database = "admin",
-	username,
-	password,
-	options,
-}: Ark.StoredConnection): string => {
-	const querystring = new URLSearchParams(pick(options, ["authSource"]) as any);
-	const userpass =
-		username && password ? `${username}:${encodeURIComponent(password)}@` : "";
-	const hoststring = hosts.join(",");
-
-	return `mongodb://${userpass}${hoststring}/${database}?${querystring.toString()}`;
 };
 
 interface ToastProps {
 	title?: string;
 	description: string;
 	onClick?: () => void;
-	type: Extract<
-		keyof NotificationInstance,
-		"success" | "error" | "warning" | "info"
-	>;
+	type: "success" | "error" | "warning" | "info";
 }
 
-export const notify = ({
-	title,
-	description,
-	onClick,
-	type,
-}: ToastProps): void => {
-	const rootElement = document.getElementById("root");
-	const notifyFunc = notification[type];
+export const notify = (props: ToastProps): void => {
+	const { title, description, onClick, type } = props;
 
-	if (rootElement && notifyFunc) {
-		notifyFunc({
-			message: title,
-			description,
-			onClick,
-			getContainer: () => rootElement,
-			className: "notification",
-		});
-	}
+	const intent: any = {
+		success: Intent.SUCCESS,
+		error: Intent.DANGER,
+		warning: Intent.WARNING,
+		info: Intent.NONE,
+	};
+
+	const icon: any = {
+		success: "tick-circle",
+		error: "error",
+		warning: "warning-sign",
+		info: "info-sign",
+	};
+
+	const toast = Toaster.create({
+		className: "toast",
+		position: "top-right",
+	});
+
+	toast.show({ message: description, intent: intent[type], icon: icon[type] });
 };
 
 export const handleErrors = (
@@ -93,13 +79,13 @@ export const handleErrors = (
 				: undefined;
 
 	switch (error) {
-		case ERRORS.AR600:
-		case ERRORS.AR601: {
+		case ERR_CODES.CORE$DRIVER$NO_CACHED_CONNECTION:
+		case ERR_CODES.CORE$DRIVER$NO_STORED_CONNECTION:
+		case ERR_CODES.CORE$DRIVER$SSH_TUNNEL_CLOSED: {
 			console.log(error);
 			if (connectionId) {
 				dispatch("connection_manager:disconnect", { connectionId });
 			}
-
 			break;
 		}
 		default: {
@@ -109,7 +95,7 @@ export const handleErrors = (
 
 	if (error) {
 		notify({
-			description: error,
+			description: isValidErrorCode(error) ? getErrorMessageForCode(error) : error,
 			type: "error",
 		});
 	}

@@ -1,3 +1,4 @@
+import { ERR_CODES } from "../../../util/errors";
 
 export type ListResult = Array<{ key: string; value: any; }>;
 export interface MemoryStore<T> {
@@ -27,7 +28,7 @@ export const createMemoryStore = <T extends Record<string, any>>(): MemoryStore<
 			else store.set(id, entry);
 			return id;
 		} else {
-			throw new Error("Invalid input to memory.save");
+			throw new Error(ERR_CODES.CORE$MEM_STORE$INVALID_INPUT);
 		}
 	};
 
@@ -35,7 +36,7 @@ export const createMemoryStore = <T extends Record<string, any>>(): MemoryStore<
 		if (store.has(id)) {
 			return store.get(id) as T;
 		} else {
-			throw new Error(`No mem entry found for id: ${id}!`);
+			throw new Error(ERR_CODES.CORE$MEM_STORE$NO_ENTRY);
 		}
 	};
 

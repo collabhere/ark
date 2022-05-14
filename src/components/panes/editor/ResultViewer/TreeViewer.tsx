@@ -4,6 +4,7 @@ import "../../../../common/styles/layout.less";
 import React, { FC, useState, useEffect } from "react";
 import { ObjectId, serialize } from "bson";
 import { useCallback } from "react";
+import Bluebird from "bluebird";
 import {
 	CollapseContent,
 	CollapseList,
@@ -25,6 +26,7 @@ import { DateInput } from "@blueprintjs/datetime";
 import { Button } from "../../../../common/components/Button";
 import { DangerousActionPrompt } from "../../../dialogs/DangerousActionPrompt";
 import { handleErrors, notify } from "../../../../common/utils/misc";
+import { isObjectId } from "../../../../../util/misc";
 
 interface BSONTest {
 	type:
@@ -85,12 +87,10 @@ interface SwitchableInputProps {
 	value: string | Date | number | boolean | ObjectId | null;
 	editable?: boolean;
 	editableKey?: boolean;
-	disableContextMenu?: boolean;
 }
 
 const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 	const {
-		onAction,
 		onCommit,
 		onKeyRemove,
 		onChange,
@@ -99,13 +99,13 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 		value,
 		editable,
 		editableKey,
-		disableContextMenu,
 	} = props;
 
 	const [type, setType] = useState(initialType);
 	const [editedKey, setEditedKey] = useState(field);
 	const [editedValue, setEditedValue] = useState(value);
 	const [commited, setCommited] = useState(false);
+	const [deleted, setDeleted] = useState(false);
 
 	const isModified = value !== editedValue;
 
@@ -120,6 +120,16 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 	const onValueChange = (value: SwitchableInputProps["value"]) => {
 		setEditedValue(value);
 		onChange && onChange(editedKey, value);
+	};
+
+	const onUndoAction = () => {
+		setDeleted(false);
+		onChange && onChange(editedKey, editedValue);
+	};
+
+	const onDeleteAction = (key: string) => {
+		setDeleted(true);
+		onKeyRemove && onKeyRemove(key);
 	};
 
 	const wrap = (input: React.ReactNode) => {
@@ -159,9 +169,11 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 						)}
 						<div className="button">
 							<Button
-								onClick={() => onKeyRemove && onKeyRemove(field)}
+								onClick={() =>
+									deleted ? onUndoAction() : onDeleteAction(field)
+								}
 								size={"small"}
-								icon="delete"
+								icon={deleted ? "undo" : "delete"}
 								variant="link"
 							/>
 						</div>
@@ -295,12 +307,7 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 	);
 
 	return (
-		<ContentRow
-			onContextMenuAction={(action) => onAction && onAction(action)}
-			key={field}
-			disableContextMenu={disableContextMenu}
-			editable={!!editable}
-		>
+		<>
 			<div className="left">{editableKey ? keyInput : field}</div>
 			<div className="modified">
 				{isModified && editable && (
@@ -308,7 +315,7 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 				)}
 			</div>
 			<div className="right">{jsx}</div>
-		</ContentRow>
+		</>
 	);
 };
 
@@ -323,16 +330,16 @@ enum ContentRowActions {
 
 interface ContentRowProps {
 	onContextMenuAction?: (action: ContentRowActions) => void;
-	disableContextMenu?: boolean;
-	editable: boolean;
+	enableInlineEdits: boolean;
+	allowModifyActions: boolean;
 }
 
 const ContentRow: FC<ContentRowProps> = (props) => {
 	const {
 		children,
 		onContextMenuAction = () => {},
-		disableContextMenu,
-		editable,
+		enableInlineEdits,
+		allowModifyActions,
 	} = props;
 
 	const items: CreateMenuItem[] = [
@@ -354,44 +361,45 @@ const ContentRow: FC<ContentRowProps> = (props) => {
 				},
 			],
 		},
-		{
-			divider: true,
-			key: "div_1",
-		},
-		{
-			item: "Delete Document",
-			key: ContentRowActions.delete_document,
-			cb: () => onContextMenuAction(ContentRowActions.delete_document),
-			icon: "trash",
-			intent: "danger",
-		},
 	];
 
-	items.splice(
-		1,
-		0,
-		editable
-			? {
-					item: "Discard Edits",
-					cb: () => onContextMenuAction(ContentRowActions.discard_edit),
-					intent: "primary",
-					icon: "cross",
-					key: ContentRowActions.discard_edit,
-			  }
-			: {
-					item: "Edit Document",
-					cb: () => onContextMenuAction(ContentRowActions.edit_document),
-					intent: "primary",
-					icon: "edit",
-					key: ContentRowActions.edit_document,
-			  }
-	);
+	if (allowModifyActions) {
+		items.push(
+			{
+				divider: true,
+				key: "div_1",
+			},
+			{
+				item: "Delete Document",
+				key: ContentRowActions.delete_document,
+				cb: () => onContextMenuAction(ContentRowActions.delete_document),
+				icon: "trash",
+				intent: "danger",
+			}
+		);
 
-	return disableContextMenu ? (
-		<div onContextMenu={(e) => e.stopPropagation()} className={"content-row"}>
-			{children}
-		</div>
-	) : (
+		items.splice(
+			1,
+			0,
+			enableInlineEdits
+				? {
+						item: "Discard Edits",
+						cb: () => onContextMenuAction(ContentRowActions.discard_edit),
+						intent: "primary",
+						icon: "cross",
+						key: ContentRowActions.discard_edit,
+				  }
+				: {
+						item: "Edit Document",
+						cb: () => onContextMenuAction(ContentRowActions.edit_document),
+						intent: "primary",
+						icon: "edit",
+						key: ContentRowActions.edit_document,
+				  }
+		);
+	}
+
+	return (
 		<ContextMenu2
 			className="context-menu"
 			content={createContextMenuItems(items)}
@@ -403,11 +411,12 @@ const ContentRow: FC<ContentRowProps> = (props) => {
 
 interface ContentBuilderOptions {
 	document: Ark.BSONDocument | Ark.BSONArray | Ark.BSONTypes[];
-	editable: boolean;
+	enableInlineEdits: boolean;
+	allowModifyActions: boolean;
 	onChange(
-		changed: "value" | "new_key",
+		changed: "update_value" | "delete_key",
 		key: string,
-		value: Ark.BSONTypes
+		value?: Ark.BSONTypes
 	): void;
 	onRowAction: (
 		action: ContentRowActions,
@@ -423,90 +432,106 @@ interface ContentBuilder {
 const contentBuilder: ContentBuilder = (
 	contentBuilderOptions: ContentBuilderOptions
 ) => {
-	const { document, editable, onChange, onRowAction } = contentBuilderOptions;
+	const {
+		document,
+		enableInlineEdits,
+		onChange,
+		onRowAction,
+		allowModifyActions,
+	} = contentBuilderOptions;
 
 	const onValueChange = (key: string, newValue: Ark.BSONTypes) =>
-		onChange && onChange("value", key, newValue);
+		onChange && onChange("update_value", key, newValue);
+
+	const onKeyRemove = (key: string) => onChange && onChange("delete_key", key);
 
 	const rows = Object.entries(document).reduce<React.ReactNode[]>(
 		(rows, [key, value], rowIdx) => {
 			const { type } = testBsonValue(value);
+
+			let inputJSX;
+
 			// console.log("KEY", key, "TYPE", type, "VALUE", value);
 			switch (type) {
 				case "oid": {
-					rows.push(
+					inputJSX = (
 						<SwitchableInput
 							key={key + "_idx_" + rowIdx}
 							initialType={type}
 							field={key}
 							value={value as ObjectId}
-							editable={editable}
+							editable={enableInlineEdits}
 							onAction={(action) => onRowAction(action, key, value)}
 							onCommit={onValueChange}
+							onKeyRemove={onKeyRemove}
 						/>
 					);
 					break;
 				}
 				case "isodate": {
-					rows.push(
+					inputJSX = (
 						<SwitchableInput
 							key={key + "_idx_" + rowIdx}
 							initialType={"date"}
 							field={key}
 							value={value as Date}
-							editable={editable}
+							editable={enableInlineEdits}
 							onAction={(action) => onRowAction(action, key, value)}
 							onCommit={onValueChange}
+							onKeyRemove={onKeyRemove}
 						/>
 					);
 					break;
 				}
 				case "number": {
-					rows.push(
+					inputJSX = (
 						<SwitchableInput
 							key={key + "_idx_" + rowIdx}
 							initialType={type}
 							field={key}
 							value={value as number}
-							editable={editable}
+							editable={enableInlineEdits}
 							onAction={(action) => onRowAction(action, key, value)}
 							onCommit={onValueChange}
+							onKeyRemove={onKeyRemove}
 						/>
 					);
 					break;
 				}
 				case "boolean": {
-					rows.push(
+					inputJSX = (
 						<SwitchableInput
 							key={key + "_idx_" + rowIdx}
 							initialType={type}
 							field={key}
 							value={value as boolean}
-							editable={editable}
+							editable={enableInlineEdits}
 							onAction={(action) => onRowAction(action, key, value)}
 							onCommit={onValueChange}
+							onKeyRemove={onKeyRemove}
 						/>
 					);
 					break;
 				}
 				case "null":
 				case "string": {
-					rows.push(
+					inputJSX = (
 						<SwitchableInput
 							key={key + "_idx_" + rowIdx}
 							initialType={"text"}
 							field={key}
 							value={String(value) as string}
-							editable={editable}
+							editable={enableInlineEdits}
 							onAction={(action) => onRowAction(action, key, value)}
 							onCommit={onValueChange}
+							onKeyRemove={onKeyRemove}
 						/>
 					);
 					break;
 				}
 				case "primitive[]": {
 					const bsonTypes = value as Ark.BSONTypes[];
-					rows.push(
+					inputJSX = (
 						<CollapseList
 							key={key}
 							content={[
@@ -534,7 +559,7 @@ const contentBuilder: ContentBuilder = (
 				}
 				case "subdocument[]": {
 					const subdocumentArray = value as Ark.BSONArray;
-					rows.push(
+					inputJSX = (
 						<CollapseList
 							key={key}
 							content={[
@@ -573,7 +598,7 @@ const contentBuilder: ContentBuilder = (
 				}
 				case "subdocument": {
 					const document = value as Ark.BSONDocument;
-					rows.push(
+					inputJSX = (
 						<CollapseList
 							key={key + "_idx_" + rowIdx}
 							content={[
@@ -601,7 +626,7 @@ const contentBuilder: ContentBuilder = (
 				}
 				case "unknown":
 				default:
-					rows.push(
+					inputJSX = (
 						<div style={{ display: "flex" }} key={key}>
 							<div style={{ width: "50%" }}>{key}</div>
 							<div style={{ width: "50%" }}>{}</div>
@@ -609,12 +634,23 @@ const contentBuilder: ContentBuilder = (
 					);
 			}
 
+			rows.push(
+				<ContentRow
+					onContextMenuAction={(action) => onRowAction(action, key, value)}
+					key={key}
+					enableInlineEdits={!!enableInlineEdits}
+					allowModifyActions={allowModifyActions}
+				>
+					{inputJSX}
+				</ContentRow>
+			);
+
 			return rows;
 		},
 		[]
 	);
 
-	if (editable) {
+	if (enableInlineEdits) {
 		rows.push(<NewFieldRows key={rows.length} onChange={onValueChange} />);
 	}
 
@@ -669,8 +705,6 @@ const NewFieldRows: FC<NewFieldRowsProps> = (props) => {
 	>([]);
 	const [addingKeys, setAddingKeys] = useState<boolean>(false);
 
-	console.log("rows", rows);
-
 	useEffect(() => {
 		if (rows.length === 0) setAddingKeys(false);
 		else if (rows.length > 0 && !addingKeys) setAddingKeys(true);
@@ -701,7 +735,6 @@ const NewFieldRows: FC<NewFieldRowsProps> = (props) => {
 	};
 
 	const commitRow = (idx: number) => {
-		console.log("Commiting", idx);
 		setRows((fields) => {
 			fields[idx].commited = true;
 			return [...fields];
@@ -729,7 +762,6 @@ const NewFieldRows: FC<NewFieldRowsProps> = (props) => {
 								value={field.value as string}
 								editable={!field.commited}
 								editableKey={!field.commited}
-								disableContextMenu
 							/>
 						</div>
 						{rows.length - 1 === idx && (
@@ -764,7 +796,8 @@ const NewFieldRows: FC<NewFieldRowsProps> = (props) => {
 
 interface DocumentPanelProps {
 	document: Ark.BSONDocument | Ark.BSONTypes[];
-	editable: boolean;
+	allowModifyActions: boolean;
+	enableInlineEdits: boolean;
 	onDocumentModified: ContentBuilderOptions["onChange"];
 	onDocumentEdit: () => void;
 	onDocumentDelete: () => void;
@@ -773,7 +806,8 @@ interface DocumentPanelProps {
 const DocumentPanel: FC<DocumentPanelProps> = (props) => {
 	const {
 		document,
-		editable = false,
+		allowModifyActions,
+		enableInlineEdits = false,
 		onDocumentModified,
 		onDocumentEdit,
 		onDocumentDelete,
@@ -782,7 +816,7 @@ const DocumentPanel: FC<DocumentPanelProps> = (props) => {
 
 	const onRowAction = useCallback(
 		(action: ContentRowActions, key: string, value: Ark.BSONTypes) => {
-			console.log(`[onRowAction] action=${action} key=${key} value=${value}`);
+			// console.log(`[onRowAction] action=${action} key=${key} value=${value}`);
 			switch (action) {
 				case ContentRowActions.copy_key: {
 					window.ark.copyText(key);
@@ -813,7 +847,8 @@ const DocumentPanel: FC<DocumentPanelProps> = (props) => {
 		<>
 			{contentBuilder({
 				document,
-				editable,
+				enableInlineEdits,
+				allowModifyActions,
 				onChange: onDocumentModified,
 				onRowAction: (action, key, value) =>
 					onRowAction(action, String(key), value),
@@ -822,33 +857,49 @@ const DocumentPanel: FC<DocumentPanelProps> = (props) => {
 	);
 };
 
+interface Update {
+	_id: string;
+	update: {
+		[k in "$set" | "$unset"]: Ark.BSONTypes | undefined;
+	};
+}
+
 interface JSONViewerProps {
 	bson: Ark.BSONArray;
 	driverConnectionId: string;
 	shellConfig: Ark.ShellConfig;
 	onRefresh: () => void;
+	allowDocumentEdits: boolean;
 }
 
 export const TreeViewer: FC<JSONViewerProps> = (props) => {
 	const {
-		bson: bsonResult,
+		bson,
 		driverConnectionId,
 		shellConfig,
+		allowDocumentEdits,
 		onRefresh,
 	} = props;
 
-	const [bson, setBSON] = useState(bsonResult);
-	const [updates, setUpdates] = useState<
-		Array<{
-			_id: string;
-			update: Record<"$set", Record<string, Ark.BSONTypes>>;
-		}>
-	>([]);
+	const [updates, setUpdates] = useState<Array<Update>>([]);
 	const [docsBeingEdited, setDocsBeingUpdated] = useState<
 		Set<Ark.BSONDocument>
 	>(new Set());
+	const [showSaveAllDialog, setShowSaveAllDialog] = useState(false);
+	const [showSaveDialog, setShowSaveDialog] = useState(false);
+	const [docBeingSaved, setDocBeingSaved] = useState<Ark.BSONDocument>();
 	const [docBeingDeleted, setDocBeingDeleted] = useState<Ark.BSONDocument>();
 	const [refreshCounts, setRefreshCounts] = useState({});
+
+	const driverArgs = useCallback(
+		(args) => ({
+			id: driverConnectionId,
+			database: shellConfig.database,
+			collection: shellConfig.collection,
+			...args,
+		}),
+		[driverConnectionId, shellConfig.collection, shellConfig.database]
+	);
 
 	const startEditingDocument = useCallback((document: Ark.BSONDocument) => {
 		setDocsBeingUpdated((docs) => {
@@ -880,16 +931,42 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 
 	const clearUpdates = () => setUpdates([]);
 
+	const unsetKey = (id: string, key: string) =>
+		setUpdates((updates) => {
+			const idx = updates.findIndex((u) => u._id === id);
+			if (idx > -1) {
+				if (updates[idx].update.$unset) {
+					(updates[idx].update.$unset as any)[key] = "";
+				} else {
+					(updates[idx].update.$unset as any) = { [key]: "" };
+				}
+			} else {
+				updates.push({
+					_id: id,
+					update: {
+						$unset: { [key]: "" },
+						$set: undefined,
+					},
+				});
+			}
+			return Array.from(updates);
+		});
+
 	const setKeyValue = (id: string, key: string, value: Ark.BSONTypes) =>
 		setUpdates((updates) => {
 			const idx = updates.findIndex((u) => u._id === id);
 			if (idx > -1) {
-				updates[idx].update.$set[key] = value;
+				if (updates[idx].update.$set) {
+					(updates[idx].update.$set as any)[key] = value;
+				} else {
+					(updates[idx].update.$set as any) = { [key]: value };
+				}
 			} else {
 				updates.push({
 					_id: id,
 					update: {
 						$set: { [key]: value },
+						$unset: undefined,
 					},
 				});
 			}
@@ -910,56 +987,61 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 		[]
 	);
 
+	const updateAllDocuments = useCallback((): Promise<void> => {
+		return Bluebird.map(updates, (update) => {
+			return window.ark.driver
+				.run(
+					"query",
+					"updateOne",
+					driverArgs({
+						query: serialize({
+							_id: new ObjectId(update._id),
+						}),
+						update: serialize(update.update),
+					})
+				)
+				.then(() => update)
+				.catch((err) => {
+					removeDocumentUpdates(update._id);
+					handleErrors(err, driverConnectionId);
+				});
+		}).then((updates) =>
+			updates.forEach((update) => removeDocumentUpdates(update._id))
+		);
+	}, [driverArgs, driverConnectionId, removeDocumentUpdates, updates]);
+
 	const updateDocument = useCallback(
 		(documentId: string) => {
 			const current = updates.find((update) => update._id === documentId);
 
-			if (current && shellConfig.database) {
+			if (current) {
 				return window.ark.driver
-					.run("query", "updateOne", {
-						id: driverConnectionId,
-						collection: shellConfig.collection,
-						database: shellConfig.database,
-						query: serialize({
-							_id: new ObjectId(current._id),
-						}),
-						update: serialize(current.update),
-					})
+					.run(
+						"query",
+						"updateOne",
+						driverArgs({
+							query: serialize({
+								_id: new ObjectId(current._id),
+							}),
+							update: serialize(current.update),
+						})
+					)
 					.then((result) => {
 						removeDocumentUpdates(documentId);
 						onRefresh();
-						if (result.ack) {
-							notify({
-								title: "Update",
-								description: "Document updated succesfully",
-								type: "success",
-							});
-						} else {
-							console.log(result);
-							notify({
-								title: "Update",
-								description: "Document update failed",
-								type: "error",
-							});
-						}
+						return result;
 					})
 					.catch((err) => {
 						removeDocumentUpdates(documentId);
 						handleErrors(err, driverConnectionId);
+						return Promise.reject(err);
 					});
 			} else {
-				console.log("no update found for", documentId);
+				console.log("no updates found for", documentId);
 				return Promise.resolve();
 			}
 		},
-		[
-			driverConnectionId,
-			onRefresh,
-			removeDocumentUpdates,
-			shellConfig.collection,
-			shellConfig.database,
-			updates,
-		]
+		[driverArgs, driverConnectionId, onRefresh, removeDocumentUpdates, updates]
 	);
 
 	const discardChanges = useCallback(
@@ -972,7 +1054,7 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 	);
 
 	const documentContextMenu = useCallback(
-		(document: any) => {
+		(document: any, allowEdits: boolean) => {
 			const items: CreateMenuItem[] = [
 				{
 					item: "Copy JSON",
@@ -981,42 +1063,47 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 					icon: "comparison",
 					key: ContentRowActions.copy_json,
 				},
-				{
-					divider: true,
-					key: "div_2",
-				},
-				{
-					item: "Delete Document",
-					cb: () => setDocBeingDeleted(document),
-					icon: "trash",
-					intent: "danger",
-					key: ContentRowActions.delete_document,
-				},
 			];
 
-			items.splice(
-				1,
-				0,
-				docsBeingEdited.has(document)
-					? {
-							item: "Discard Edits",
-							cb: () => {
-								discardChanges(document);
-							},
-							intent: "primary",
-							icon: "cross",
-							key: ContentRowActions.discard_edit,
-					  }
-					: {
-							item: "Edit Document",
-							cb: () => {
-								startEditingDocument(document);
-							},
-							intent: "primary",
-							icon: "edit",
-							key: ContentRowActions.edit_document,
-					  }
-			);
+			if (allowEdits) {
+				items.push(
+					{
+						divider: true,
+						key: "div_2",
+					},
+					{
+						item: "Delete Document",
+						cb: () => setDocBeingDeleted(document),
+						icon: "trash",
+						intent: "danger",
+						key: ContentRowActions.delete_document,
+					}
+				);
+
+				items.splice(
+					1,
+					0,
+					docsBeingEdited.has(document)
+						? {
+								item: "Discard Edits",
+								cb: () => {
+									discardChanges(document);
+								},
+								intent: "primary",
+								icon: "cross",
+								key: ContentRowActions.discard_edit,
+						  }
+						: {
+								item: "Edit Document",
+								cb: () => {
+									startEditingDocument(document);
+								},
+								intent: "primary",
+								icon: "edit",
+								key: ContentRowActions.edit_document,
+						  }
+				);
+			}
 
 			return createContextMenuItems(items);
 		},
@@ -1028,12 +1115,15 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 			return {
 				jsx: (
 					<DocumentPanel
-						editable={docsBeingEdited.has(document)}
+						allowModifyActions={allowDocumentEdits}
+						enableInlineEdits={docsBeingEdited.has(document)}
 						document={document}
 						key={(refreshCounts[document._id] || 0) + "" + index}
 						onDocumentModified={(change, key, value) => {
-							if (change === "value") {
+							if (change === "update_value" && typeof value !== "undefined") {
 								setKeyValue(document._id.toString(), key, value);
+							} else if (change === "delete_key") {
+								unsetKey(document._id.toString(), key);
 							}
 						}}
 						onDocumentEdit={() => startEditingDocument(document)}
@@ -1042,26 +1132,26 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 					/>
 				),
 				header: {
-					menu: documentContextMenu(document),
+					menu: documentContextMenu(document, allowDocumentEdits),
 					primary: true,
 					key: index,
-					title: `(${String(
-						index + 1
-					)}) ObjectId("${document._id.toString()}")`,
+					title: `(${String(index + 1)}) ${
+						document && document._id && isObjectId(document._id)
+							? `ObjectId("${document._id.toString()}")`
+							: document && document._id
+							? `${document._id}`
+							: ``
+					}`,
 					rightElement: docsBeingEdited.has(document) ? (
 						<div className="document-header-buttons">
 							<Button
 								size="small"
 								text={"Save"}
 								variant={"link"}
-								onClick={{
-									callback: () => {
-										stopEditingDocument(document);
-									},
-									promise: (e) => {
-										e.stopPropagation();
-										return updateDocument(document._id.toString());
-									},
+								onClick={(e) => {
+									e.stopPropagation();
+									setDocBeingSaved(document);
+									setShowSaveDialog(true);
 								}}
 							/>
 							<Button
@@ -1083,16 +1173,15 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 		[
 			docsBeingEdited,
 			refreshCounts,
+			allowDocumentEdits,
 			documentContextMenu,
 			startEditingDocument,
-			stopEditingDocument,
-			updateDocument,
 			discardChanges,
 		]
 	);
 
-	console.log("UPDATES", updates);
-	console.log("BSON", bson);
+	// console.log("UPDATES", updates);
+	// console.log("BSON", bson);
 
 	return (
 		<div className="tree-viewer">
@@ -1100,14 +1189,17 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 				{docsBeingEdited.size > 0 && (
 					<>
 						<Button
-							onClick={() => {}}
+							onClick={() => setShowSaveAllDialog(true)}
 							size={"small"}
 							icon="small-tick"
 							variant={"primary"}
 							text="Save all"
 						/>
 						<Button
-							onClick={() => {}}
+							onClick={() => {
+								clearUpdates();
+								onRefresh();
+							}}
 							size={"small"}
 							icon="small-tick"
 							variant={"danger"}
@@ -1125,8 +1217,21 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 			<>
 				{docBeingDeleted && (
 					<DangerousActionPrompt
-						dangerousAction={() => Promise.resolve()}
-						dangerousActionCallback={() => {}}
+						dangerousAction={() => {
+							return window.ark.driver.run(
+								"query",
+								"deleteOne",
+								driverArgs({
+									query: serialize({
+										_id: new ObjectId(docBeingDeleted._id),
+									}),
+								})
+							);
+						}}
+						dangerousActionCallback={() => {
+							setDocBeingDeleted(undefined);
+							onRefresh();
+						}}
 						onCancel={() => {
 							setDocBeingDeleted(undefined);
 						}}
@@ -1134,12 +1239,105 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 							<>
 								<p>{"Are you sure you would like to delete this document?"}</p>
 								<p>{"Object ID - " + docBeingDeleted._id.toString()}</p>
+								<br />
+								<p>
+									{`This deletion will be run on the collection - ${shellConfig.collection}. `}
+									<a>Change</a>
+								</p>
 							</>
 						}
 						title={"Deleting Document"}
 					/>
 				)}
+				{showSaveAllDialog && (
+					<DangerousActionPrompt
+						dangerousAction={() => updateAllDocuments()}
+						dangerousActionCallback={(err) => {
+							if (err) {
+								notify({
+									title: "Update",
+									description: err.message,
+									type: "error",
+								});
+							} else {
+								notify({
+									title: "Update",
+									description: "All documents updated",
+									type: "success",
+								});
+							}
+							setShowSaveAllDialog(false);
+							onRefresh();
+						}}
+						onCancel={() => {
+							setShowSaveAllDialog(false);
+						}}
+						prompt={
+							<UpdatesList
+								collection={shellConfig.collection}
+								updates={updates}
+							/>
+						}
+						title={"Saving Changes"}
+					/>
+				)}
+				{showSaveDialog && docBeingSaved && (
+					<DangerousActionPrompt
+						dangerousAction={() => updateDocument(docBeingSaved._id.toString())}
+						dangerousActionCallback={(err, result) => {
+							if (err || !result.ack) {
+								notify({
+									title: "Update",
+									description: "Document update failed",
+									type: "error",
+								});
+							} else {
+								notify({
+									title: "Update",
+									description: "Document updated succesfully",
+									type: "success",
+								});
+							}
+							setShowSaveDialog(false);
+							onRefresh();
+						}}
+						onCancel={() => {
+							setShowSaveDialog(false);
+						}}
+						prompt={
+							<UpdatesList
+								collection={shellConfig.collection}
+								updates={updates.filter(
+									(update) => update._id === docBeingSaved._id.toString()
+								)}
+							/>
+						}
+						title={"Saving Changes"}
+					/>
+				)}
 			</>
+		</div>
+	);
+};
+
+interface UpdateListProps {
+	updates: Update[];
+	collection: string;
+}
+
+const UpdatesList: FC<UpdateListProps> = (props) => {
+	const { updates } = props;
+	return (
+		<div className="updates-list">
+			{updates.length
+				? updates.map((update) => (
+						<div className="item" key={update._id.toString()}>
+							<p>{`ID - ${update._id.toString()}`}</p>
+
+							<code>{JSON.stringify(update.update)}</code>
+						</div>
+				  ))
+				: `No changes were made.`}
 		</div>
 	);
 };
