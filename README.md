@@ -1,6 +1,6 @@
 # Ark
 
-[![CircleCI](https://circleci.com/gh/makeark/ark/tree/master.svg?style=svg)](https://circleci.com/gh/makeark/ark/tree/master)
+[![CircleCI](https://circleci.com/gh/makeark/ark-foss/tree/master.svg?style=svg)](https://circleci.com/gh/makeark/ark-foss/tree/master)
 
 A workspace for developers who use MongoDB.
 
