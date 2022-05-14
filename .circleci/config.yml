@@ -1,0 +1,30 @@
+version: 2.1
+
+jobs:
+  build_linux:
+    docker:
+      - image: node:16
+    steps:
+      - checkout
+      - run:
+          name: "Install dependencies"
+          command: "npm ci"
+      - run:
+          name: "Build electron & react"
+          command: "npm run build"
+      - run:
+          name: "Build AppImage"
+          command: "npm run dist:app_image"
+      - run:
+          name: "Build deb"
+          command: "npm run dist:deb"
+      - run:
+          name: "Move necessary build output"
+          command: "mkdir -p /tmp/release && mv ./release/*.AppImage ./release/*.deb /tmp/release"
+      - store_artifacts:
+          path: /tmp/release
+
+workflows:
+  main:
+    jobs:
+      - build_linux

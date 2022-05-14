@@ -1,5 +1,7 @@
 # Ark
 
+[![CircleCI](https://circleci.com/gh/makeark/ark/tree/master.svg?style=svg)](https://circleci.com/gh/makeark/ark/tree/master)
+
 A workspace for developers who use MongoDB.
 
 ## Features
@@ -9,6 +11,8 @@ A workspace for developers who use MongoDB.
 - Inline document editing support of results in tree view.
 
 ## Development
+
+NodeJS Version - 16.X
 
 Install dependencies using `npm i`.
 
