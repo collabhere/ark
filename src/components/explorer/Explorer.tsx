@@ -1,18 +1,13 @@
 import "./styles.less";
 
 import React, { FC, useCallback, useEffect, useRef, useState } from "react";
-import { Dropdown, Menu, Tree } from "antd";
+import { Dropdown, Menu } from "antd";
+import { Tree } from "@blueprintjs/core";
 import { Resizable } from "re-resizable";
 import { dispatch, listenEffect } from "../../common/utils/events";
 import { CollectionInfo, ListDatabasesResult } from "mongodb";
 import { useTree } from "../../hooks/useTree";
-import {
-	VscDatabase,
-	VscFolder,
-	VscListTree,
-	VscKebabVertical,
-	VscRefresh,
-} from "react-icons/vsc";
+import { VscDatabase, VscFolder, VscListTree } from "react-icons/vsc";
 import { CircularLoading } from "../../common/components/Loading";
 import { handleErrors, notify } from "../../common/utils/misc";
 import { Button } from "../../common/components/Button";
@@ -223,6 +218,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 					[],
 					{
 						icon: <VscListTree />,
+						hasCaret: false,
 					}
 				);
 			});
@@ -274,12 +270,14 @@ export const Explorer: FC<ExplorerProps> = () => {
 					setCollectionListToTree(db.name, db.collections || []),
 					{
 						icon: <VscDatabase />,
+						hasCaret: false,
 					}
 				)
 			);
 
-			addNodeAtEnd("system", "folder;system", systemNodes, {
+			addNodeAtEnd(<span>system</span>, "folder;system", systemNodes, {
 				icon: <VscFolder />,
+				isExpanded: expandedKeys && expandedKeys.includes("folder;system"),
 			});
 
 			for (const db of personal) {
@@ -291,11 +289,13 @@ export const Explorer: FC<ExplorerProps> = () => {
 					setCollectionListToTree(db.name, db.collections || []),
 					{
 						icon: <VscDatabase />,
+						hasCaret: !!(db.collections && db.collections.length > 0),
+						isExpanded: expandedKeys && expandedKeys.includes(db.key),
 					}
 				);
 			}
 		},
-		[setCollectionListToTree, addNodeAtEnd, createNode, openShell]
+		[setCollectionListToTree, addNodeAtEnd, createNode, openShell, expandedKeys]
 	);
 
 	const fetchAndCacheCollections = useCallback(
@@ -457,30 +457,23 @@ export const Explorer: FC<ExplorerProps> = () => {
 							</div>
 						</div>
 						<Tree
-							checkable={false}
-							draggable={false}
-							focusable={false}
-							selectable={false}
-							showIcon
-							defaultExpandedKeys={[]}
-							expandedKeys={expandedKeys}
+							// expandedKeys={expandedKeys}
 							className={"ExplorerTree"}
-							onExpand={(keys, info) => {
-								const { expanded, node } = info;
-								if (expanded)
-									setExpandedKeys((keys) => [...keys, node.key as string]);
-								else
-									setExpandedKeys((keys) =>
-										keys.filter((key) => key !== node.key)
-									);
+							onNodeExpand={(node) => {
+								setExpandedKeys((keys) => [...keys, node.id as string]);
 							}}
-							onDoubleClick={(e, node) => {
-								const key = node.key as string;
+							onNodeCollapse={(node) => {
+								setExpandedKeys((keys) =>
+									keys.filter((key) => key !== node.id)
+								);
+							}}
+							onNodeDoubleClick={(node) => {
+								const key = node.id as string;
 								const { type, value, ctx } = readKey(key);
 								if (type === "database") {
 									const db = value;
-									if (node.children && node.children.length) {
-										updateNodeProperties(key, { children: [] });
+									if (node.childNodes && node.childNodes.length) {
+										updateNodeProperties(key, { childNodes: [] });
 									}
 									setDatabaseNodeLoading(key, true);
 									fetchAndCacheCollections(db).then(() => {
@@ -493,7 +486,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 									openShell(db, collection);
 								}
 							}}
-							treeData={tree}
+							contents={tree}
 						/>
 					</>
 				) : (

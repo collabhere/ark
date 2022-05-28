@@ -1,102 +1,132 @@
-import { DataNode } from "antd/lib/tree";
-import React, { useCallback, useState } from "react";
+import { TreeNodeInfo } from "@blueprintjs/core";
+import { useCallback, useState } from "react";
 
-const findNodeRecursively = (tree: DataNode[], key: string): DataNode | undefined => {
-    let result;
-    for (const node of tree) {
-        if (node.key === key) result = node;
+const findNodeRecursively = (
+	tree: TreeNodeInfo[],
+	key: string
+): TreeNodeInfo | undefined => {
+	let result;
+	for (const node of tree) {
+		if (node.id === key) result = node;
 
-        if (!result && node.children?.length)
-            result = findNodeRecursively(node.children, key);
+		if (!result && node.childNodes?.length)
+			result = findNodeRecursively(node.childNodes, key);
 
-        if (result) return result;
-    }
-    return result;
-}
+		if (result) return result;
+	}
+	return result;
+};
 
-type NodeProperties = Pick<DataNode, "className" | "icon" | "disabled" | "children">;
-
+type NodeProperties = Pick<
+	TreeNodeInfo,
+	"className" | "icon" | "disabled" | "childNodes" | "isExpanded" | "hasCaret"
+>;
 
 interface UseTree {
-    tree: DataNode[];
-    node(key: string): DataNode | undefined;
-    addNodeAtEnd(title: React.ReactNode, key: string, children?: DataNode[], properties?: NodeProperties): void;
-    addChildrenToNode(key: string, children: DataNode[]): void;
-    removeNode(key: string): void;
-    updateNodeProperties(key: string, properties: NodeProperties): void;
-    createNode(title: React.ReactNode, key: string, children?: DataNode[], properties?: NodeProperties): DataNode;
-    dropTree(): void;
+	tree: TreeNodeInfo[];
+	node(key: string): TreeNodeInfo | undefined;
+	addNodeAtEnd(
+		title: JSX.Element,
+		key: string,
+		childNodes?: TreeNodeInfo[],
+		properties?: NodeProperties
+	): void;
+	addChildrenToNode(key: string, childNodes: TreeNodeInfo[]): void;
+	removeNode(key: string): void;
+	updateNodeProperties(key: string, properties: NodeProperties): void;
+	createNode(
+		title: JSX.Element,
+		key: string,
+		childNodes?: TreeNodeInfo[],
+		properties?: NodeProperties
+	): TreeNodeInfo;
+	dropTree(): void;
 }
 
 export function useTree(): UseTree {
-    const [tree, setTree] = useState<DataNode[]>([]);
+	const [tree, setTree] = useState<TreeNodeInfo[]>([]);
 
-    const node: UseTree["node"] = useCallback((key) => findNodeRecursively(tree, key), [tree]);
+	const node: UseTree["node"] = useCallback(
+		(key) => findNodeRecursively(tree, key),
+		[tree]
+	);
 
-    const updateNodeProperties: UseTree["updateNodeProperties"] = useCallback((key, properties: NodeProperties) => {
-        setTree(_tree => {
-            for (const node of _tree) {
-                if (node.key === key) {
-                    Object.assign(node, properties);
-                    return [..._tree];
-                }
-            }
-            return _tree;
-        })
-    }, [])
+	const updateNodeProperties: UseTree["updateNodeProperties"] = useCallback(
+		(key, properties: NodeProperties) => {
+			setTree((_tree) => {
+				const node = findNodeRecursively(tree, key);
+				if (node) {
+					Object.assign(node, properties);
+					return [..._tree];
+				}
 
-    const createNode: UseTree["createNode"] = useCallback((title, key, children = [], properties = {}) => ({
-        title,
-        key,
-        children,
-        ...properties
-    }), []);
+				return _tree;
+			});
+		},
+		[tree]
+	);
 
-    const addNodeAtEnd: UseTree["addNodeAtEnd"] = useCallback((title, key, children = [], properties = {}) => {
-        setTree(tree => [
-            ...tree,
-            createNode(title, key, children, properties)
-        ]);
-    }, [createNode]);
+	const createNode: UseTree["createNode"] = useCallback(
+		(label, id, childNodes = [], properties = {}) => ({
+			label,
+			id,
+			childNodes,
+			...properties,
+		}),
+		[]
+	);
 
-    const addChildrenToNode: UseTree["addChildrenToNode"] = useCallback((key, children) => {
-        setTree(_tree => {
-            const node = findNodeRecursively(_tree, key);
-            if (node) {
-                if (node.children?.length) {
-                    node.children.push(...children);
-                } else {
-                    node.children = children;
-                }
-                return [..._tree];
-            }
-            return _tree;
-        });
-    }, []);
+	const addNodeAtEnd: UseTree["addNodeAtEnd"] = useCallback(
+		(title, key, childNodes = [], properties = {}) => {
+			setTree((tree) => [
+				...tree,
+				createNode(title, key, childNodes, properties),
+			]);
+		},
+		[createNode]
+	);
 
-    const removeNode: UseTree["removeNode"] = useCallback((key) => {
-        setTree(_tree => {
-            const idx = _tree.findIndex((n) => n.key === key);
-            if (idx > -1) {
-                _tree.splice(idx, 1);
-                return [..._tree];
-            }
-            return _tree;
-        });
-    }, []);
+	const addChildrenToNode: UseTree["addChildrenToNode"] = useCallback(
+		(key, childNodes) => {
+			setTree((_tree) => {
+				const node = findNodeRecursively(_tree, key);
+				if (node) {
+					if (node.childNodes?.length) {
+						node.childNodes.push(...childNodes);
+					} else {
+						node.childNodes = childNodes;
+					}
+					return [..._tree];
+				}
+				return _tree;
+			});
+		},
+		[]
+	);
 
-    const dropTree: UseTree["dropTree"] = useCallback(() => {
-        setTree([]);
-    }, []);
+	const removeNode: UseTree["removeNode"] = useCallback((key) => {
+		setTree((_tree) => {
+			const idx = _tree.findIndex((n) => n.id === key);
+			if (idx > -1) {
+				_tree.splice(idx, 1);
+				return [..._tree];
+			}
+			return _tree;
+		});
+	}, []);
 
-    return {
-        tree,
-        node,
-        createNode,
-        addNodeAtEnd,
-        addChildrenToNode,
-        updateNodeProperties,
-        removeNode,
-        dropTree
-    };
+	const dropTree: UseTree["dropTree"] = useCallback(() => {
+		setTree([]);
+	}, []);
+
+	return {
+		tree,
+		node,
+		createNode,
+		addNodeAtEnd,
+		addChildrenToNode,
+		updateNodeProperties,
+		removeNode,
+		dropTree,
+	};
 }
