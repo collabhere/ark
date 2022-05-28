@@ -2,11 +2,11 @@ import "./styles.less";
 
 import React, { useCallback, useContext } from "react";
 import { Button } from "../../common/components/Button";
-import { Dropdown, Menu } from "antd";
+import { Menu, MenuItem, MenuDivider } from "@blueprintjs/core";
+import { Popover2 } from "@blueprintjs/popover2";
 import { VscFileCode, VscClose, VscWatch, VscTerminal } from "react-icons/vsc";
 import { useState } from "react";
 import { SelectConnectionForFilePath } from "../dialogs/SelectConnectionForScript";
-import SubMenu from "antd/lib/menu/SubMenu";
 import { Dialog } from "../../common/components/Dialog";
 import { Checkbox, InputGroup } from "@blueprintjs/core";
 import { notify } from "../../common/utils/misc";
@@ -74,10 +74,11 @@ export const TitleBar = (): JSX.Element => {
 			<div className="header-container">
 				<div className="logo">Ark</div>
 				<div>
-					<Dropdown
-						overlay={
+					<Popover2
+						content={
 							<Menu>
-								<Menu.Item
+								<MenuItem
+									text="Open Script"
 									onClick={() => {
 										window.ark
 											.browseForFile("Select A File", "Select")
@@ -88,108 +89,113 @@ export const TitleBar = (): JSX.Element => {
 									}}
 									icon={<VscFileCode />}
 									key="0"
-								>
-									<a>Open Script</a>
-								</Menu.Item>
-								<Menu.Divider />
-								<Menu.Item icon={<VscWatch />} key="1">
-									<SubMenu title="Timezone">
-										<Menu.Item
-											onClick={() =>
-												changeSettings<"timezone">("timezone", "local")
-											}
-										>
-											Local Timezone
-										</Menu.Item>
-										<Menu.Item
-											onClick={() =>
-												changeSettings<"timezone">("timezone", "utc")
-											}
-										>
-											{" "}
-											UTC
-										</Menu.Item>
-									</SubMenu>
-								</Menu.Item>
-								<Menu.Divider />
-								<Menu.Item
+								/>
+								<MenuDivider />
+								<MenuItem text="Timezone" icon={<VscWatch />} key="1">
+									<MenuItem
+										text="Local Timezone"
+										onClick={() =>
+											changeSettings<"timezone">("timezone", "local")
+										}
+									/>
+									<MenuItem
+										text="UTC"
+										onClick={() =>
+											changeSettings<"timezone">("timezone", "utc")
+										}
+									/>
+								</MenuItem>
+								<MenuDivider />
+								<MenuItem
+									text="Change Shell Timeout"
 									icon={<VscTerminal />}
 									key="2"
 									onClick={() => setTimeoutDialog(true)}
-								>
-									<a>Change Shell Timeout</a>
-								</Menu.Item>
-								<Menu.Divider />
-								<Menu.Item key="3">
-									<Checkbox
-										checked={localSettings.lineNumbers}
-										label={"Show Line Numbers"}
-										onChange={(e) => {
-											const showLineNumbers = (e.target as HTMLInputElement)
-												.checked
-												? "on"
-												: "off";
-											changeSettings("lineNumbers", showLineNumbers);
-										}}
-									/>
-								</Menu.Item>
-								<Menu.Divider />
-								<Menu.Item key="4">
-									<Checkbox
-										checked={localSettings.miniMap}
-										label={"Show Mini Map"}
-										onChange={(e) => {
-											const showMiniMap = (e.target as HTMLInputElement).checked
-												? "on"
-												: "off";
-											changeSettings("miniMap", showMiniMap);
-										}}
-									/>
-								</Menu.Item>
-								<Menu.Divider />
-								<Menu.Item key="5">
-									<Checkbox
-										checked={localSettings.hotKeys}
-										label={"Enable hotkeys"}
-										onChange={(e) => {
-											const enableHotkeys = (e.target as HTMLInputElement)
-												.checked
-												? "on"
-												: "off";
-											changeSettings("hotKeys", enableHotkeys);
-										}}
-									/>
-								</Menu.Item>
-								<Menu.Divider />
-								<Menu.Item key="6">
-									<Checkbox
-										checked={localSettings.autoUpdates}
-										label={"Auto Updates"}
-										onChange={(e) => {
-											const autoUpdates = (e.target as HTMLInputElement).checked
-												? "on"
-												: "off";
-											changeSettings("autoUpdates", autoUpdates);
-										}}
-									/>
-								</Menu.Item>
-								<Menu.Divider />
-								<Menu.Item
+								/>
+								<MenuDivider />
+								<MenuItem
+									key="3"
+									text={
+										<Checkbox
+											checked={localSettings.lineNumbers}
+											label={"Show Line Numbers"}
+											onChange={(e) => {
+												const showLineNumbers = (e.target as HTMLInputElement)
+													.checked
+													? "on"
+													: "off";
+												changeSettings("lineNumbers", showLineNumbers);
+											}}
+										/>
+									}
+								/>
+								<MenuDivider />
+								<MenuItem
+									key="4"
+									text={
+										<Checkbox
+											checked={localSettings.miniMap}
+											label={"Show Mini Map"}
+											onChange={(e) => {
+												const showMiniMap = (e.target as HTMLInputElement)
+													.checked
+													? "on"
+													: "off";
+												changeSettings("miniMap", showMiniMap);
+											}}
+										/>
+									}
+								/>
+								<MenuDivider />
+								<MenuItem
+									key="5"
+									text={
+										<Checkbox
+											checked={localSettings.hotKeys}
+											label={"Enable hotkeys"}
+											onChange={(e) => {
+												const enableHotkeys = (e.target as HTMLInputElement)
+													.checked
+													? "on"
+													: "off";
+												changeSettings("hotKeys", enableHotkeys);
+											}}
+										/>
+									}
+								/>
+								<MenuDivider />
+								<MenuItem
+									key="6"
+									text={
+										<Checkbox
+											checked={localSettings.autoUpdates}
+											label={"Auto Updates"}
+											onChange={(e) => {
+												const autoUpdates = (e.target as HTMLInputElement)
+													.checked
+													? "on"
+													: "off";
+												changeSettings("autoUpdates", autoUpdates);
+											}}
+										/>
+									}
+								/>
+								<MenuDivider />
+								<MenuItem
+									intent="danger"
+									text="Exit"
 									icon={<VscClose />}
 									key="7"
 									onClick={() => window.ark.titlebar.close()}
-								>
-									<a>Exit</a>
-								</Menu.Item>
-								<Menu.Divider />
+								/>
 							</Menu>
 						}
-						trigger={["click"]}
+						interactionKind={"click"}
 					>
 						<div className="header-item">
 							<Button size="small" text="Options" />
 						</div>
-					</Dropdown>
+					</Popover2>
 				</div>
 			</div>
 
