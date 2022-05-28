@@ -1,18 +1,13 @@
 import "./styles.less";
 
 import React, { FC, useCallback, useEffect, useRef, useState } from "react";
-import { Dropdown, Menu, Tree } from "antd";
+import { Tree, Menu, MenuItem } from "@blueprintjs/core";
+import { ContextMenu2, Popover2 } from "@blueprintjs/popover2";
 import { Resizable } from "re-resizable";
 import { dispatch, listenEffect } from "../../common/utils/events";
 import { CollectionInfo, ListDatabasesResult } from "mongodb";
 import { useTree } from "../../hooks/useTree";
-import {
-	VscDatabase,
-	VscFolder,
-	VscListTree,
-	VscKebabVertical,
-	VscRefresh,
-} from "react-icons/vsc";
+import { VscDatabase, VscFolder, VscListTree } from "react-icons/vsc";
 import { CircularLoading } from "../../common/components/Loading";
 import { handleErrors, notify } from "../../common/utils/misc";
 import { Button } from "../../common/components/Button";
@@ -73,14 +68,17 @@ const createDatabaseList = (databases: Databases): DatabaseList => {
 interface CreateMenuItem {
 	item: string;
 	cb: () => void;
-	danger?: boolean;
+	intent?: "danger" | "none";
 }
 const createContextMenu = (items: CreateMenuItem[]) => (
 	<Menu>
 		{items.map((menuItem, i) => (
-			<Menu.Item danger={menuItem.danger} key={i} onClick={() => menuItem.cb()}>
-				<a>{menuItem.item}</a>
-			</Menu.Item>
+			<MenuItem
+				key={i}
+				onClick={() => menuItem.cb()}
+				intent={menuItem.intent}
+				text={menuItem.item}
+			/>
 		))}
 	</Menu>
 );
@@ -196,15 +194,15 @@ export const Explorer: FC<ExplorerProps> = () => {
 		(db: string, collections: CollectionInfo[]) => {
 			const children = collections.map((collection) => {
 				return createNode(
-					<Dropdown
-						overlay={createContextMenu([
+					<ContextMenu2
+						content={createContextMenu([
 							{
 								item: "Open shell",
 								cb: () => openShell(db, collection.name),
 							},
 							{ item: "Indexes", cb: () => {} },
 							{
-								danger: true,
+								intent: "danger",
 								item: "Drop collection",
 								cb: () => {
 									setDropCollectionDialogInfo({
@@ -215,14 +213,14 @@ export const Explorer: FC<ExplorerProps> = () => {
 								},
 							},
 						])}
-						trigger={["contextMenu"]}
 					>
 						<span>{collection.name}</span>
-					</Dropdown>,
+					</ContextMenu2>,
 					collectionTreeKey(collection.name, db),
 					[],
 					{
 						icon: <VscListTree />,
+						hasCaret: false,
 					}
 				);
 			});
@@ -254,7 +252,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 					{ item: "Current operations", cb: () => {} },
 					{ item: "Statistics", cb: () => {} },
 					{
-						danger: true,
+						intent: "danger",
 						item: "Drop database",
 						cb: () => {
 							setDropDatabaseDialogInfo({
@@ -267,35 +265,39 @@ export const Explorer: FC<ExplorerProps> = () => {
 
 			const systemNodes = system.map((db) =>
 				createNode(
-					<Dropdown overlay={createOverlay(db)} trigger={["contextMenu"]}>
+					<ContextMenu2 content={createOverlay(db)}>
 						<span>{db.name}</span>
-					</Dropdown>,
+					</ContextMenu2>,
 					db.key,
 					setCollectionListToTree(db.name, db.collections || []),
 					{
 						icon: <VscDatabase />,
+						hasCaret: false,
 					}
 				)
 			);
 
-			addNodeAtEnd("system", "folder;system", systemNodes, {
+			addNodeAtEnd(<span>system</span>, "folder;system", systemNodes, {
 				icon: <VscFolder />,
+				isExpanded: expandedKeys && expandedKeys.includes("folder;system"),
 			});
 
 			for (const db of personal) {
 				addNodeAtEnd(
-					<Dropdown overlay={createOverlay(db)} trigger={["contextMenu"]}>
+					<ContextMenu2 content={createOverlay(db)}>
 						<span>{db.name}</span>
-					</Dropdown>,
+					</ContextMenu2>,
 					db.key,
 					setCollectionListToTree(db.name, db.collections || []),
 					{
 						icon: <VscDatabase />,
+						hasCaret: !!(db.collections && db.collections.length > 0),
+						isExpanded: expandedKeys && expandedKeys.includes(db.key),
 					}
 				);
 			}
 		},
-		[setCollectionListToTree, addNodeAtEnd, createNode, openShell]
+		[setCollectionListToTree, addNodeAtEnd, createNode, openShell, expandedKeys]
 	);
 
 	const fetchAndCacheCollections = useCallback(
@@ -421,22 +423,24 @@ export const Explorer: FC<ExplorerProps> = () => {
 									}}
 									onClick={() => refresh()}
 								/>
-								<Dropdown
-									overlay={
+								<Popover2
+									content={
 										<Menu>
-											<Menu.Item
+											<MenuItem
+												text={"Create database"}
 												key={1}
 												onClick={() =>
 													setCreateDatabaseDialogInfo({ visible: true })
 												}
-											>
-												<a>Create database</a>
-											</Menu.Item>
-											<Menu.Item key={2} onClick={() => {}}>
-												<a>Server Info</a>
-											</Menu.Item>
-											<Menu.Item
-												danger
+											/>
+											<MenuItem
+												key={2}
+												onClick={() => {}}
+												text={"Server Info"}
+											/>
+											<MenuItem
+												text={"Disconnect"}
+												intent="danger"
 												key={3}
 												onClick={() => {
 													dispatch("connection_manager:disconnect", {
@@ -445,42 +449,31 @@ export const Explorer: FC<ExplorerProps> = () => {
 													dispatch("connection_manager:toggle");
 													dispatch("explorer:hide");
 												}}
-											>
-												<a>Disconnect</a>
-											</Menu.Item>
+											/>
 										</Menu>
 									}
-									trigger={["click"]}
 								>
 									<Button icon="more" size="small" variant="primary" />
-								</Dropdown>
+								</Popover2>
 							</div>
 						</div>
 						<Tree
-							checkable={false}
-							draggable={false}
-							focusable={false}
-							selectable={false}
-							showIcon
-							defaultExpandedKeys={[]}
-							expandedKeys={expandedKeys}
 							className={"ExplorerTree"}
-							onExpand={(keys, info) => {
-								const { expanded, node } = info;
-								if (expanded)
-									setExpandedKeys((keys) => [...keys, node.key as string]);
-								else
-									setExpandedKeys((keys) =>
-										keys.filter((key) => key !== node.key)
-									);
+							onNodeExpand={(node) => {
+								setExpandedKeys((keys) => [...keys, node.id as string]);
 							}}
-							onDoubleClick={(e, node) => {
-								const key = node.key as string;
+							onNodeCollapse={(node) => {
+								setExpandedKeys((keys) =>
+									keys.filter((key) => key !== node.id)
+								);
+							}}
+							onNodeDoubleClick={(node) => {
+								const key = node.id as string;
 								const { type, value, ctx } = readKey(key);
 								if (type === "database") {
 									const db = value;
-									if (node.children && node.children.length) {
-										updateNodeProperties(key, { children: [] });
+									if (node.childNodes && node.childNodes.length) {
+										updateNodeProperties(key, { childNodes: [] });
 									}
 									setDatabaseNodeLoading(key, true);
 									fetchAndCacheCollections(db).then(() => {
@@ -493,7 +486,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 									openShell(db, collection);
 								}
 							}}
-							treeData={tree}
+							contents={tree}
 						/>
 					</>
 				) : (

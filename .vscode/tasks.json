@@ -1,17 +1,25 @@
 {
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "isBackground": true,
-            "type": "npm",
-            "script": "dev:react",
-            "label": "Run:vite-dev-server",
-        },
-        {
-            "isBackground": true,
-            "type": "npm",
-            "script": "dev:electron",
-            "label": "Run:electron-watcher",
-        }
-    ]
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"isBackground": true,
+			"type": "npm",
+			"script": "dev:react",
+			"label": "Run:vite-dev-server"
+		},
+		{
+			"isBackground": true,
+			"type": "npm",
+			"script": "dev:electron",
+			"label": "Run:electron-watcher"
+		},
+		{
+			"type": "npm",
+			"script": "build",
+			"group": "build",
+			"problemMatcher": [],
+			"label": "npm: build",
+			"detail": "rimraf build && npm run build:renderer && npm run build:main"
+		}
+	]
 }
