@@ -1,8 +1,8 @@
 import "./styles.less";
 
 import React, { FC, useCallback, useEffect, useRef, useState } from "react";
-import { Dropdown, Menu } from "antd";
-import { Tree } from "@blueprintjs/core";
+import { Tree, Menu, MenuItem } from "@blueprintjs/core";
+import { ContextMenu2, Popover2 } from "@blueprintjs/popover2";
 import { Resizable } from "re-resizable";
 import { dispatch, listenEffect } from "../../common/utils/events";
 import { CollectionInfo, ListDatabasesResult } from "mongodb";
@@ -68,14 +68,17 @@ const createDatabaseList = (databases: Databases): DatabaseList => {
 interface CreateMenuItem {
 	item: string;
 	cb: () => void;
-	danger?: boolean;
+	intent?: "danger" | "none";
 }
 const createContextMenu = (items: CreateMenuItem[]) => (
 	<Menu>
 		{items.map((menuItem, i) => (
-			<Menu.Item danger={menuItem.danger} key={i} onClick={() => menuItem.cb()}>
-				<a>{menuItem.item}</a>
-			</Menu.Item>
+			<MenuItem
+				key={i}
+				onClick={() => menuItem.cb()}
+				intent={menuItem.intent}
+				text={menuItem.item}
+			/>
 		))}
 	</Menu>
 );
@@ -191,15 +194,15 @@ export const Explorer: FC<ExplorerProps> = () => {
 		(db: string, collections: CollectionInfo[]) => {
 			const children = collections.map((collection) => {
 				return createNode(
-					<Dropdown
-						overlay={createContextMenu([
+					<ContextMenu2
+						content={createContextMenu([
 							{
 								item: "Open shell",
 								cb: () => openShell(db, collection.name),
 							},
 							{ item: "Indexes", cb: () => {} },
 							{
-								danger: true,
+								intent: "danger",
 								item: "Drop collection",
 								cb: () => {
 									setDropCollectionDialogInfo({
@@ -210,10 +213,9 @@ export const Explorer: FC<ExplorerProps> = () => {
 								},
 							},
 						])}
-						trigger={["contextMenu"]}
 					>
 						<span>{collection.name}</span>
-					</Dropdown>,
+					</ContextMenu2>,
 					collectionTreeKey(collection.name, db),
 					[],
 					{
@@ -250,7 +252,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 					{ item: "Current operations", cb: () => {} },
 					{ item: "Statistics", cb: () => {} },
 					{
-						danger: true,
+						intent: "danger",
 						item: "Drop database",
 						cb: () => {
 							setDropDatabaseDialogInfo({
@@ -263,9 +265,9 @@ export const Explorer: FC<ExplorerProps> = () => {
 
 			const systemNodes = system.map((db) =>
 				createNode(
-					<Dropdown overlay={createOverlay(db)} trigger={["contextMenu"]}>
+					<ContextMenu2 content={createOverlay(db)}>
 						<span>{db.name}</span>
-					</Dropdown>,
+					</ContextMenu2>,
 					db.key,
 					setCollectionListToTree(db.name, db.collections || []),
 					{
@@ -282,9 +284,9 @@ export const Explorer: FC<ExplorerProps> = () => {
 
 			for (const db of personal) {
 				addNodeAtEnd(
-					<Dropdown overlay={createOverlay(db)} trigger={["contextMenu"]}>
+					<ContextMenu2 content={createOverlay(db)}>
 						<span>{db.name}</span>
-					</Dropdown>,
+					</ContextMenu2>,
 					db.key,
 					setCollectionListToTree(db.name, db.collections || []),
 					{
@@ -421,22 +423,24 @@ export const Explorer: FC<ExplorerProps> = () => {
 									}}
 									onClick={() => refresh()}
 								/>
-								<Dropdown
-									overlay={
+								<Popover2
+									content={
 										<Menu>
-											<Menu.Item
+											<MenuItem
+												text={"Create database"}
 												key={1}
 												onClick={() =>
 													setCreateDatabaseDialogInfo({ visible: true })
 												}
-											>
-												<a>Create database</a>
-											</Menu.Item>
-											<Menu.Item key={2} onClick={() => {}}>
-												<a>Server Info</a>
-											</Menu.Item>
-											<Menu.Item
-												danger
+											/>
+											<MenuItem
+												key={2}
+												onClick={() => {}}
+												text={"Server Info"}
+											/>
+											<MenuItem
+												text={"Disconnect"}
+												intent="danger"
 												key={3}
 												onClick={() => {
 													dispatch("connection_manager:disconnect", {
@@ -445,19 +449,15 @@ export const Explorer: FC<ExplorerProps> = () => {
 													dispatch("connection_manager:toggle");
 													dispatch("explorer:hide");
 												}}
-											>
-												<a>Disconnect</a>
-											</Menu.Item>
+											/>
 										</Menu>
 									}
-									trigger={["click"]}
 								>
 									<Button icon="more" size="small" variant="primary" />
-								</Dropdown>
+								</Popover2>
 							</div>
 						</div>
 						<Tree
-							// expandedKeys={expandedKeys}
 							className={"ExplorerTree"}
 							onNodeExpand={(node) => {
 								setExpandedKeys((keys) => [...keys, node.id as string]);
