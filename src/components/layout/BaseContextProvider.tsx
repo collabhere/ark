@@ -145,19 +145,6 @@ export const BaseContextProvider = (props: PageBodyProps): JSX.Element => {
 			});
 	}, []);
 
-	useEffect(
-		() =>
-			listenEffect([
-				{
-					event: "connection_manager:hide",
-					cb: () => {
-						setCurrentSidebarOpened("none");
-					},
-				},
-			]),
-		[]
-	);
-
 	return (
 		<div className="layout">
 			<SettingsContext.Provider
