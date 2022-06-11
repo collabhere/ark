@@ -1,20 +1,30 @@
 import "./styles.less";
-import { VscDatabase } from "react-icons/vsc";
 import React, { FC, useCallback, useContext } from "react";
 import { dispatch } from "../../common/utils/events";
-import { ConnectionsContext } from "../layout/BaseContextProvider";
+import {
+	ConnectionsContext,
+	SettingsContext,
+} from "../layout/BaseContextProvider";
+import { Button } from "../../common/components/Button";
 
 export const Sidebar: FC = () => {
+	const { currentSidebarOpened, setCurrentSidebarOpened } =
+		useContext(SettingsContext);
 	const { connections } = useContext(ConnectionsContext);
 
 	const listConnections = useCallback(() => {
-		dispatch("connection_manager:toggle");
-		dispatch("explorer:hide");
-	}, []);
+		if (currentSidebarOpened !== "manager")
+			return setCurrentSidebarOpened("manager");
+		return setCurrentSidebarOpened("none");
+	}, [currentSidebarOpened, setCurrentSidebarOpened]);
 
-	const switchConnections = useCallback((connectionId: string) => {
-		dispatch("explorer:switch_connections", { connectionId });
-	}, []);
+	const switchConnections = useCallback(
+		(connectionId: string) => {
+			dispatch("explorer:switch_connections", { connectionId });
+			setCurrentSidebarOpened(connectionId);
+		},
+		[setCurrentSidebarOpened]
+	);
 
 	const calculateInitials = (name: string) => {
 		const splitName = name.split(" ");
@@ -24,25 +34,55 @@ export const Sidebar: FC = () => {
 	};
 
 	return (
-		<div className="Sidebar">
-			<div className="SidebarItem SidebarHome" onClick={listConnections}>
-				<VscDatabase size="30" />
+		<div className="sidebar">
+			<div className="item home" onClick={listConnections}>
+				<Button
+					active={currentSidebarOpened === "manager"}
+					variant="link"
+					icon="database"
+					size="large"
+					tooltipOptions={{
+						content: "Manage Connections",
+					}}
+				/>
 			</div>
 			{connections.map((conn) =>
 				conn.active ? (
 					<div
-						className="SidebarItem SidebarConnection"
+						className="item"
 						key={conn.id}
 						onClick={() => switchConnections(conn.id)}
 					>
 						{conn.iconFileName ? (
-							<img
-								src={`ark://icons/${conn.iconFileName}`}
-								width={30}
-								height={30}
+							<Button
+								active={currentSidebarOpened === conn.id}
+								text={
+									<div className="icon">
+										<img
+											src={`ark://icons/${conn.iconFileName}`}
+											width={25}
+											height={25}
+										/>
+									</div>
+								}
+								tooltipOptions={{
+									content: conn.name,
+								}}
+								variant="link"
+								size="small"
 							/>
 						) : (
-							calculateInitials(conn.name)
+							<Button
+								active={currentSidebarOpened === conn.id}
+								text={
+									<div className="initials">{calculateInitials(conn.name)}</div>
+								}
+								tooltipOptions={{
+									content: conn.name,
+								}}
+								variant="link"
+								size="small"
+							/>
 						)}
 					</div>
 				) : (

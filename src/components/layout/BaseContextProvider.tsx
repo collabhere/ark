@@ -1,13 +1,19 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { Hotkeys } from "../../common/components/Hotkeys";
+import { listenEffect } from "../../common/utils/events";
 import { TitleBar } from "./TitleBar";
 
 export interface SettingsContextType {
 	settings?: Ark.Settings;
 	setSettings?: React.Dispatch<React.SetStateAction<Ark.Settings>>;
+	currentSidebarOpened: string;
+	setCurrentSidebarOpened: React.Dispatch<React.SetStateAction<string>>;
 }
 
-export const SettingsContext = React.createContext<SettingsContextType>({});
+export const SettingsContext = React.createContext<SettingsContextType>({
+	currentSidebarOpened: "manager",
+	setCurrentSidebarOpened: () => {},
+});
 
 export interface ConnectionsContextType {
 	connections: ManagedConnection[];
@@ -37,6 +43,9 @@ interface PageBodyProps {
 
 export const BaseContextProvider = (props: PageBodyProps): JSX.Element => {
 	const { children } = props;
+
+	const [currentSidebarOpened, setCurrentSidebarOpened] =
+		useState<string>("none");
 
 	const [connections, setConnections] = useState<ManagedConnection[]>([]);
 	const [settings, setSettings] = useState<Ark.Settings>({});
@@ -136,9 +145,29 @@ export const BaseContextProvider = (props: PageBodyProps): JSX.Element => {
 			});
 	}, []);
 
+	useEffect(
+		() =>
+			listenEffect([
+				{
+					event: "connection_manager:hide",
+					cb: () => {
+						setCurrentSidebarOpened("none");
+					},
+				},
+			]),
+		[]
+	);
+
 	return (
 		<div className="layout">
-			<SettingsContext.Provider value={{ settings, setSettings }}>
+			<SettingsContext.Provider
+				value={{
+					settings,
+					setSettings,
+					currentSidebarOpened,
+					setCurrentSidebarOpened,
+				}}
+			>
 				<ConnectionsContext.Provider
 					value={{
 						connections,

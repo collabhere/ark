@@ -7,6 +7,7 @@ import { Button } from "../../common/components/Button";
 import {
 	ConnectionsContext,
 	ManagedConnection,
+	SettingsContext,
 } from "../layout/BaseContextProvider";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -21,6 +22,7 @@ export const ConnectionController: FC<ConnectionManagerProps> = () => {
 		disconnect,
 		deleteConnectionOnDisk,
 	} = useContext(ConnectionsContext);
+	const { currentSidebarOpened } = useContext(SettingsContext);
 
 	const [isOpen, setIsOpen] = useState(false);
 	const [listViewMode, setListViewMode] = useState<"detailed" | "compact">(
@@ -58,18 +60,6 @@ export const ConnectionController: FC<ConnectionManagerProps> = () => {
 		() =>
 			listenEffect([
 				{
-					event: "connection_manager:hide",
-					cb: () => {
-						setIsOpen(false);
-					},
-				},
-				{
-					event: "connection_manager:toggle",
-					cb: () => {
-						setIsOpen((toggle) => !toggle);
-					},
-				},
-				{
 					event: "connection_manager:add_connection",
 					cb: (e, payload) => {
 						window.ark.driver
@@ -94,7 +84,7 @@ export const ConnectionController: FC<ConnectionManagerProps> = () => {
 		[disconnect, setConnections]
 	);
 
-	return isOpen ? (
+	return currentSidebarOpened === "manager" ? (
 		<Resizable
 			defaultSize={{
 				width: "400px",
