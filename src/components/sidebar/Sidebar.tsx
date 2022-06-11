@@ -20,10 +20,12 @@ export const Sidebar: FC = () => {
 
 	const switchConnections = useCallback(
 		(connectionId: string) => {
+			if (currentSidebarOpened !== "manager" && currentSidebarOpened !== "none")
+				return setCurrentSidebarOpened("none");
 			dispatch("explorer:switch_connections", { connectionId });
 			setCurrentSidebarOpened(connectionId);
 		},
-		[setCurrentSidebarOpened]
+		[currentSidebarOpened, setCurrentSidebarOpened]
 	);
 
 	const calculateInitials = (name: string) => {
