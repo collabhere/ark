@@ -20,6 +20,7 @@ export interface ButtonProps {
 	shape?: "round" | "circle";
 	text?: string;
 	icon?: IconName;
+	active?: boolean;
 	rightIcon?: IconName;
 	size?: "large" | "small";
 	disabled?: boolean;
@@ -38,6 +39,7 @@ export const Button: FC<ButtonProps> = (props) => {
 		icon,
 		rightIcon,
 		text,
+		active,
 		onClick,
 		tooltipOptions,
 		dropdownOptions,
@@ -52,6 +54,7 @@ export const Button: FC<ButtonProps> = (props) => {
 
 	const baseButton = (
 		<BPButton
+			active={active}
 			className={"button-" + variant}
 			disabled={loading || disabled}
 			onClick={(e) => {

@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Upload } from "antd";
 import { dispatch } from "../../../common/utils/events";
 import "../styles.less";
 import "../../../common/styles/layout.less";
@@ -98,6 +97,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 		}
 		/* We just need the icon fetched during the initial render.
 		Subsequent updates are being handled within the component */
+		/* eslint-disable-next-line */
 	}, []);
 
 	const validateUri = useCallback((uri: string) => {
@@ -122,7 +122,9 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 			notify({
 				type: "error",
 				description:
-					err && (err as Error).message ? (err as Error).message : "Ivalid URI",
+					err && (err as Error).message
+						? (err as Error).message
+						: "Invalid URI",
 			});
 
 			return false;
@@ -170,9 +172,9 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 	const validateAdvancedConfig = useCallback(() => {
 		const error: Partial<Parameters<typeof notify>[0]> = {};
 		if (!connectionData.type) {
-			error.description = "Invalid connection type.";
+			error.description = "Invalid connection typ";
 		} else if (!connectionData.hosts || !(!!host && !isNaN(Number(port)))) {
-			error.description = "Invalid hosts config.";
+			error.description = "Invalid hosts";
 		} else if (
 			connectionData.options.tls &&
 			tlsAuthMethod === "CACertificate" &&
@@ -185,7 +187,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 				!connectionData.ssh.port ||
 				isNaN(Number(connectionData.ssh.port))
 			) {
-				error.description = "Incorrect host or port format.";
+				error.description = "Incorrect ssh host or port format.";
 			} else if (
 				!connectionData.ssh.mongodHost ||
 				!connectionData.ssh.mongodPort ||
@@ -254,7 +256,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 				},
 			});
 		} else {
-			return Promise.resolve({ status: false, message: "" });
+			return Promise.resolve();
 		}
 	}, [connectionData, host, port, validateAdvancedConfig]);
 
@@ -301,14 +303,14 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 	const tlsAuthMenu = (
 		<Menu>
 			<MenuItem
-				onClick={(e) => toggleTlsAuthMethod("self-signed")}
+				onClick={() => toggleTlsAuthMethod("self-signed")}
 				key="self-signed"
 				text="Self-signed certificate"
 			/>
 			<MenuItem
-				onClick={(e) => toggleTlsAuthMethod("CACertificate")}
+				onClick={() => toggleTlsAuthMethod("CACertificate")}
 				key="CACertificate"
-				text="CA Certificate"
+				text="Provide Root CA"
 			/>
 		</Menu>
 	);
@@ -466,6 +468,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 								<Button
 									text="Connection"
 									variant="link"
+									active={form === "connection"}
 									onClick={() => setForm("connection")}
 								/>
 							</div>
@@ -473,6 +476,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 								<Button
 									text="Authentication"
 									variant="link"
+									active={form === "authentication"}
 									onClick={() => setForm("authentication")}
 								/>
 							</div>
@@ -480,6 +484,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 								<Button
 									text="SSH"
 									variant="link"
+									active={form === "ssh"}
 									onClick={() => setForm("ssh")}
 								/>
 							</div>
@@ -487,6 +492,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 								<Button
 									text="TLS"
 									variant="link"
+									active={form === "tls"}
 									onClick={() => setForm("tls")}
 								/>
 							</div>
@@ -494,6 +500,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 								<Button
 									text="Misc"
 									variant="link"
+									active={form === "misc"}
 									onClick={() => setForm("misc")}
 								/>
 							</div>
@@ -769,7 +776,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 										<div className="input-field">
 											<Checkbox
 												checked={connectionData.options.tls}
-												onChange={(e) =>
+												onChange={() =>
 													editConnection("options", {
 														...connectionData.options,
 														tls: !connectionData.options.tls,
@@ -793,22 +800,24 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 											text={
 												tlsAuthMethod === "self-signed"
 													? "Self-signed certificate"
-													: "CA certificate"
+													: "Provide root CA"
 											}
 										/>
 									</div>
 								</FormGroup>
 								{tlsAuthMethod === "CACertificate" && (
 									<div className="flex-inline">
-										<FormGroup label="CA Certificate">
+										<FormGroup
+											disabled
+											helperText="Ark only supports self-signed certificates for now. Sorry!"
+											label="CA Certificate"
+										>
 											<div className="input-field">
-												<Upload>
-													<Button
-														variant="link"
-														disabled={!connectionData.options.tls}
-														text="Upload File"
-													/>
-												</Upload>
+												<FileInput
+													disabled
+													text="Choose a file..."
+													onInputChange={(e) => {}}
+												/>
 											</div>
 										</FormGroup>
 									</div>
