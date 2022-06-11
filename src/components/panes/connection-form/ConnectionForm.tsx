@@ -53,6 +53,28 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 			: ""
 	);
 
+	const emptyConnection = () => ({
+		id: "",
+		name: "",
+		protocol: "mongodb",
+		hosts: [],
+		database: "",
+		type: "directConnection" as const,
+		username: "",
+		password: "",
+		options: {
+			tls: false,
+			authMechanism:
+				"SCRAM-SHA-1" as Ark.StoredConnection["options"]["authMechanism"],
+		},
+		ssh: {
+			useSSH: false,
+			mongodHost: "127.0.0.1",
+			port: "22",
+			mongodPort: "27017",
+		},
+	});
+
 	const connectionDetails = props.connectionParams
 		? {
 				...props.connectionParams,
@@ -61,31 +83,19 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 						? ""
 						: props.connectionParams.id,
 		  }
-		: {
-				id: "",
-				name: "",
-				protocol: "mongodb",
-				hosts: [],
-				database: "",
-				type: "directConnection" as const,
-				username: "",
-				password: "",
-				options: {
-					tls: false,
-					authMechanism:
-						"SCRAM-SHA-1" as Ark.StoredConnection["options"]["authMechanism"],
-				},
-				ssh: {
-					useSSH: false,
-					mongodHost: "127.0.0.1",
-					port: "22",
-					mongodPort: "27017",
-				},
-		  };
+		: emptyConnection();
 
 	const [mongoURI, setMongoURI] = useState("");
 	const [connectionData, setConnectionData] =
 		useState<Ark.StoredConnection>(connectionDetails);
+
+	const resetForm = useCallback(() => {
+		setMongoURI("");
+		setIcon(undefined);
+		setHost("");
+		setPort("");
+		setConnectionData(emptyConnection());
+	}, []);
 
 	useEffect(() => {
 		if (connectionData.id && connectionData.icon) {
@@ -144,6 +154,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 				})
 				.then((connectionId) => {
 					dispatch("connection_manager:add_connection", { connectionId });
+					resetForm();
 				});
 		}
 	}, [mongoURI, validateUri, connectionData.name]);
@@ -406,6 +417,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 						} else {
 							const connectionId = res;
 							dispatch("connection_manager:add_connection", { connectionId });
+							resetForm();
 						}
 					},
 				}}
@@ -829,16 +841,18 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 							<div className="form">
 								<div className="flex-inline">
 									<FormGroup
+										className="flex-fill"
 										label="Icon"
 										helperText={
-											icon && icon.name
-												? "Selected icon: " + icon.name
-												: "No icon set."
+											"This icon will be used in the sidebar. Ark will copy the icon to it's own location."
 										}
 									>
 										<div className="input-field">
 											<FileInput
-												text="Choose an image..."
+												fill
+												text={
+													icon && icon.path ? icon.path : "Choose an image..."
+												}
 												inputProps={{
 													accept: "image/png,image/svg,image/jpeg",
 												}}
