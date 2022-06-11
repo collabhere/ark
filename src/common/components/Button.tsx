@@ -2,7 +2,12 @@ import "./Button.less";
 
 import React, { FC, useState, useMemo } from "react";
 import { Button as BPButton, ActionProps, IconName } from "@blueprintjs/core";
-import { Popover2, Popover2Props } from "@blueprintjs/popover2";
+import {
+	Popover2,
+	Popover2Props,
+	Tooltip2,
+	Tooltip2Props,
+} from "@blueprintjs/popover2";
 import { PromiseCompleteCallback, asyncEventOverload } from "../utils/misc";
 
 export interface PromiseButtonMouseEventHandler<T = any> {
@@ -10,15 +15,10 @@ export interface PromiseButtonMouseEventHandler<T = any> {
 	callback: PromiseCompleteCallback;
 }
 
-interface PopoverOptions {
-	content?: React.ReactNode;
-	title?: string;
-}
-
 export interface ButtonProps {
 	variant?: ActionProps["intent"] | "link";
 	shape?: "round" | "circle";
-	text?: string;
+	text?: React.ReactNode;
 	icon?: IconName;
 	active?: boolean;
 	rightIcon?: IconName;
@@ -26,10 +26,7 @@ export interface ButtonProps {
 	disabled?: boolean;
 	dropdownOptions?: Popover2Props;
 	outlined?: boolean;
-	tooltipOptions?: {
-		hover?: PopoverOptions;
-		click?: PopoverOptions;
-	};
+	tooltipOptions?: Tooltip2Props;
 	onClick?: ((e: React.MouseEvent) => void) | PromiseButtonMouseEventHandler;
 	fill?: boolean;
 }
@@ -74,10 +71,16 @@ export const Button: FC<ButtonProps> = (props) => {
 		/>
 	);
 
-	const buttonWithPopoversAndDropdown = dropdownOptions ? (
-		<Popover2 {...dropdownOptions}>{baseButton}</Popover2>
+	const buttonWithTooltips = tooltipOptions ? (
+		<Tooltip2 content={tooltipOptions.content}>{baseButton}</Tooltip2>
 	) : (
 		baseButton
+	);
+
+	const buttonWithPopoversAndDropdown = dropdownOptions ? (
+		<Popover2 {...dropdownOptions}>{buttonWithTooltips}</Popover2>
+	) : (
+		buttonWithTooltips
 	);
 
 	return buttonWithPopoversAndDropdown;
