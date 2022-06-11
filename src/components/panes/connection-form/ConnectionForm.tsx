@@ -508,8 +508,6 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 									<div className="input-field">
 										<Button
 											fill
-											variant="link"
-											outlined
 											dropdownOptions={{
 												content: connectionTypeMenu,
 												interactionKind: "click-target",
@@ -618,8 +616,6 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 									<div className="input-field">
 										<Button
 											fill
-											variant="link"
-											outlined
 											dropdownOptions={{
 												content: authMechanismMenu,
 												interactionKind: "click-target",
@@ -705,8 +701,6 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 									<div className="input-field">
 										<Button
 											fill
-											variant="link"
-											outlined
 											disabled={!connectionData.ssh.useSSH}
 											dropdownOptions={{
 												content: sshAuthMenu,
@@ -790,8 +784,6 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 									<div className="input-field">
 										<Button
 											fill
-											variant="link"
-											outlined
 											disabled={!connectionData.options.tls}
 											dropdownOptions={{
 												content: tlsAuthMenu,

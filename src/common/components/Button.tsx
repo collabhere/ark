@@ -42,7 +42,7 @@ export const Button: FC<ButtonProps> = (props) => {
 		tooltipOptions,
 		dropdownOptions,
 		size,
-		variant,
+		variant = "none",
 		outlined,
 		disabled,
 		fill,
@@ -52,6 +52,7 @@ export const Button: FC<ButtonProps> = (props) => {
 
 	const baseButton = (
 		<BPButton
+			className={"button-" + variant}
 			disabled={loading || disabled}
 			onClick={(e) => {
 				if (!tooltipOptions || (tooltipOptions && !tooltipOptions.click))
