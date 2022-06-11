@@ -85,15 +85,6 @@ export const ConnectionController: FC<ConnectionManagerProps> = () => {
 					},
 				},
 				{
-					event: "connection_manager:copy_icon",
-					cb: (e, payload) => {
-						window.ark.driver.run("connection", "copyIcon", {
-							name: payload.name,
-							path: payload.path,
-						});
-					},
-				},
-				{
 					event: "connection_manager:disconnect",
 					cb: (e, payload) => {
 						disconnect(payload.connectionId);

@@ -169,7 +169,7 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 							size="small"
 							icon={"diagram-tree"}
 							onClick={() => switchViews && switchViews("tree")}
-							popoverOptions={{
+							tooltipOptions={{
 								hover: { content: "Switch to Tree View" },
 							}}
 						/>
@@ -179,7 +179,7 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 							size="small"
 							icon={"list-detail-view"}
 							onClick={() => switchViews && switchViews("json")}
-							popoverOptions={{
+							tooltipOptions={{
 								hover: { content: "Switch to JSON View" },
 							}}
 						/>
@@ -189,7 +189,7 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 							size="small"
 							icon={"export"}
 							onClick={() => toggleExportDialog(true)}
-							popoverOptions={{ hover: { content: "Export data" } }}
+							tooltipOptions={{ hover: { content: "Export data" } }}
 						/>
 					</div>
 				</div>

@@ -2,6 +2,7 @@ import { MongoClient, MongoClientOptions } from "mongodb";
 import type { SrvRecord } from "dns";
 import { promises as netPromises } from "dns";
 import { nanoid } from "nanoid";
+import path from "path";
 import mongoUri from "mongodb-uri";
 import * as crypto from "crypto";
 import tunnel, { Config } from "tunnel-ssh";
@@ -176,7 +177,7 @@ export const createConnectionConfigurations = async ({
             }
 
             options.tls = true;
-            options.tlsCertificateFile = `${ARK_FOLDER_PATH}/certs/ark.crt`;
+            options.tlsCertificateFile = path.join(ARK_FOLDER_PATH, "certs", "ark.crt");
             options.authSource = "admin";
         } else {
             hosts = parsedUri.hosts.map(
@@ -213,7 +214,7 @@ export const createConnectionConfigurations = async ({
             } = config.options;
             config.options = { ...formattedOptions };
         } else if (config.options.tls && !config.options.tlsCertificateFile) {
-            config.options.tlsCertificateFile = `${ARK_FOLDER_PATH}/certs/ark.crt`;
+            config.options.tlsCertificateFile = path.join(ARK_FOLDER_PATH, "certs", "ark.crt");
         }
 
         if (!config.username) {

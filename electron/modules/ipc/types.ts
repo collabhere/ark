@@ -8,6 +8,25 @@ export interface BrowseFS {
     buttonLabel?: string;
 }
 
+interface IconActionCopy {
+    action: "copy";
+    source: string;
+    name: string;
+    cacheFolder: string;
+}
+
+interface IconActionDelete {
+    action: "delete";
+    path: string;
+}
+
+interface IconActionGetIcon {
+    action: "get";
+    id: string;
+}
+
+export type IconActions = IconActionCopy | IconActionDelete | IconActionGetIcon;
+
 export interface StoredScript {
     id: string;
     fullpath: string;

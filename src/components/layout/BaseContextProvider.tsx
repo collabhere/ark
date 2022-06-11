@@ -10,7 +10,7 @@ export interface SettingsContextType {
 export const SettingsContext = React.createContext<SettingsContextType>({});
 
 export interface ConnectionsContextType {
-	connections: any[];
+	connections: ManagedConnection[];
 	setConnections: React.Dispatch<React.SetStateAction<ManagedConnection[]>>;
 	load: () => Promise<void>;
 	connect: (id: string) => Promise<ManagedConnection | void>;
@@ -55,7 +55,7 @@ export const BaseContextProvider = (props: PageBodyProps): JSX.Element => {
 		return window.ark.driver.run("connection", "connect", { id }).then(() =>
 			Promise.all([
 				window.ark.driver.run("connection", "load", { id }),
-				window.ark.driver.run("connection", "fetchIcon", { id }),
+				window.ark.getIcon(id),
 			]).then(([connection, icon]) => {
 				setConnections((connections) => {
 					const idx = connections.findIndex(

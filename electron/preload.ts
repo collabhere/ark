@@ -13,6 +13,9 @@ const arkContext: Ark.Context = {
 	browseForFile: (title, buttonLabel) => invoke("browse_fs", { type: "file", title, buttonLabel }),
 	browseForDirs: (title, buttonLabel) => invoke("browse_fs", { type: "dir", title, buttonLabel }),
 	copyText: (text) => clipboard.writeText(text),
+	getIcon: (id) => invoke("icon_actions", { action: "get", id }),
+	copyIcon: (cacheFolder, name, source) => invoke("icon_actions", { action: "copy", cacheFolder, source, name }),
+	rmIcon: (path) => invoke("icon_actions", { action: "delete", path }),
 	titlebar: {
 		close: () => {
 			invoke("title_actions", { action: "close" })

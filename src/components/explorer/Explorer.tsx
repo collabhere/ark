@@ -416,7 +416,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 									icon="refresh"
 									size="small"
 									variant="primary"
-									popoverOptions={{
+									tooltipOptions={{
 										hover: {
 											content: "Refresh",
 										},

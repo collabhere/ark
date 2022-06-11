@@ -8,7 +8,6 @@ import { createDriver, RunCommandInput } from "../../core/driver";
 import { createShellManager } from "../../core/shell-manager";
 import { createMemoryStore } from "../../core/stores/memory";
 import { createDiskStore } from "../../core/stores/disk";
-import { UploadFile } from "antd/lib/upload/interface";
 import { ipcHandlers } from "./handler";
 
 import type {
@@ -19,8 +18,9 @@ import type {
 	StoredShellValue,
 } from "../../core/shell-manager/types";
 
-import type {
+import {
 	BrowseFS,
+	IconActions,
 	MemEntry,
 	ScriptActionData,
 	SettingsAction,
@@ -28,6 +28,7 @@ import type {
 	TitlebarActions
 } from "./types";
 import { ERR_CODES } from "../../../util/errors";
+import { ARK_FOLDER_PATH } from "../../utils/constants";
 
 interface IPCInitParams {
 	window: BrowserWindow;
@@ -35,10 +36,12 @@ interface IPCInitParams {
 
 function IPC() {
 
+	const iconStore = createDiskStore<Ark.StoredIcon>("icons");
+
 	const driver = createDriver({
 		memoryStore: createMemoryStore<MemEntry>(),
 		diskStore: createDiskStore<Ark.StoredConnection>("connections"),
-		iconStore: createDiskStore<UploadFile<Blob>>("icons"),
+		iconStore
 	});
 
 	const shellManager = createShellManager({
@@ -112,10 +115,35 @@ function IPC() {
 								path: result.filePaths[0]
 							};
 						}
-
 					}
 				})
 			);
+
+			ipcMain.handle(
+				...ipcHandlers<IconActions>({
+					channel: "icon_actions",
+					controller: async (data) => {
+						if (data.action === "copy") {
+							const destinationPath = path.join(ARK_FOLDER_PATH, data.cacheFolder);
+
+							if (!fs.existsSync(destinationPath)) {
+								await fs.promises.mkdir(destinationPath);
+							}
+
+							const destination = path.join(destinationPath, data.name);
+							await fs.promises.copyFile(data.source, destination);
+							return {
+								path: destination
+							}
+						} else if (data.action === "delete") {
+							await fs.promises.rm(data.path);
+						} else if (data.action === "get") {
+							const stored = await iconStore.get(data.id);
+							return stored;
+						}
+					}
+				})
+			)
 
 			ipcMain.handle(
 				...ipcHandlers<ScriptActionData>({

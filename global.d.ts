@@ -10,12 +10,19 @@ import type {
 } from "./electron/modules/ipc/types";
 import type { ShellEvalResult } from "./electron/core/shell-manager/types";
 import type { DiskStore } from "./electron/core/stores/disk";
-import { UploadFile } from "antd/lib/upload/interface";
 import { ObjectId } from "bson";
 import { Query } from "./electron/core/driver/query";
 
 declare global {
 	namespace Ark {
+
+		interface StoredIcon {
+			name: string;
+			path: string;
+			lastModified: number;
+			size: number;
+			type: string;
+		}
 
 		interface DriverArgs {
 			id?: string;
@@ -26,13 +33,13 @@ declare global {
 		interface DriverStores {
 			memoryStore: MemoryStore<MemEntry>;
 			diskStore: DiskStore<StoredConnection>;
-			iconStore: DiskStore<UploadFile<Blob>>;
+			iconStore: DiskStore<StoredIcon>;
 		}
 		interface DriverDependency {
 			_stores: DriverStores;
 			memEntry: MemEntry | undefined;
 			storedConnection: StoredConnection | undefined;
-			icon: UploadFile<Blob> | undefined;
+			icon: StoredIcon | undefined;
 		}
 
 		interface StoredConnection {
@@ -188,6 +195,9 @@ declare global {
 				buttonLabel?: string
 			) => Promise<{ path: string }>;
 			copyText(text: string): void;
+			getIcon(id: string): Promise<StoredIcon>;
+			copyIcon(cacheFolder: string, name: string, path: string): Promise<{ path: string }>;
+			rmIcon(path: string): Promise<void>;
 			scripts: Scripts;
 			driver: {
 				run: Driver["run"]

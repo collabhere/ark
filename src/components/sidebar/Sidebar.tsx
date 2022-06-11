@@ -35,7 +35,7 @@ export const Sidebar: FC = () => {
 						key={conn.id}
 						onClick={() => switchConnections(conn.id)}
 					>
-						{conn.icon && conn.iconFileName ? (
+						{conn.iconFileName ? (
 							<img
 								src={`ark://icons/${conn.iconFileName}`}
 								width={30}
