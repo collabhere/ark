@@ -377,7 +377,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 								description: "Something went wrong!",
 							});
 							return;
-						} else {
+						} else if (res) {
 							const notification: Parameters<typeof notify>[0] = {
 								title: "Test connection",
 								description: res.message,
