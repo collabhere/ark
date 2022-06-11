@@ -138,14 +138,15 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 					type: "uri",
 					config: {
 						uri: mongoURI,
-						name: "Test Connection " + new Date().valueOf(),
+						name:
+							connectionData.name || "Test Connection " + new Date().valueOf(),
 					},
 				})
 				.then((connectionId) => {
 					dispatch("connection_manager:add_connection", { connectionId });
 				});
 		}
-	}, [mongoURI, validateUri]);
+	}, [mongoURI, validateUri, connectionData.name]);
 
 	const testURIConnection = useCallback(() => {
 		if (validateUri(mongoURI)) {
@@ -159,7 +160,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 				})
 				.then((res) => {
 					const notification: Parameters<typeof notify>[0] = {
-						title: "Test connection",
+						title: "Connection Test",
 						description: res.message,
 						type: res.status ? "success" : "error",
 					};
