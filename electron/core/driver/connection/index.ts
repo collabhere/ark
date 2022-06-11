@@ -171,8 +171,10 @@ export const Connection: Connection = {
 		const config = await createConnectionConfigurations(args);
 
 		if (config.id && args.icon) {
+			config.icon = true;
 			await iconStore.set(config.id, args.icon);
 		} else {
+			config.icon = false;
 			await iconStore.remove(config.id);
 		}
 
