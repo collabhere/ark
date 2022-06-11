@@ -55,8 +55,7 @@ export const Button: FC<ButtonProps> = (props) => {
 			className={"button-" + variant}
 			disabled={loading || disabled}
 			onClick={(e) => {
-				if (!tooltipOptions || (tooltipOptions && !tooltipOptions.click))
-					onClick && asyncEventOverload(setLoading, onClick, e);
+				onClick && asyncEventOverload(setLoading, onClick, e);
 			}}
 			outlined={outlined}
 			fill={fill}
