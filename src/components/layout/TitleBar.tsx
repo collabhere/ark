@@ -193,7 +193,7 @@ export const TitleBar = (): JSX.Element => {
 						interactionKind={"click"}
 					>
 						<div className="header-item">
-							<Button size="small" text="Options" />
+							<Button variant="link" size="small" text="Options" />
 						</div>
 					</Popover2>
 				</div>
@@ -201,16 +201,19 @@ export const TitleBar = (): JSX.Element => {
 
 			<div className="header-container">
 				<Button
-					icon="minimize"
+					variant="link"
+					icon="minus"
 					onClick={() => window.ark.titlebar.minimize()}
 				/>
 				<Button
-					icon="maximize"
+					variant="link"
+					icon="symbol-square"
 					onClick={() => window.ark.titlebar.maximize()}
 				/>
 				<Button
 					icon="cross"
-					variant="danger"
+					variant="link"
+					outlined
 					onClick={() => window.ark.titlebar.close()}
 				/>
 			</div>

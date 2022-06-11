@@ -8,7 +8,7 @@
 	"scripts": {
 		"start": "BROWSER=none ARK_ENTRY_URL=http://localhost:3000 concurrently \"vite\" \"sleep 2 && electron .\"",
 		"dev:electron": "tsc --build electron/tsconfig.json -w",
-		"dev:react": "vite",
+		"dev:react": "vite dev --open",
 		"build:renderer": "vite build",
 		"build:main": "tsc --build electron/tsconfig.json",
 		"build": "rimraf build && npm run build:renderer && npm run build:main",
@@ -107,7 +107,7 @@
 		"@babel/core": "^7.17.10",
 		"@blueprintjs/core": "^4.3.0",
 		"@blueprintjs/datetime": "^4.2.0",
-		"@blueprintjs/popover2": "^1.2.0",
+		"@blueprintjs/popover2": "^1.3.0",
 		"@blueprintjs/select": "^4.2.0",
 		"@storybook/addon-actions": "^6.4.22",
 		"@storybook/addon-essentials": "^6.4.22",

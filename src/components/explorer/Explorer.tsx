@@ -1,6 +1,13 @@
 import "./styles.less";
 
-import React, { FC, useCallback, useEffect, useRef, useState } from "react";
+import React, {
+	FC,
+	useCallback,
+	useContext,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
 import { Tree, Menu, MenuItem } from "@blueprintjs/core";
 import { ContextMenu2, Popover2 } from "@blueprintjs/popover2";
 import { Resizable } from "re-resizable";
@@ -14,6 +21,7 @@ import { Button } from "../../common/components/Button";
 import { DangerousActionPrompt } from "../dialogs/DangerousActionPrompt";
 import { TextInputPrompt } from "../dialogs/TextInputPrompt";
 import { SpinnerSize } from "@blueprintjs/core";
+import { SettingsContext } from "../layout/BaseContextProvider";
 
 type Databases = ListDatabasesResult["databases"];
 type DatabasesWithInformation = (ListDatabasesResult["databases"][0] & {
@@ -87,7 +95,7 @@ const createContextMenu = (items: CreateMenuItem[]) => (
 interface ExplorerProps {}
 
 export const Explorer: FC<ExplorerProps> = () => {
-	const [isOpen, setIsOpen] = useState(false);
+	const { currentSidebarOpened } = useContext(SettingsContext);
 	const [storedConnectionId, setStoredConnectionId] = useState<string>();
 	const storedConnectionIdRef = useRef(storedConnectionId);
 	const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
@@ -148,9 +156,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 
 	const switchConnections = useCallback((args: { connectionId: string }) => {
 		const { connectionId } = args;
-		setIsOpen(true);
 		setStoredConnectionId(connectionId);
-		dispatch("connection_manager:hide");
 	}, []);
 
 	const setDatabaseNodeLoading = useCallback(
@@ -380,10 +386,6 @@ export const Explorer: FC<ExplorerProps> = () => {
 		() =>
 			listenEffect([
 				{
-					event: "explorer:hide",
-					cb: () => setIsOpen(false),
-				},
-				{
 					event: "explorer:switch_connections",
 					cb: (e, payload) => switchConnections(payload),
 				},
@@ -391,7 +393,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 		[switchConnections]
 	);
 
-	return isOpen ? (
+	return currentSidebarOpened === storedConnectionId ? (
 		<Resizable
 			defaultSize={{
 				width: "400px",
@@ -416,10 +418,8 @@ export const Explorer: FC<ExplorerProps> = () => {
 									icon="refresh"
 									size="small"
 									variant="primary"
-									popoverOptions={{
-										hover: {
-											content: "Refresh",
-										},
+									tooltipOptions={{
+										content: "Refresh",
 									}}
 									onClick={() => refresh()}
 								/>

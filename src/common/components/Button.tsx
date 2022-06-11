@@ -2,35 +2,33 @@ import "./Button.less";
 
 import React, { FC, useState, useMemo } from "react";
 import { Button as BPButton, ActionProps, IconName } from "@blueprintjs/core";
-import { Popover2 } from "@blueprintjs/popover2";
+import {
+	Popover2,
+	Popover2Props,
+	Tooltip2,
+	Tooltip2Props,
+} from "@blueprintjs/popover2";
 import { PromiseCompleteCallback, asyncEventOverload } from "../utils/misc";
 
-export interface PromiseButtonMouseEventHandler {
-	promise: (e: React.MouseEvent) => Promise<void>;
+export interface PromiseButtonMouseEventHandler<T = any> {
+	promise: (e: React.MouseEvent) => Promise<T>;
 	callback: PromiseCompleteCallback;
-}
-
-interface PopoverOptions {
-	content?: React.ReactNode;
-	title?: string;
 }
 
 export interface ButtonProps {
 	variant?: ActionProps["intent"] | "link";
 	shape?: "round" | "circle";
-	text?: string;
+	text?: React.ReactNode;
 	icon?: IconName;
+	active?: boolean;
 	rightIcon?: IconName;
 	size?: "large" | "small";
 	disabled?: boolean;
-	dropdownOptions?: {
-		menu: JSX.Element;
-	};
-	popoverOptions?: {
-		hover?: PopoverOptions;
-		click?: PopoverOptions;
-	};
+	dropdownOptions?: Popover2Props;
+	outlined?: boolean;
+	tooltipOptions?: Tooltip2Props;
 	onClick?: ((e: React.MouseEvent) => void) | PromiseButtonMouseEventHandler;
+	fill?: boolean;
 }
 
 export const Button: FC<ButtonProps> = (props) => {
@@ -38,72 +36,50 @@ export const Button: FC<ButtonProps> = (props) => {
 		icon,
 		rightIcon,
 		text,
+		active,
 		onClick,
-		popoverOptions,
+		tooltipOptions,
 		dropdownOptions,
 		size,
-		variant,
+		variant = "none",
+		outlined,
 		disabled,
+		fill,
 	} = props;
 
 	const [loading, setLoading] = useState(false);
 
-	const baseButton = useMemo(
-		() => (
-			<BPButton
-				disabled={loading || disabled}
-				onClick={(e) => {
-					if (!popoverOptions || (popoverOptions && !popoverOptions.click))
-						onClick && asyncEventOverload(setLoading, onClick, e);
-				}}
-				text={text}
-				loading={icon ? loading : undefined}
-				large={size === "large"}
-				small={size === "small"}
-				minimal={variant === "link"}
-				intent={variant !== "link" ? variant : undefined}
-				icon={icon ? icon : undefined}
-				rightIcon={rightIcon ? rightIcon : undefined}
-			/>
-		),
-		[
-			icon,
-			loading,
-			onClick,
-			popoverOptions,
-			size,
-			text,
-			variant,
-			rightIcon,
-			disabled,
-		]
+	const baseButton = (
+		<BPButton
+			active={active}
+			className={"button-" + variant}
+			disabled={loading || disabled}
+			onClick={(e) => {
+				onClick && asyncEventOverload(setLoading, onClick, e);
+			}}
+			outlined={outlined}
+			fill={fill}
+			text={text}
+			loading={icon ? loading : undefined}
+			large={size === "large"}
+			small={size === "small"}
+			minimal={variant === "link"}
+			intent={variant !== "link" ? variant : undefined}
+			icon={icon ? icon : undefined}
+			rightIcon={rightIcon ? rightIcon : undefined}
+		/>
 	);
 
-	const buttonWithPopovers = useMemo(
-		() =>
-			popoverOptions
-				? Object.keys(popoverOptions).reduce((children, trigger) => {
-						const options = popoverOptions[trigger];
-						return options ? (
-							<Popover2 content={options.content}>
-								{React.Children.toArray(children)}
-							</Popover2>
-						) : (
-							React.cloneElement(children)
-						);
-				  }, baseButton)
-				: baseButton,
-		[baseButton, popoverOptions]
+	const buttonWithTooltips = tooltipOptions ? (
+		<Tooltip2 content={tooltipOptions.content}>{baseButton}</Tooltip2>
+	) : (
+		baseButton
 	);
 
-	const buttonWithPopoversAndDropdown = useMemo(
-		() =>
-			dropdownOptions ? (
-				<Popover2 content={dropdownOptions.menu}>{buttonWithPopovers}</Popover2>
-			) : (
-				baseButton
-			),
-		[baseButton, buttonWithPopovers, dropdownOptions]
+	const buttonWithPopoversAndDropdown = dropdownOptions ? (
+		<Popover2 {...dropdownOptions}>{buttonWithTooltips}</Popover2>
+	) : (
+		buttonWithTooltips
 	);
 
 	return buttonWithPopoversAndDropdown;

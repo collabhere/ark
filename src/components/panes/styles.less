@@ -12,98 +12,124 @@
 	padding: 12px;
 }
 
-.UriContainer {
-	height: 100vh;
+.uri-container {
+	height: 100%;
 	display: flex;
 	justify-content: center;
-	align-items: center;
-}
+	background-color: @container-bg-color;
+	color: @text-color;
 
-.FieldContainer {
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	width: 60%;
-	// background: @primary-tint-5;
-	border: 20px solid @primary-tint-6;
-}
+	@container-width: 75%;
+	@container-height: 75%;
 
-.FormWrapper {
-	display: flex;
-	flex-direction: column;
-	width: 75%;
-}
+	.connection-form-icon {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		align-self: center;
+		border: 1px solid #777;
+		height: 40px;
+		width: 40px;
 
-.HeaderWrapper {
-	display: flex;
-	justify-content: center;
-	gap: 10px;
-	padding: 20px 20px;
-	font-size: 16px;
-	font-weight: 400;
-	text-align: center;
-}
+		span {
+			text-align: center;
+		}
+	}
 
-.AdvancedFormHeader {
-	cursor: pointer;
-}
+	.container {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		width: @container-width;
+	}
+	.header {
+		display: flex;
+		justify-content: center;
+		gap: 10px;
+		padding: 30px;
+		font-size: 16px;
+		font-weight: 400;
+		text-align: center;
+	}
 
-.Form {
-	display: flex;
-	gap: 5px;
-	padding: 20px 20px;
-	flex-direction: column;
-	width: 100%;
-}
+	.basic-wrapper {
+		display: flex;
+		flex-direction: column;
+		width: @container-width;
+	}
 
-.Label {
-	align-self: flex-start;
-}
+	.advanced-wrapper {
+		display: flex;
+		flex-direction: column;
+		width: @container-width;
+		height: @container-height;
 
-.InputField > * {
-	width: 100%;
-}
+		.section-header {
+			cursor: pointer;
+		}
+	}
 
-.Input input {
-	background: #fff;
+	.form-advanced {
+		flex-grow: 1;
+	}
+
+	.advanced-wrapper .form {
+		flex-grow: 1;
+	}
+
+	.form {
+		display: flex;
+		gap: 5px;
+		padding: 20px;
+		flex-direction: column;
+		width: 100%;
+
+		.label {
+			align-self: flex-start;
+		}
+
+		.input-field {
+			flex-grow: 1;
+		}
+
+		.button-group {
+			display: flex;
+			align-self: flex-end;
+		}
+	}
+
+	.separator {
+		display: flex;
+		gap: 10px;
+		padding: 20px 20px;
+		justify-content: center;
+		width: 100%;
+	}
+
+	.advanced-footer-row {
+		display: flex;
+		justify-content: space-between;
+		padding: 0px 20px 10px;
+		gap: 20px;
+	}
+
+	.button-advanced {
+		padding: 20px 20px;
+		font-size: 16px;
+		font-weight: 400;
+		text-align: center;
+	}
+
+	.horizontal-line {
+		width: 33%;
+		height: 2px;
+		align-self: center;
+		background-color: #fff;
+	}
 }
 
 .Gap {
 	gap: 20px;
-}
-
-.ButtonGroup {
-	display: flex;
-	align-self: flex-end;
-}
-
-.ButtonGroupAdvanced {
-	display: flex;
-	justify-content: space-between;
-	padding: 0px 20px 10px;
-	gap: 20px;
-}
-
-.Separator {
-	display: flex;
-	gap: 10px;
-	padding: 20px 20px;
-	justify-content: center;
-	width: 100%;
-}
-
-.HorizontalLine {
-	width: 33%;
-	height: 2px;
-	align-self: center;
-	background-color: #fff;
-}
-
-.AdvancedButton {
-	padding: 20px 20px;
-	font-size: 16px;
-	font-weight: 400;
-	text-align: center;
 }
 
 .AdvancedButton > * {

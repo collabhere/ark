@@ -1,8 +1,5 @@
 {
-	"ignorePatterns": [
-		"electron",
-		"build"
-	],
+	"ignorePatterns": ["electron", "build"],
 	"extends": [
 		"eslint:recommended",
 		"plugin:react/recommended",
@@ -16,11 +13,7 @@
 			"jsx": true
 		}
 	},
-	"plugins": [
-		"prettier",
-		"react",
-		"@typescript-eslint"
-	],
+	"plugins": ["prettier", "react", "@typescript-eslint"],
 	"env": {
 		"browser": true
 	},
@@ -28,9 +21,6 @@
 		"@typescript-eslint/no-empty-function": "warn",
 		"react/prop-types": "off",
 		"react/display-name": "off",
-		"no-mixed-spaces-and-tabs": [
-			"warn",
-			"smart-tabs"
-		]
+		"no-mixed-spaces-and-tabs": ["warn", "smart-tabs"]
 	}
 }

@@ -29,7 +29,7 @@ DropdownButton.args = {
 	text: "Dropdown Button",
 	size: "large",
 	dropdownOptions: {
-		menu: (
+		content: (
 			<Menu>
 				<MenuItem icon="new-text-box" onClick={() => {}} text="New text box" />
 				<MenuItem icon="new-object" onClick={() => {}} text="New object" />

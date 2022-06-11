@@ -1,10 +1,6 @@
 import { ListDatabasesResult, MongoClient } from "mongodb";
-
-import { ARK_FOLDER_PATH } from "../../../utils/constants";
-import { MemEntry } from "../../../modules/ipc/types";
 import { Server } from "net";
-import fs from "fs";
-import { UploadFile } from "antd/lib/upload/interface";
+import { MemEntry } from "../../../modules/ipc/types";
 import { ERR_CODES } from "../../../../util/errors";
 import {
 	createConnectionConfigurations,
@@ -14,8 +10,6 @@ import {
 	sshTunnel,
 	URIConfiguration
 } from "./library";
-
-
 
 export interface Connection {
 	info(
@@ -52,28 +46,9 @@ export interface Connection {
 		arg: {
 			type: "config" | "uri";
 			config: Ark.StoredConnection | URIConfiguration;
-			icon?: UploadFile<Blob>;
+			icon?: Ark.StoredIcon;
 		}
 	): Promise<string>;
-	/**
-	 * Copy an icon while it's being addded to a connection.
-	 */
-	copyIcon(
-		dep: Ark.DriverDependency,
-		arg: {
-			path: string;
-			name: string;
-		}
-	): Promise<void>;
-	/**
-	 * Fetch an icon from disk to show on the connection-form.
-	 */
-	fetchIcon(
-		dep: Ark.DriverDependency,
-		arg: {
-			id: string;
-		}
-	): Promise<UploadFile<Blob>>;
 	/**
 	 * Delete a stored conneection from disk.
 	 */
@@ -131,15 +106,6 @@ export const Connection: Connection = {
 		} else {
 			throw new Error(ERR_CODES.CORE$DRIVER$NO_STORED_CONNECTION);
 		}
-	},
-	copyIcon: async (_, { path, name }) => {
-		const destinationPath = `${ARK_FOLDER_PATH}/icons`;
-		if (!fs.existsSync(destinationPath)) {
-			await fs.promises.mkdir(destinationPath);
-		}
-
-		const destination = `${destinationPath}/${name}`;
-		await fs.promises.copyFile(path, destination);
 	},
 	connect: async ({ storedConnection, _stores: stores }, { id }) => {
 
@@ -204,9 +170,11 @@ export const Connection: Connection = {
 
 		const config = await createConnectionConfigurations(args);
 
-		if (config.icon && args.icon) {
+		if (config.id && args.icon) {
+			config.icon = true;
 			await iconStore.set(config.id, args.icon);
 		} else {
+			config.icon = false;
 			await iconStore.remove(config.id);
 		}
 
@@ -216,10 +184,6 @@ export const Connection: Connection = {
 
 		return config.id;
 	},
-	fetchIcon: ({ _stores: stores }, args) => {
-		const { iconStore } = stores;
-		return iconStore.get(args.id);
-	},
 	test: async (_, args) => {
 		try {
 			const config = await createConnectionConfigurations(args);
@@ -228,12 +192,33 @@ export const Connection: Connection = {
 			}
 
 			const connectionUri = getConnectionUri(config);
+
 			const client = new MongoClient(connectionUri);
-			await client.connect();
+
+			try {
+				await client.connect();
+			} catch (err) {
+				console.log(err);
+				return {
+					status: false,
+					message: "Could not connect to server"
+				};
+			}
+
+			try {
+				const db = client.db().admin();
+
+				await db.listDatabases();
+			} catch (err) {
+				return {
+					status: false,
+					message: "Could not list databases"
+				};
+			}
 
 			return {
 				status: true,
-				message: "Connection Successful",
+				message: "All tests have passed",
 			};
 		} catch (err) {
 			return {

@@ -1,16 +1,22 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { Hotkeys } from "../../common/components/Hotkeys";
+import { listenEffect } from "../../common/utils/events";
 import { TitleBar } from "./TitleBar";
 
 export interface SettingsContextType {
 	settings?: Ark.Settings;
 	setSettings?: React.Dispatch<React.SetStateAction<Ark.Settings>>;
+	currentSidebarOpened: string;
+	setCurrentSidebarOpened: React.Dispatch<React.SetStateAction<string>>;
 }
 
-export const SettingsContext = React.createContext<SettingsContextType>({});
+export const SettingsContext = React.createContext<SettingsContextType>({
+	currentSidebarOpened: "manager",
+	setCurrentSidebarOpened: () => {},
+});
 
 export interface ConnectionsContextType {
-	connections: any[];
+	connections: ManagedConnection[];
 	setConnections: React.Dispatch<React.SetStateAction<ManagedConnection[]>>;
 	load: () => Promise<void>;
 	connect: (id: string) => Promise<ManagedConnection | void>;
@@ -38,6 +44,9 @@ interface PageBodyProps {
 export const BaseContextProvider = (props: PageBodyProps): JSX.Element => {
 	const { children } = props;
 
+	const [currentSidebarOpened, setCurrentSidebarOpened] =
+		useState<string>("none");
+
 	const [connections, setConnections] = useState<ManagedConnection[]>([]);
 	const [settings, setSettings] = useState<Ark.Settings>({});
 
@@ -55,7 +64,7 @@ export const BaseContextProvider = (props: PageBodyProps): JSX.Element => {
 		return window.ark.driver.run("connection", "connect", { id }).then(() =>
 			Promise.all([
 				window.ark.driver.run("connection", "load", { id }),
-				window.ark.driver.run("connection", "fetchIcon", { id }),
+				window.ark.getIcon(id),
 			]).then(([connection, icon]) => {
 				setConnections((connections) => {
 					const idx = connections.findIndex(
@@ -138,7 +147,14 @@ export const BaseContextProvider = (props: PageBodyProps): JSX.Element => {
 
 	return (
 		<div className="layout">
-			<SettingsContext.Provider value={{ settings, setSettings }}>
+			<SettingsContext.Provider
+				value={{
+					settings,
+					setSettings,
+					currentSidebarOpened,
+					setCurrentSidebarOpened,
+				}}
+			>
 				<ConnectionsContext.Provider
 					value={{
 						connections,

@@ -1,28 +1,35 @@
 @import "../../common/styles/variables.less";
 
-.Sidebar {
+.sidebar {
 	width: 48px;
 	min-width: 48px;
 	max-width: 48px;
 	height: 100%;
-	// background: @primary;
+	background: @container-bg-color;
 	border-right: white 1px solid;
 	display: "flex";
 	flex-direction: "column";
-}
 
-.SidebarItem {
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	text-align: center;
-	width: 100%;
-	height: 50px;
-	border-bottom: @primary-tint-4 1px solid;
-}
+	.item {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		text-align: center;
+		width: 100%;
+		height: 50px;
+		color: @text-color;
+		cursor: pointer;
 
-.SidebarHome {
-}
+		* {
+			color: @text-color;
+		}
 
-.SidebarConnection {
+		.icon {
+			padding: 6px 0px;
+		}
+
+		.initials {
+			padding: 10px 4px;
+		}
+	}
 }

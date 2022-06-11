@@ -372,7 +372,7 @@ export const Editor: FC<EditorProps> = (props) => {
 												});
 										});
 								}}
-								popoverOptions={{
+								tooltipOptions={{
 									hover: {
 										content: "Save as",
 									},
@@ -392,7 +392,7 @@ export const Editor: FC<EditorProps> = (props) => {
 												setSavedScriptId(script.id);
 											});
 									}}
-									popoverOptions={{
+									tooltipOptions={{
 										hover: {
 											content: "Save",
 										},
@@ -405,7 +405,7 @@ export const Editor: FC<EditorProps> = (props) => {
 									icon={"play"}
 									variant="success"
 									onClick={() => exec(code)}
-									popoverOptions={{
+									tooltipOptions={{
 										hover: {
 											content: "Run",
 										},
@@ -418,7 +418,7 @@ export const Editor: FC<EditorProps> = (props) => {
 									icon={"stop"}
 									variant="danger"
 									onClick={() => terminateExecution()}
-									popoverOptions={{
+									tooltipOptions={{
 										hover: {
 											content: "Stop",
 										},

@@ -1,13 +1,21 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Button, Menu, Dropdown, Upload } from "antd";
 import { dispatch } from "../../../common/utils/events";
 import "../styles.less";
 import "../../../common/styles/layout.less";
 import { notify } from "../../../common/utils/misc";
 import { parse } from "mongodb-uri";
-import { RcFile } from "antd/lib/upload";
-import { UploadFile } from "antd/lib/upload/interface";
-import { Checkbox, InputGroup, TextArea } from "@blueprintjs/core";
+import {
+	Checkbox,
+	FormGroup,
+	ButtonGroup,
+	InputGroup,
+	TextArea,
+	Menu,
+	MenuItem,
+	Code,
+	FileInput,
+} from "@blueprintjs/core";
+import { Button } from "../../../common/components/Button";
 
 export interface ConnectionFormProps {
 	connectionParams?: Ark.StoredConnection;
@@ -37,13 +45,35 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 			: ""
 	);
 
-	const [icon, setIcon] = useState<UploadFile<Blob>>();
+	const [icon, setIcon] = useState<Ark.StoredIcon>();
 
 	const [port, setPort] = useState<string>(
 		props.connectionParams?.hosts
 			? props.connectionParams?.hosts[0].split(":")[1]
 			: ""
 	);
+
+	const emptyConnection = () => ({
+		id: "",
+		name: "",
+		protocol: "mongodb",
+		hosts: [],
+		database: "",
+		type: "directConnection" as const,
+		username: "",
+		password: "",
+		options: {
+			tls: false,
+			authMechanism:
+				"SCRAM-SHA-1" as Ark.StoredConnection["options"]["authMechanism"],
+		},
+		ssh: {
+			useSSH: false,
+			mongodHost: "127.0.0.1",
+			port: "22",
+			mongodPort: "27017",
+		},
+	});
 
 	const connectionDetails = props.connectionParams
 		? {
@@ -53,44 +83,31 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 						? ""
 						: props.connectionParams.id,
 		  }
-		: {
-				id: "",
-				name: "",
-				protocol: "mongodb",
-				hosts: [],
-				database: "",
-				type: "directConnection" as const,
-				username: "",
-				password: "",
-				options: {
-					tls: false,
-					authMechanism:
-						"SCRAM-SHA-1" as Ark.StoredConnection["options"]["authMechanism"],
-				},
-				ssh: {
-					useSSH: false,
-					mongodHost: "127.0.0.1",
-					port: "22",
-					mongodPort: "27017",
-				},
-		  };
+		: emptyConnection();
 
 	const [mongoURI, setMongoURI] = useState("");
 	const [connectionData, setConnectionData] =
 		useState<Ark.StoredConnection>(connectionDetails);
 
+	const resetForm = useCallback(() => {
+		setMongoURI("");
+		setIcon(undefined);
+		setHost("");
+		setPort("");
+		setConnectionData(emptyConnection());
+	}, []);
+
 	useEffect(() => {
 		if (connectionData.id && connectionData.icon) {
-			window.ark.driver
-				.run("connection", "fetchIcon", { id: connectionData.id })
-				.then((icon) => {
-					if (icon && icon.name) {
-						setIcon(icon);
-					}
-				});
+			window.ark.getIcon(connectionData.id).then((icon) => {
+				if (icon && icon.name) {
+					setIcon(icon);
+				}
+			});
 		}
 		/* We just need the icon fetched during the initial render.
 		Subsequent updates are being handled within the component */
+		/* eslint-disable-next-line */
 	}, []);
 
 	const validateUri = useCallback((uri: string) => {
@@ -115,7 +132,9 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 			notify({
 				type: "error",
 				description:
-					err && (err as Error).message ? (err as Error).message : "Ivalid URI",
+					err && (err as Error).message
+						? (err as Error).message
+						: "Invalid URI",
 			});
 
 			return false;
@@ -129,14 +148,16 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 					type: "uri",
 					config: {
 						uri: mongoURI,
-						name: "Test Connection " + new Date().valueOf(),
+						name:
+							connectionData.name || "Test Connection " + new Date().valueOf(),
 					},
 				})
 				.then((connectionId) => {
 					dispatch("connection_manager:add_connection", { connectionId });
+					resetForm();
 				});
 		}
-	}, [mongoURI, validateUri]);
+	}, [mongoURI, validateUri, connectionData.name]);
 
 	const testURIConnection = useCallback(() => {
 		if (validateUri(mongoURI)) {
@@ -150,7 +171,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 				})
 				.then((res) => {
 					const notification: Parameters<typeof notify>[0] = {
-						title: "Test connection",
+						title: "Connection Test",
 						description: res.message,
 						type: res.status ? "success" : "error",
 					};
@@ -163,9 +184,9 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 	const validateAdvancedConfig = useCallback(() => {
 		const error: Partial<Parameters<typeof notify>[0]> = {};
 		if (!connectionData.type) {
-			error.description = "Invalid connection type.";
+			error.description = "Invalid connection typ";
 		} else if (!connectionData.hosts || !(!!host && !isNaN(Number(port)))) {
-			error.description = "Invalid hosts config.";
+			error.description = "Invalid hosts";
 		} else if (
 			connectionData.options.tls &&
 			tlsAuthMethod === "CACertificate" &&
@@ -178,7 +199,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 				!connectionData.ssh.port ||
 				isNaN(Number(connectionData.ssh.port))
 			) {
-				error.description = "Incorrect host or port format.";
+				error.description = "Incorrect ssh host or port format.";
 			} else if (
 				!connectionData.ssh.mongodHost ||
 				!connectionData.ssh.mongodPort ||
@@ -215,49 +236,39 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 
 	const saveAdvancedConnection = useCallback(() => {
 		if (validateAdvancedConfig()) {
-			window.ark.driver
-				.run("connection", "save", {
-					type: "config",
-					config: {
-						...connectionData,
-						hosts:
-							connectionData.type === "directConnection"
-								? [`${host}:${port}`]
-								: connectionData.hosts,
-						name:
-							connectionData.name || "Test Connection " + new Date().valueOf(),
-					},
-					icon: icon,
-				})
-				.then((connectionId) => {
-					dispatch("connection_manager:add_connection", { connectionId });
-				});
+			return window.ark.driver.run("connection", "save", {
+				type: "config",
+				config: {
+					...connectionData,
+					hosts:
+						connectionData.type === "directConnection"
+							? [`${host}:${port}`]
+							: connectionData.hosts,
+					name:
+						connectionData.name || "Test Connection " + new Date().valueOf(),
+				},
+				icon: icon,
+			});
+		} else {
+			return Promise.resolve();
 		}
 	}, [connectionData, host, icon, port, validateAdvancedConfig]);
 
 	const testAdvancedConnection = useCallback(() => {
 		if (validateAdvancedConfig()) {
-			window.ark.driver
-				.run("connection", "test", {
-					type: "config",
-					config: {
-						...connectionData,
-						hosts:
-							connectionData.type === "directConnection"
-								? [`${host}:${port}`]
-								: connectionData.hosts,
-						name: "",
-					},
-				})
-				.then((res) => {
-					const notification: Parameters<typeof notify>[0] = {
-						title: "Test connection",
-						description: res.message,
-						type: res.status ? "success" : "error",
-					};
-
-					notify(notification);
-				});
+			return window.ark.driver.run("connection", "test", {
+				type: "config",
+				config: {
+					...connectionData,
+					hosts:
+						connectionData.type === "directConnection"
+							? [`${host}:${port}`]
+							: connectionData.hosts,
+					name: "",
+				},
+			});
+		} else {
+			return Promise.resolve();
 		}
 	}, [connectionData, host, port, validateAdvancedConfig]);
 
@@ -287,328 +298,394 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 	);
 
 	const sshAuthMenu = (
-		<Menu onClick={(e) => toggleAuthMethod(e.key as typeof sshAuthMethod)}>
-			<Menu.Item key="password">Password</Menu.Item>
-			<Menu.Item key="privateKey">Private key</Menu.Item>
+		<Menu>
+			<MenuItem
+				onClick={() => toggleAuthMethod("password")}
+				key="password"
+				text="Password"
+			/>
+			<MenuItem
+				onClick={() => toggleAuthMethod("privateKey")}
+				key="privateKey"
+				text="Private Key"
+			/>
 		</Menu>
 	);
 
 	const tlsAuthMenu = (
-		<Menu onClick={(e) => toggleTlsAuthMethod(e.key as typeof tlsAuthMethod)}>
-			<Menu.Item key="self-signed">Self-signed certificate</Menu.Item>
-			<Menu.Item key="CACertificate">CA Certificate</Menu.Item>
+		<Menu>
+			<MenuItem
+				onClick={() => toggleTlsAuthMethod("self-signed")}
+				key="self-signed"
+				text="Self-signed certificate"
+			/>
+			<MenuItem
+				onClick={() => toggleTlsAuthMethod("CACertificate")}
+				key="CACertificate"
+				text="Provide Root CA"
+			/>
 		</Menu>
 	);
 
 	const authMechanismMenu = (
-		<Menu
-			onClick={(e) =>
-				editConnection("options", {
-					...connectionData.options,
-					authMechanism:
-						e.key as Ark.StoredConnection["options"]["authMechanism"],
-				})
-			}
-		>
-			<Menu.Item key={"SCRAM-SHA-1"}>SCRAM-SHA-1</Menu.Item>
-			<Menu.Item key={"SCRAM-SHA-256"}>SCRAM-SHA-256</Menu.Item>
+		<Menu>
+			<MenuItem
+				onClick={() =>
+					editConnection("options", {
+						...connectionData.options,
+						authMechanism: "SCRAM-SHA-1",
+					})
+				}
+				key={"SCRAM-SHA-1"}
+				text={"SCRAM-SHA-1"}
+			/>
+			<MenuItem
+				onClick={() =>
+					editConnection("options", {
+						...connectionData.options,
+						authMechanism: "SCRAM-SHA-256",
+					})
+				}
+				key={"SCRAM-SHA-256"}
+				text={"SCRAM-SHA-256"}
+			/>
 		</Menu>
 	);
 
-	const menu = (
-		<Menu onClick={(e) => editConnection("type", e.key)}>
-			<Menu.Item key="directConnection">Direct Connection</Menu.Item>
-			<Menu.Item key="replicaSet">Replica Set</Menu.Item>
+	const connectionTypeMenu = (
+		<Menu>
+			<MenuItem
+				onClick={() => editConnection("type", "directConnection")}
+				key="directConnection"
+				text="Direct Connection"
+			/>
+			<MenuItem
+				onClick={() => editConnection("type", "replicaSet")}
+				key="replicaSet"
+				text="Replica Set"
+			/>
 		</Menu>
 	);
 
-	const beforeIconUpload = (file: RcFile): RcFile | string => {
-		let description: string;
-		if (
-			file.type !== "image/png" &&
-			file.type !== "image/svg" &&
-			file.type !== "image/jpeg"
-		) {
-			description = "Only PNG, SVG, and JPEG types are supported!";
-		} else if (file.size >= 10000) {
-			description = "File size must be less than 10KBs";
-		} else {
-			dispatch("connection_manager:copy_icon", {
-				name: file.name,
-				path: file.path,
-			});
-			return file;
-		}
+	const TestAndSaveButtons = (
+		<ButtonGroup className="button-group">
+			<Button text="Test" variant="link" onClick={() => testURIConnection()} />
+			<Button text="Save" variant="primary" onClick={() => saveMongoURI()} />
+		</ButtonGroup>
+	);
 
-		notify({
-			title: "Validation failed",
-			type: "error",
-			description: description,
-		});
+	const TestAndSaveAdvanced = (
+		<ButtonGroup className="button-group">
+			<Button
+				text="Test"
+				variant="link"
+				onClick={{
+					promise: () => testAdvancedConnection(),
+					callback: (err, res) => {
+						if (err) {
+							console.log(err);
+							notify({
+								type: "error",
+								description: "Something went wrong!",
+							});
+							return;
+						} else if (res) {
+							const notification: Parameters<typeof notify>[0] = {
+								title: "Test connection",
+								description: res.message,
+								type: res.status ? "success" : "error",
+							};
 
-		return Upload.LIST_IGNORE;
-	};
+							notify(notification);
+						}
+					},
+				}}
+			/>
+			<Button
+				text="Save"
+				variant="primary"
+				onClick={{
+					promise: () => saveAdvancedConnection(),
+					callback: (err, res) => {
+						if (err) {
+							console.log(err);
+							notify({
+								type: "error",
+								description: "Something went wrong!",
+							});
+							return;
+						} else {
+							const connectionId = res;
+							dispatch("connection_manager:add_connection", { connectionId });
+							resetForm();
+						}
+					},
+				}}
+			/>
+		</ButtonGroup>
+	);
 
 	return (
-		<div className="UriContainer">
-			<div className="FieldContainer">
+		<div className="uri-container">
+			<div className="container">
 				{type === "basic" && (
-					<div className="FormWrapper">
-						<div className="HeaderWrapper">
-							<span>New DB Connection</span>
-						</div>
-						<div className="Form">
-							<div className="Label">
-								<span style={{ margin: "auto" }}>DB URI</span>
-							</div>
-							<div className="InputField">
+					<div className="basic-wrapper">
+						<div className="form">
+							<FormGroup label="Name" labelFor="connection-name-basic">
 								<InputGroup
-									className="Input"
+									id="connection-name-basic"
+									value={connectionData?.name}
+									onChange={(e) => editConnection("name", e.target.value)}
+								/>
+							</FormGroup>
+							<FormGroup
+								helperText={
+									<span>
+										{"Enter a URI starting with "}
+										<Code>{"mongodb://"}</Code>
+										{" or "}
+										<Code>{"mongodb+srv://"}</Code>
+									</span>
+								}
+								label="URI"
+								labelFor="uri"
+							>
+								<InputGroup
+									id="uri"
 									onChange={(e) => setMongoURI(e.target.value)}
 									value={mongoURI}
 								/>
-							</div>
-							<div className="ButtonGroup">
-								<div>
-									<Button type="text" onClick={() => testURIConnection()}>
-										Test
-									</Button>
-								</div>
-								<div>
-									<Button onClick={() => saveMongoURI()}>Save</Button>
-								</div>
-							</div>
+							</FormGroup>
+							{TestAndSaveButtons}
 						</div>
-						<div className="Separator">
-							<div className="HorizontalLine"></div>
+						<div className="separator">
+							<div className="horizontal-line"></div>
 							<div>
 								<span>OR</span>
 							</div>
-							<div className="HorizontalLine"></div>
+							<div className="horizontal-line"></div>
 						</div>
-						<div className="AdvancedButton" onClick={() => setType("advanced")}>
-							<span>Advanced Settings</span>
+						<div className="button-advanced">
+							<Button
+								text="Advanced Settings"
+								variant="link"
+								onClick={() => setType("advanced")}
+							/>
 						</div>
 					</div>
 				)}
 				{type === "advanced" && (
-					<div className="ConnectionFormWrapper">
-						<div className="HeaderWrapper">
-							<div
-								className="AdvancedFormHeader"
-								onClick={() => setForm("connection")}
-							>
-								<span>Connection</span>
+					<div className="advanced-wrapper">
+						<div className="header">
+							<div className="section-header">
+								<Button
+									text="Connection"
+									variant="link"
+									active={form === "connection"}
+									onClick={() => setForm("connection")}
+								/>
 							</div>
-							<div
-								className="AdvancedFormHeader"
-								onClick={() => setForm("authentication")}
-							>
-								<span>Authentication</span>
+							<div className="section-header">
+								<Button
+									text="Authentication"
+									variant="link"
+									active={form === "authentication"}
+									onClick={() => setForm("authentication")}
+								/>
 							</div>
-							<div
-								className="AdvancedFormHeader"
-								onClick={() => setForm("ssh")}
-							>
-								<span>SSH</span>
+							<div className="section-header">
+								<Button
+									text="SSH"
+									variant="link"
+									active={form === "ssh"}
+									onClick={() => setForm("ssh")}
+								/>
 							</div>
-							<div
-								className="AdvancedFormHeader"
-								onClick={() => setForm("tls")}
-							>
-								<span>TLS</span>
+							<div className="section-header">
+								<Button
+									text="TLS"
+									variant="link"
+									active={form === "tls"}
+									onClick={() => setForm("tls")}
+								/>
 							</div>
-							<div
-								className="AdvancedFormHeader"
-								onClick={() => setForm("misc")}
-							>
-								<span>Misc</span>
+							<div className="section-header">
+								<Button
+									text="Misc"
+									variant="link"
+									active={form === "misc"}
+									onClick={() => setForm("misc")}
+								/>
 							</div>
 						</div>
 						{form === "connection" && (
-							<div className="Form">
-								<div>
-									<div className="Label">
-										<span style={{ margin: "auto" }}>Type</span>
-									</div>
-									<div className="InputField">
-										<Dropdown.Button overlay={menu}>
-											{connectionData?.type === "replicaSet"
-												? "Replica Set"
-												: "Direct connection"}
-										</Dropdown.Button>
-									</div>
-								</div>
-								<div>
-									<div className="Label">
-										<span style={{ margin: "auto" }}>Name</span>
-									</div>
-									<div className="InputField">
-										<InputGroup
-											className="Input"
-											value={connectionData?.name}
-											onChange={(e) => editConnection("name", e.target.value)}
+							<div className="form">
+								<FormGroup
+									helperText={<span>{"Select the type of connection."}</span>}
+									label="Type"
+									labelFor="connection-type"
+								>
+									<div className="input-field">
+										<Button
+											fill
+											dropdownOptions={{
+												content: connectionTypeMenu,
+												interactionKind: "click-target",
+												fill: true,
+											}}
+											text={
+												connectionData?.type === "replicaSet"
+													? "Replica Set"
+													: "Direct connection"
+											}
 										/>
 									</div>
+								</FormGroup>
+								<div>
+									<FormGroup label="Name">
+										<div className="input-field">
+											<InputGroup
+												value={connectionData?.name}
+												onChange={(e) => editConnection("name", e.target.value)}
+											/>
+										</div>
+									</FormGroup>
 								</div>
 
 								{connectionData.type === "directConnection" && (
 									<div className="flex-inline">
 										<div style={{ flexGrow: 1 }}>
-											<div className="Label">
-												<span style={{ margin: "auto" }}>Host</span>
-											</div>
-											<div className="InputField">
-												<InputGroup
-													className="Input"
-													value={host}
-													onChange={(e) => setHost(e.target.value)}
-												/>
-											</div>
+											<FormGroup label="Host">
+												<div className="input-field">
+													<InputGroup
+														value={host}
+														onChange={(e) => setHost(e.target.value)}
+													/>
+												</div>
+											</FormGroup>
 										</div>
 										<div>
-											<div className="Label">
-												<span style={{ margin: "auto" }}>Port</span>
-											</div>
-											<div className="InputField">
-												<InputGroup
-													className="Input"
-													value={port}
-													onChange={(e) => setPort(e.target.value)}
-												/>
-											</div>
+											<FormGroup label="Port">
+												<div className="input-field">
+													<InputGroup
+														value={port}
+														onChange={(e) => setPort(e.target.value)}
+													/>
+												</div>
+											</FormGroup>
 										</div>
 									</div>
 								)}
 
 								{connectionData.type === "replicaSet" && (
 									<div>
-										<div className="Label">
-											<span style={{ margin: "auto" }}>Hosts</span>
-										</div>
-										<div className="InputField">
-											<TextArea
-												className="Input"
-												value={connectionData?.hosts}
-												onChange={(e) =>
-													editConnection("hosts", e.target.value.split(","))
-												}
-											/>
-										</div>
+										<FormGroup
+											label="Hosts"
+											helperText="Use a comma to separate hosts"
+										>
+											<div className="input-field">
+												<TextArea
+													value={connectionData?.hosts}
+													onChange={(e) =>
+														editConnection("hosts", e.target.value.split(","))
+													}
+												/>
+											</div>
+										</FormGroup>
 									</div>
 								)}
 							</div>
 						)}
 						{form === "authentication" && (
-							<div className="Form">
-								<div>
-									<div className="Label">
-										<span style={{ margin: "auto" }}>Database</span>
-									</div>
-									<div className="InputField">
+							<div className="form">
+								<FormGroup
+									label="Database"
+									helperText="Authentication database name"
+								>
+									<div className="input-field">
 										<InputGroup
-											className="Input"
 											value={connectionData?.database}
 											onChange={(e) =>
 												editConnection("database", e.target.value)
 											}
 										/>
 									</div>
-								</div>
-								<div>
-									<div className="Label">
-										<span style={{ margin: "auto" }}>Username</span>
-									</div>
-									<div className="InputField">
+								</FormGroup>
+								<FormGroup label="Username">
+									<div className="input-field">
 										<InputGroup
-											className="Input"
 											value={connectionData?.username}
 											onChange={(e) =>
 												editConnection("username", e.target.value)
 											}
 										/>
 									</div>
-								</div>
-
-								<div className="flex-inline">
-									<div style={{ flexGrow: 1 }}>
-										<div className="Label">
-											<span style={{ margin: "auto" }}>Password</span>
-										</div>
-										<div className="InputField">
-											<InputGroup
-												className="Input"
-												type="password"
-												value={connectionData?.password}
-												onChange={(e) =>
-													editConnection("password", e.target.value)
-												}
-											/>
-										</div>
+								</FormGroup>
+								<FormGroup label="Password">
+									<div className="input-field">
+										<InputGroup
+											type="password"
+											value={connectionData?.password}
+											onChange={(e) =>
+												editConnection("password", e.target.value)
+											}
+										/>
 									</div>
-								</div>
-
-								<div>
-									<div className="Label">
-										<span style={{ margin: "auto" }}>
-											Authentication Mechanism
-										</span>
+								</FormGroup>
+								<FormGroup label="Authentication Mechanism">
+									<div className="input-field">
+										<Button
+											fill
+											dropdownOptions={{
+												content: authMechanismMenu,
+												interactionKind: "click-target",
+												fill: true,
+											}}
+											text={connectionData.options.authMechanism}
+										/>
 									</div>
-									<div className="InputField">
-										<Dropdown.Button overlay={authMechanismMenu}>
-											{connectionData.options.authMechanism}
-										</Dropdown.Button>
-									</div>
-								</div>
+								</FormGroup>
 							</div>
 						)}
 						{form === "ssh" && (
-							<div className="Form">
+							<div className="form">
 								<div className="flex-inline">
-									<Checkbox
-										checked={connectionData.ssh.useSSH}
-										onChange={() =>
-											editSSHDetails("useSSH", !connectionData.ssh.useSSH)
-										}
-										label="Use SSH Tunnel"
-									/>
+									<FormGroup helperText="When enabled, any configurations made in the 'Connection' section will be ignored.">
+										<div className="input-field">
+											<Checkbox
+												checked={connectionData.ssh.useSSH}
+												onChange={() =>
+													editSSHDetails("useSSH", !connectionData.ssh.useSSH)
+												}
+												label="Use SSH Tunnel"
+											/>
+										</div>
+									</FormGroup>
 								</div>
 								<div className="flex-inline">
-									<div style={{ flexGrow: 1 }}>
-										<div className="Label">
-											<span style={{ margin: "auto" }}>Host</span>
-										</div>
-										<div className="InputField">
+									<FormGroup label="Tunnel Host">
+										<div className="input-field">
 											<InputGroup
-												className="Input"
 												value={connectionData?.ssh?.host}
 												disabled={!connectionData.ssh.useSSH}
 												onChange={(e) => editSSHDetails("host", e.target.value)}
 											/>
 										</div>
-									</div>
-									<div>
-										<div className="Label">
-											<span style={{ margin: "auto" }}>Port</span>
-										</div>
-										<div className="InputField">
+									</FormGroup>
+									<FormGroup label="Tunnel Port">
+										<div className="input-field">
 											<InputGroup
-												className="Input"
 												value={connectionData?.ssh?.port}
 												disabled={!connectionData.ssh.useSSH}
 												onChange={(e) => editSSHDetails("port", e.target.value)}
 											/>
 										</div>
-									</div>
+									</FormGroup>
 								</div>
 								<div className="flex-inline">
-									<div style={{ flexGrow: 1 }}>
-										<div className="Label">
-											<span style={{ margin: "auto" }}>Mongod host</span>
-										</div>
-										<div className="InputField">
+									<FormGroup label="MongoDB Host">
+										<div className="input-field">
 											<InputGroup
-												className="Input"
 												value={connectionData?.ssh?.mongodHost}
 												disabled={!connectionData.ssh.useSSH}
 												onChange={(e) =>
@@ -616,14 +693,10 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 												}
 											/>
 										</div>
-									</div>
-									<div>
-										<div className="Label">
-											<span style={{ margin: "auto" }}>Mongod port</span>
-										</div>
-										<div className="InputField">
+									</FormGroup>
+									<FormGroup label="MongoDB Port">
+										<div className="input-field">
 											<InputGroup
-												className="Input"
 												value={connectionData?.ssh?.mongodPort}
 												disabled={!connectionData.ssh.useSSH}
 												onChange={(e) =>
@@ -631,15 +704,11 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 												}
 											/>
 										</div>
-									</div>
+									</FormGroup>
 								</div>
-								<div>
-									<div className="Label">
-										<span style={{ margin: "auto" }}>Username</span>
-									</div>
-									<div className="InputField">
+								<FormGroup label="Username">
+									<div className="input-field">
 										<InputGroup
-											className="Input"
 											value={connectionData?.ssh?.username}
 											disabled={!connectionData.ssh.useSSH}
 											onChange={(e) =>
@@ -647,32 +716,29 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 											}
 										/>
 									</div>
-								</div>
-								<div>
-									<div className="Label">
-										<span style={{ margin: "auto" }}>
-											Authentication Method
-										</span>
-									</div>
-									<div className="InputField">
-										<Dropdown.Button
+								</FormGroup>
+								<FormGroup label="Authentication Method">
+									<div className="input-field">
+										<Button
+											fill
 											disabled={!connectionData.ssh.useSSH}
-											overlay={sshAuthMenu}
-										>
-											{sshAuthMethod === "password"
-												? "Password"
-												: "Private key"}
-										</Dropdown.Button>
+											dropdownOptions={{
+												content: sshAuthMenu,
+												interactionKind: "click-target",
+												fill: true,
+											}}
+											text={
+												sshAuthMethod === "password"
+													? "Password"
+													: "Private key"
+											}
+										/>
 									</div>
-								</div>
+								</FormGroup>
 								{sshAuthMethod === "password" && (
-									<div>
-										<div className="Label">
-											<span style={{ margin: "auto" }}>Password</span>
-										</div>
-										<div className="InputField">
+									<FormGroup label="Password">
+										<div className="input-field">
 											<InputGroup
-												className="Input"
 												value={connectionData.ssh?.password}
 												disabled={!connectionData.ssh.useSSH}
 												onChange={(e) =>
@@ -680,16 +746,15 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 												}
 											/>
 										</div>
-									</div>
+									</FormGroup>
 								)}
 								{sshAuthMethod === "privateKey" && (
-									<div>
-										<div className="Label">
-											<span style={{ margin: "auto" }}>Private Key</span>
-										</div>
-										<div className="InputField">
-											<InputGroup
-												className="Input"
+									<FormGroup
+										label="Private Key"
+										helperText="Enter your private key contents here"
+									>
+										<div className="input-field">
+											<TextArea
 												value={connectionData?.ssh?.privateKey}
 												disabled={!connectionData.ssh.useSSH}
 												onChange={(e) =>
@@ -697,16 +762,15 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 												}
 											/>
 										</div>
-									</div>
+									</FormGroup>
 								)}
 								{sshAuthMethod === "privateKey" && (
-									<div>
-										<div className="Label">
-											<span style={{ margin: "auto" }}>Passphrase</span>
-										</div>
-										<div className="InputField">
+									<FormGroup
+										label="Passphrase"
+										helperText="Optional key passphrase"
+									>
+										<div className="input-field">
 											<InputGroup
-												className="Input"
 												value={connectionData?.ssh?.method}
 												disabled={!connectionData.ssh.useSSH}
 												onChange={(e) =>
@@ -714,100 +778,158 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 												}
 											/>
 										</div>
-									</div>
+									</FormGroup>
 								)}
 							</div>
 						)}
 						{form === "tls" && (
-							<div className="Form Gap">
+							<div className="form">
 								<div className="flex-inline">
-									<Checkbox
-										checked={connectionData.options.tls}
-										onChange={(e) =>
-											editConnection("options", {
-												...connectionData.options,
-												tls: e.target.checked,
-											})
-										}
-										label="Use TLS protocol"
-									/>
+									<FormGroup>
+										<div className="input-field">
+											<Checkbox
+												checked={connectionData.options.tls}
+												onChange={() =>
+													editConnection("options", {
+														...connectionData.options,
+														tls: !connectionData.options.tls,
+													})
+												}
+												label="Use TLS protocol"
+											/>
+										</div>
+									</FormGroup>
 								</div>
-								<div>
-									<div className="Label">
-										<span style={{ margin: "auto" }}>
-											Authentication Method
-										</span>
-									</div>
-									<div className="InputField">
-										<Dropdown.Button
+								<FormGroup label="Authentication Method">
+									<div className="input-field">
+										<Button
+											fill
 											disabled={!connectionData.options.tls}
-											overlay={tlsAuthMenu}
-										>
-											{tlsAuthMethod === "self-signed"
-												? "Self-signed certificate"
-												: "CA certificate"}
-										</Dropdown.Button>
+											dropdownOptions={{
+												content: tlsAuthMenu,
+												interactionKind: "click-target",
+												fill: true,
+											}}
+											text={
+												tlsAuthMethod === "self-signed"
+													? "Self-signed certificate"
+													: "Provide root CA"
+											}
+										/>
 									</div>
-								</div>
+								</FormGroup>
 								{tlsAuthMethod === "CACertificate" && (
 									<div className="flex-inline">
-										<div className="Label">
-											<span style={{ margin: "auto" }}>CA Certificate</span>
-										</div>
-										<div className="InputField">
-											<Upload {...props}>
-												<Button>Upload File</Button>
-											</Upload>
-										</div>
+										<FormGroup
+											disabled
+											helperText="Ark only supports self-signed certificates for now. Sorry!"
+											label="CA Certificate"
+										>
+											<div className="input-field">
+												<FileInput
+													disabled
+													text="Choose a file..."
+													onInputChange={(e) => {}}
+												/>
+											</div>
+										</FormGroup>
 									</div>
 								)}
 							</div>
 						)}
 						{form === "misc" && (
-							<div className="Form Gap">
+							<div className="form">
 								<div className="flex-inline">
-									<div className="Label">
-										<span style={{ margin: "auto" }}>Icon</span>
-									</div>
-									<div className="InputField">
-										<Upload
-											customRequest={(options) =>
-												options.onSuccess && options.onSuccess("ok")
-											}
-											beforeUpload={beforeIconUpload}
-											maxCount={1}
-											listType="picture"
-											onChange={(e) => {
-												if (e.file.status === "removed") {
-													editConnection("icon", false);
-													setIcon(undefined);
-												} else {
-													editConnection("icon", true);
-													setIcon(e.file);
+									<FormGroup
+										className="flex-fill"
+										label="Icon"
+										helperText={
+											"This icon will be used in the sidebar. Ark will copy the icon to it's own location."
+										}
+									>
+										<div className="input-field">
+											<FileInput
+												fill
+												text={
+													icon && icon.path ? icon.path : "Choose an image..."
 												}
-											}}
-											fileList={icon && connectionData.icon ? [icon] : []}
-										>
-											<Button>Upload Icon</Button>
-										</Upload>
+												inputProps={{
+													accept: "image/png,image/svg,image/jpeg",
+												}}
+												onInputChange={(e) => {
+													const list = e.currentTarget.files;
+													const file = list?.item(0);
+													if (file) {
+														if (
+															file.type !== "image/png" &&
+															file.type !== "image/svg" &&
+															file.type !== "image/jpeg"
+														) {
+															notify({
+																title: "Validation failed",
+																type: "error",
+																description:
+																	"Only PNG, SVG, and JPEG types are supported!",
+															});
+														} else if (file.size >= 10000) {
+															notify({
+																title: "Validation failed",
+																type: "error",
+																description:
+																	"File size must be less than 10KBs",
+															});
+														} else {
+															let rmIconIfRequired = Promise.resolve();
+															if (icon && icon.name) {
+																rmIconIfRequired = window.ark.rmIcon(icon.path);
+															}
+															rmIconIfRequired
+																.then(() =>
+																	window.ark.copyIcon(
+																		"icons",
+																		file.name,
+																		(file as any).path
+																	)
+																)
+																.then((result) => {
+																	const { path } = result;
+																	setIcon({
+																		path,
+																		type: file.type,
+																		name: file.name,
+																		size: file.size,
+																		lastModified: file.lastModified,
+																	});
+																});
+														}
+													}
+												}}
+											/>
+										</div>
+									</FormGroup>
+									<div className="connection-form-icon">
+										{icon ? (
+											<img
+												src={`ark://icons/${icon.name}`}
+												width={30}
+												height={30}
+											/>
+										) : (
+											<span>No Icon</span>
+										)}
 									</div>
 								</div>
 							</div>
 						)}
-						<div className="ButtonGroupAdvanced">
-							<div className="BackContainer" onClick={() => setType("basic")}>
-								<span>Back</span>
-							</div>
-							<div className="ButtonGroup">
-								<div>
-									<Button type="text" onClick={() => testAdvancedConnection()}>
-										Test
-									</Button>
-								</div>
-								<div>
-									<Button onClick={() => saveAdvancedConnection()}>Save</Button>
-								</div>
-							</div>
+						<div className="advanced-footer-row">
+							<ButtonGroup className="button-group">
+								<Button
+									text="Back"
+									variant="link"
+									onClick={() => setType("basic")}
+								/>
+							</ButtonGroup>
+							{TestAndSaveAdvanced}
 						</div>
 					</div>
 				)}
