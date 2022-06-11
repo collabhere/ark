@@ -5,8 +5,8 @@ import { Button as BPButton, ActionProps, IconName } from "@blueprintjs/core";
 import { Popover2, Popover2Props } from "@blueprintjs/popover2";
 import { PromiseCompleteCallback, asyncEventOverload } from "../utils/misc";
 
-export interface PromiseButtonMouseEventHandler {
-	promise: (e: React.MouseEvent) => Promise<void>;
+export interface PromiseButtonMouseEventHandler<T = any> {
+	promise: (e: React.MouseEvent) => Promise<T>;
 	callback: PromiseCompleteCallback;
 }
 

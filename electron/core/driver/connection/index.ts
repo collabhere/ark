@@ -190,12 +190,33 @@ export const Connection: Connection = {
 			}
 
 			const connectionUri = getConnectionUri(config);
+
 			const client = new MongoClient(connectionUri);
-			await client.connect();
+
+			try {
+				await client.connect();
+			} catch (err) {
+				console.log(err);
+				return {
+					status: false,
+					message: "Could not connect to server"
+				};
+			}
+
+			try {
+				const db = client.db().admin();
+
+				await db.listDatabases();
+			} catch (err) {
+				return {
+					status: false,
+					message: "Could not list databases"
+				};
+			}
 
 			return {
 				status: true,
-				message: "Connection Successful",
+				message: "All tests have passed",
 			};
 		} catch (err) {
 			return {

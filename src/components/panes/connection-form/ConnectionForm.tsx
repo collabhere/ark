@@ -222,49 +222,39 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 
 	const saveAdvancedConnection = useCallback(() => {
 		if (validateAdvancedConfig()) {
-			window.ark.driver
-				.run("connection", "save", {
-					type: "config",
-					config: {
-						...connectionData,
-						hosts:
-							connectionData.type === "directConnection"
-								? [`${host}:${port}`]
-								: connectionData.hosts,
-						name:
-							connectionData.name || "Test Connection " + new Date().valueOf(),
-					},
-					icon: icon,
-				})
-				.then((connectionId) => {
-					dispatch("connection_manager:add_connection", { connectionId });
-				});
+			return window.ark.driver.run("connection", "save", {
+				type: "config",
+				config: {
+					...connectionData,
+					hosts:
+						connectionData.type === "directConnection"
+							? [`${host}:${port}`]
+							: connectionData.hosts,
+					name:
+						connectionData.name || "Test Connection " + new Date().valueOf(),
+				},
+				icon: icon,
+			});
+		} else {
+			return Promise.resolve();
 		}
 	}, [connectionData, host, icon, port, validateAdvancedConfig]);
 
 	const testAdvancedConnection = useCallback(() => {
 		if (validateAdvancedConfig()) {
-			window.ark.driver
-				.run("connection", "test", {
-					type: "config",
-					config: {
-						...connectionData,
-						hosts:
-							connectionData.type === "directConnection"
-								? [`${host}:${port}`]
-								: connectionData.hosts,
-						name: "",
-					},
-				})
-				.then((res) => {
-					const notification: Parameters<typeof notify>[0] = {
-						title: "Test connection",
-						description: res.message,
-						type: res.status ? "success" : "error",
-					};
-
-					notify(notification);
-				});
+			return window.ark.driver.run("connection", "test", {
+				type: "config",
+				config: {
+					...connectionData,
+					hosts:
+						connectionData.type === "directConnection"
+							? [`${host}:${port}`]
+							: connectionData.hosts,
+					name: "",
+				},
+			});
+		} else {
+			return Promise.resolve({ status: false, message: "" });
 		}
 	}, [connectionData, host, port, validateAdvancedConfig]);
 
@@ -375,12 +365,47 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 			<Button
 				text="Test"
 				variant="link"
-				onClick={() => testAdvancedConnection()}
+				onClick={{
+					promise: () => testAdvancedConnection(),
+					callback: (err, res) => {
+						if (err) {
+							console.log(err);
+							notify({
+								type: "error",
+								description: "Something went wrong!",
+							});
+							return;
+						} else {
+							const notification: Parameters<typeof notify>[0] = {
+								title: "Test connection",
+								description: res.message,
+								type: res.status ? "success" : "error",
+							};
+
+							notify(notification);
+						}
+					},
+				}}
 			/>
 			<Button
 				text="Save"
 				variant="primary"
-				onClick={() => saveAdvancedConnection()}
+				onClick={{
+					promise: () => saveAdvancedConnection(),
+					callback: (err, res) => {
+						if (err) {
+							console.log(err);
+							notify({
+								type: "error",
+								description: "Something went wrong!",
+							});
+							return;
+						} else {
+							const connectionId = res;
+							dispatch("connection_manager:add_connection", { connectionId });
+						}
+					},
+				}}
 			/>
 		</ButtonGroup>
 	);
