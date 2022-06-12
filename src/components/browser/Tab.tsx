@@ -23,7 +23,7 @@ export const Tab = ({ id, item, onClick, onRemove, isSelected }: Props) => {
 			className={"tab-item" + (isSelected ? " tab-active" : "")}
 			value={id}
 			id={String(id)}
-			onClick={(e) => {
+			onMouseDown={(e) => {
 				e.stopPropagation();
 				onClick();
 			}}
@@ -32,6 +32,7 @@ export const Tab = ({ id, item, onClick, onRemove, isSelected }: Props) => {
 			<Button
 				icon={"cross"}
 				variant="link"
+				size="small"
 				onClick={(event) => {
 					event.stopPropagation();
 					onRemove();

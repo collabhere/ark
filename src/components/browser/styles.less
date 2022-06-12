@@ -8,7 +8,7 @@
 	min-width: 0;
 	width: 100%;
 	height: 100%;
-	background-color: @container-bg-color;
+	background-color: @container-fg-color;
 
 	.tabs-container {
 		width: 100%;
@@ -22,24 +22,29 @@
 			justify-content: start;
 			align-items: end;
 			overflow-x: auto;
-			border-bottom: 2px solid @outline-color;
+			background-color: @container-bg-color;
+		}
+
+		.tab-pane {
+			height: 100%;
+			box-shadow: @box-shadow;
 		}
 
 		.tab-item {
-			border-radius: 5px;
+			margin-right: 4px;
+			border-radius: 4px;
 			border-bottom-left-radius: 0;
 			border-bottom-right-radius: 0;
 			padding: 0px 8px;
-			background-color: @container-fg-color;
+			background-color: @container-bg-color;
 			cursor: pointer;
-			height: 32px;
+			height: 36px;
 			min-width: 250px;
 			display: flex;
 			justify-content: space-between;
 			align-items: center;
 			overflow: hidden;
 			user-select: none;
-
 			.tab-title {
 				flex-grow: 1;
 				min-width: 0;
@@ -50,20 +55,15 @@
 			}
 
 			.tab-close {
-				width: 28ppx;
-				height: 20px;
-				border: 0;
-				border-radius: 3px;
 				display: flex;
 				justify-content: center;
 				align-items: center;
-				stroke: #000;
-				cursor: pointer;
 			}
 		}
 
 		.tab-active {
-			background-color: @container-bg-color !important;
+			box-shadow: @box-shadow;
+			background-color: @container-fg-color !important;
 		}
 	}
 }

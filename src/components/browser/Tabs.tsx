@@ -35,7 +35,7 @@ const TabPane: React.FC<React.PropsWithChildren<{ show: boolean }>> = ({
 	show,
 }) => {
 	return (
-		<div style={{ height: "100%", display: show ? "flex" : "none" }}>
+		<div className="tab-pane" style={{ display: show ? "flex" : "none" }}>
 			{children}
 		</div>
 	);
