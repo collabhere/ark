@@ -1,6 +1,6 @@
 @import "../../common/styles/variables.less";
 
-.Browser {
+.browser {
 	display: flex;
 	justify-content: center;
 	align-items: center;
@@ -8,5 +8,62 @@
 	min-width: 0;
 	width: 100%;
 	height: 100%;
-	// background-color: @primary-tint-8;
+	background-color: @container-bg-color;
+
+	.tabs-container {
+		width: 100%;
+		height: 100%;
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+
+		.tabs-group {
+			display: flex;
+			justify-content: start;
+			align-items: end;
+			overflow-x: auto;
+			border-bottom: 2px solid @outline-color;
+		}
+
+		.tab-item {
+			border-radius: 5px;
+			border-bottom-left-radius: 0;
+			border-bottom-right-radius: 0;
+			padding: 0px 8px;
+			background-color: @container-fg-color;
+			cursor: pointer;
+			height: 32px;
+			min-width: 250px;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			overflow: hidden;
+			user-select: none;
+
+			.tab-title {
+				flex-grow: 1;
+				min-width: 0;
+				line-height: 18px;
+				white-space: nowrap;
+				display: block;
+				color: @text-color;
+			}
+
+			.tab-close {
+				width: 28ppx;
+				height: 20px;
+				border: 0;
+				border-radius: 3px;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				stroke: #000;
+				cursor: pointer;
+			}
+		}
+
+		.tab-active {
+			background-color: @container-bg-color !important;
+		}
+	}
 }

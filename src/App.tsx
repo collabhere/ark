@@ -9,9 +9,7 @@ import { Sidebar } from "./components/sidebar/Sidebar";
 import { dispatch } from "./common/utils/events";
 
 const App: FC = () => {
-	useEffect(() => {
-		dispatch("browser:create_tab:connection_form");
-	}, []);
+	useEffect(() => {}, []);
 	return (
 		<div className="App">
 			<BaseContextProvider>
