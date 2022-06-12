@@ -37,7 +37,7 @@ export const Sidebar: FC = () => {
 
 	return (
 		<div className="sidebar">
-			<div className="item home" onClick={listConnections}>
+			<div key="manager" className="item home" onClick={listConnections}>
 				<Button
 					active={currentSidebarOpened === "manager"}
 					variant="link"

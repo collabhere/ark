@@ -1,29 +1,10 @@
 import "./styles.less";
 
-import { Tabs } from "antd";
 import { nanoid } from "nanoid";
 import React, { useCallback, useEffect, useState } from "react";
 import { dispatch, listenEffect } from "../../common/utils/events";
-import { Editor, EditorProps } from "../panes/editor/Editor";
-import {
-	ConnectionForm,
-	ConnectionFormProps,
-} from "../panes/connection-form/ConnectionForm";
 import { EmptyState } from "../onboarding/EmptyState";
-import { DraggableTabs } from "./DraggableTabs";
-
-const { TabPane } = Tabs;
-
-interface BaseTab {
-	title: string;
-	id: string;
-	closable: boolean;
-}
-
-type EditorTab = { type: "editor" } & EditorProps & BaseTab;
-
-type ConnectionFormTab = { type: "connection_form" } & ConnectionFormProps &
-	BaseTab;
+import { ConnectionFormTab, EditorTab, Tab, Tabs } from "./Tabs";
 
 interface CreateEditorTabArgs {
 	shellConfig: Ark.ShellConfig;
@@ -34,26 +15,30 @@ interface DeleteEditorTabArgs {
 	id: string;
 }
 
-export type TabType = "editor" | "connection_form";
-export type Tab = EditorTab | ConnectionFormTab;
-export type TabComponentProps = EditorProps | ConnectionFormProps;
-export interface TabComponentMap {
-	editor: EditorProps;
-	connection_form: ConnectionFormProps;
-}
-
-const TAB_PANES = {
-	editor: Editor,
-	connection_form: ConnectionForm,
-} as const;
-
 export const Browser = (): JSX.Element => {
 	const [tabs, setTabs] = useState<Tab[]>([]);
-	const [activeKey, setActiveKey] = useState<string>();
+	const [currentTab, setCurrentTab] = useState<Tab>();
 	const [untitledCount, setUntitledCount] = useState(0);
 
-	/* onload useEffect */
-	useEffect(() => {}, []);
+	const changeCurrentTabWithIdx = useCallback(
+		(idx: number) => {
+			setCurrentTab(tabs[idx]);
+		},
+		[tabs]
+	);
+
+	const changeCurrentTabWithTab = useCallback(
+		(tab: Tab) => {
+			setCurrentTab(tab);
+		},
+		[tabs]
+	);
+
+	useEffect(() => {
+		if (!currentTab && tabs.length) {
+			changeCurrentTabWithIdx(0);
+		}
+	}, [tabs]);
 
 	const createConnectionFormTab = useCallback(
 		(connectionParams?: {
@@ -68,6 +53,7 @@ export const Browser = (): JSX.Element => {
 							? "Edit connection"
 							: "Clone connection"
 						: "New connection";
+				changeCurrentTabWithIdx(tabs.length + 1);
 				return [
 					...tabs,
 					{
@@ -77,10 +63,9 @@ export const Browser = (): JSX.Element => {
 						mode: connectionParams?.mode,
 						id,
 						title,
-					},
+					} as ConnectionFormTab,
 				];
 			});
-			setActiveKey(() => id);
 		},
 		[]
 	);
@@ -92,6 +77,8 @@ export const Browser = (): JSX.Element => {
 				const title = `Untitled-${
 					untitledCount + 1
 				} ${args.shellConfig.name.slice(0, 24)}...`;
+				changeCurrentTabWithIdx(tabs.length + 1);
+
 				return [
 					...tabs,
 					{
@@ -100,11 +87,10 @@ export const Browser = (): JSX.Element => {
 						id: "" + id,
 						closable: true,
 						...args,
-					},
+					} as EditorTab,
 				];
 			});
 			setUntitledCount((count) => (count += 1));
-			setActiveKey(() => id);
 		},
 		[untitledCount]
 	);
@@ -114,19 +100,23 @@ export const Browser = (): JSX.Element => {
 			const { id } = args;
 			setTabs((tabs) => {
 				const deleteIdx = tabs.findIndex((tab) => tab.id === id);
-				const nextIdx = deleteIdx + 1;
-				const prevIdx = deleteIdx - 1;
-				if (id === activeKey && nextIdx <= tabs.length - 1)
-					// Shift to next if possible
-					setActiveKey(() => tabs[nextIdx].id);
-				else if (id === activeKey && prevIdx >= 0)
-					// else shift back
-					setActiveKey(() => tabs[prevIdx].id);
-				tabs.splice(deleteIdx, 1);
-				return [...tabs];
+
+				if (deleteIdx > -1) {
+					const nextIdx = deleteIdx + 1;
+					const prevIdx = deleteIdx - 1;
+					if (currentTab && id === currentTab.id && nextIdx <= tabs.length - 1)
+						// Shift to next if possible
+						changeCurrentTabWithIdx(nextIdx);
+					else if (currentTab && id === currentTab.id && prevIdx >= 0)
+						// else shift back
+						changeCurrentTabWithIdx(prevIdx);
+					tabs.splice(deleteIdx, 1);
+					return [...tabs];
+				}
+				return tabs;
 			});
 		},
-		[activeKey]
+		[currentTab]
 	);
 
 	/** Register browser event listeners */
@@ -154,47 +144,24 @@ export const Browser = (): JSX.Element => {
 	);
 
 	return (
-		<div className="Browser">
-			{tabs && tabs.length ? (
-				<DraggableTabs
-					hideAdd
-					type="editable-card"
-					activeKey={activeKey}
-					className={"BrowserTabs"}
-					defaultActiveKey="1"
-					onEdit={(e, action) => {
-						if (typeof e === "string")
-							switch (action) {
-								case "remove": {
-									if (e.startsWith("e-"))
-										return dispatch("browser:delete_tab:editor", { id: e });
-									else if (e.startsWith("cf-"))
-										return dispatch("browser:delete_tab:connection_form", {
-											id: e,
-										});
-								}
-							}
+		<div className="browser">
+			{tabs && tabs.length && currentTab ? (
+				<Tabs
+					selectedTab={currentTab}
+					onSelect={(tab) => changeCurrentTabWithTab(tab)}
+					onReorder={(orderedTabs) => {
+						if (orderedTabs.length) setTabs(orderedTabs);
 					}}
-					onChange={(activeKey) => setActiveKey(activeKey)}
-				>
-					{tabs.map((tab) => {
-						const Component = React.createElement(
-							TAB_PANES[tab.type] as any,
-							tab
-						);
-						return (
-							<TabPane
-								className={"BrowserTabPane"}
-								closable={tab.closable}
-								// closeIcon={}
-								tab={tab.title}
-								key={tab.id}
-							>
-								{Component}
-							</TabPane>
-						);
-					})}
-				</DraggableTabs>
+					onRemove={(tab) => {
+						if (tab.id.startsWith("e-"))
+							return dispatch("browser:delete_tab:editor", { id: tab.id });
+						else if (tab.id.startsWith("cf-"))
+							return dispatch("browser:delete_tab:connection_form", {
+								id: tab.id,
+							});
+					}}
+					tabs={tabs}
+				/>
 			) : (
 				<EmptyState />
 			)}
