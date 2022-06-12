@@ -4,7 +4,7 @@ import { nanoid } from "nanoid";
 import React, { useCallback, useEffect, useState } from "react";
 import { dispatch, listenEffect } from "../../common/utils/events";
 import { EmptyState } from "../onboarding/EmptyState";
-import { Tab, Tabs } from "./Tabs";
+import { ConnectionFormTab, EditorTab, Tab, Tabs } from "./Tabs";
 
 interface CreateEditorTabArgs {
 	shellConfig: Ark.ShellConfig;
@@ -63,7 +63,7 @@ export const Browser = (): JSX.Element => {
 						mode: connectionParams?.mode,
 						id,
 						title,
-					},
+					} as ConnectionFormTab,
 				];
 			});
 		},
@@ -78,6 +78,7 @@ export const Browser = (): JSX.Element => {
 					untitledCount + 1
 				} ${args.shellConfig.name.slice(0, 24)}...`;
 				changeCurrentTabWithIdx(tabs.length + 1);
+
 				return [
 					...tabs,
 					{
@@ -86,7 +87,7 @@ export const Browser = (): JSX.Element => {
 						id: "" + id,
 						closable: true,
 						...args,
-					},
+					} as EditorTab,
 				];
 			});
 			setUntitledCount((count) => (count += 1));

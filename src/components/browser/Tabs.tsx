@@ -30,17 +30,6 @@ const TAB_PANES = {
 	connection_form: ConnectionForm,
 } as const;
 
-const TabPane: React.FC<React.PropsWithChildren<{ show: boolean }>> = ({
-	children,
-	show,
-}) => {
-	return (
-		<div className="tab-pane" style={{ display: show ? "flex" : "none" }}>
-			{children}
-		</div>
-	);
-};
-
 interface TabsProps {
 	tabs: Tab[];
 	selectedTab: Tab;
@@ -77,6 +66,7 @@ export function Tabs(props: TabsProps) {
 				onReorder={(idxs) => onReorder(idxs.map((idx) => tabs[idx]))}
 				className="tabs-group"
 				values={tabs.map((_, idx) => idx)}
+				layoutScroll
 			>
 				{tabs.map((item, idx) => (
 					<Tab
@@ -94,9 +84,13 @@ export function Tabs(props: TabsProps) {
 			{tabs.map((tab) => {
 				const Component = React.createElement(TAB_PANES[tab.type] as any, tab);
 				return (
-					<TabPane show={selectedTab.id === tab.id} key={tab.id}>
+					<div
+						key={tab.id}
+						className="tab-pane"
+						style={{ display: selectedTab.id === tab.id ? "flex" : "none" }}
+					>
 						{Component}
-					</TabPane>
+					</div>
 				);
 			})}
 		</div>
