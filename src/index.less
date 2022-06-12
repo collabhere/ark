@@ -1,5 +1,25 @@
 @import "antd/dist/antd.less";
 
+@import "./common/styles/variables.less";
+
+*::-webkit-scrollbar {
+	background-color: @container-fg-color;
+	width: 10px;
+	height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+	opacity: 0%;
+}
+
+*:hover::-webkit-scrollbar-thumb {
+	background-color: @scrollbar-thumb-color;
+	border-radius: 6px;
+	border: 3px solid @scrollbar-bg-color;
+	opacity: 100%;
+	transition: opacity 3s;
+}
+
 html {
 	overflow: hidden;
 	display: flex;
