@@ -61,7 +61,7 @@ export const Shell: FC<ShellProps> = (props) => {
 	}, [cloneCurrentTab, exec, keyBindings, monacoEditor, settings?.hotKeys]);
 
 	return (
-		<div className={"Shell"}>
+		<div className={"shell"}>
 			<Monaco
 				options={{
 					lineNumbers: settings?.lineNumbers === "off" ? "off" : "on",

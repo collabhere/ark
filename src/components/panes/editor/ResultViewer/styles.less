@@ -17,13 +17,20 @@
 
 	.header {
 		display: flex;
+		gap: 4px;
+		align-self: end;
+		align-items: center;
 		justify-content: flex-end;
 		flex-grow: 1;
 		min-height: 40px;
-		padding: 8px;
+		padding: 2px;
+		width: 40%;
 
-		.button {
-			padding: 4px;
+		.header-item {
+			input {
+				width: 50px;
+				text-align: center;
+			}
 		}
 	}
 	.container {
@@ -95,10 +102,6 @@
 				justify-content: center;
 				align-items: center;
 				width: @content-row-modified-width;
-			}
-
-			.button {
-				// width: calc(@content-row-modified-width + 20px);
 			}
 		}
 

@@ -9,7 +9,25 @@ import { Sidebar } from "./components/sidebar/Sidebar";
 import { dispatch } from "./common/utils/events";
 
 const App: FC = () => {
-	useEffect(() => {}, []);
+	useEffect(() => {
+		dispatch("browser:create_tab:editor", {
+			shellConfig: {
+				id: "KIdHZGuO6g7z9WOA-Y50q",
+				protocol: "mongodb",
+				name: "Local Test",
+				type: "directConnection",
+				hosts: ["localhost:27017"],
+				options: {},
+				ssh: { useSSH: false },
+				icon: false,
+				uri: "mongodb://localhost:27017/admin",
+				collection: "videos",
+			},
+			contextDB: "tldv",
+			collections: ["videos"],
+			storedConnectionId: "KIdHZGuO6g7z9WOA-Y50q",
+		});
+	}, []);
 	return (
 		<div className="App">
 			<BaseContextProvider>

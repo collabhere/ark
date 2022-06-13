@@ -6,23 +6,15 @@ import "../../../../common/styles/layout.less";
 import "./styles.less";
 import { TreeViewer } from "./TreeViewer";
 import { JSONViewer } from "./JSONViewer";
-import {
-	InputGroup,
-	TextArea,
-	RadioGroup,
-	Radio,
-	Switch,
-} from "@blueprintjs/core";
+import { InputGroup, ButtonGroup } from "@blueprintjs/core";
 
 export type ResultViewerProps = {
 	type: "json" | "tree";
 	bson: Ark.BSONArray;
 } & {
-	code?: string;
 	shellConfig: Ark.ShellConfig;
 	driverConnectionId: string;
 	allowDocumentEdits?: boolean;
-	onExport?: (params?: any) => void;
 	onRefresh: () => void;
 	switchViews?: (type: "tree" | "json") => void;
 	paramsState?: {
@@ -37,79 +29,20 @@ export type ResultViewerProps = {
 export const ResultViewer: FC<ResultViewerProps> = (props) => {
 	const {
 		bson,
-		code,
 		type,
 		paramsState,
 		driverConnectionId,
 		shellConfig,
 		allowDocumentEdits,
-		onExport,
 		onRefresh,
 		switchViews,
 	} = props;
-
-	const [exportDialog, toggleExportDialog] = useState<boolean>(false);
-	const [exportOptions, setExportOptions] = useState<
-		Ark.ExportNdjsonOptions | Ark.ExportCsvOptions
-	>({
-		type: "NDJSON",
-		fileName: "",
-	});
-
-	const exportData = useCallback(() => {
-		onExport && onExport({ code, options: exportOptions });
-		toggleExportDialog(false);
-		setExportOptions({
-			type: "NDJSON",
-			fileName: "",
-		});
-	}, [code, exportOptions, onExport]);
-
-	const changeExportOptions = useCallback(
-		(option: "fields" | "destructure" | "type" | "fileName", e?: any) => {
-			if (option === "type") {
-				if (e.target.value === "CSV") {
-					setExportOptions((options) => ({
-						...options,
-						type: "CSV",
-						destructureData: false,
-						fields: [],
-					}));
-				} else if (e.target.value === "NDJSON") {
-					setExportOptions((options) => ({
-						fileName: options.fileName,
-						type: "NDJSON",
-					}));
-				}
-			} else if (option === "destructure") {
-				setExportOptions((options) => ({
-					...options,
-					destructureData:
-						options.type === "CSV" ? !options.destructureData : false,
-				}));
-			} else if (option === "fileName") {
-				setExportOptions((options) => ({
-					...options,
-					fileName: e.target.value,
-				}));
-			} else {
-				setExportOptions((options) => ({
-					...options,
-					fields:
-						options.type === "CSV"
-							? e.target.value.split(",").map((field) => field.trim())
-							: undefined,
-				}));
-			}
-		},
-		[]
-	);
 
 	return (
 		<>
 			<div className="result-viewer">
 				<div className="header">
-					<div>
+					<div className="header-item">
 						{paramsState && (
 							<span>
 								Showing{" "}
@@ -123,74 +56,70 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 							</span>
 						)}
 					</div>
-					<div className="button">
-						<Button
-							size="small"
-							icon={"arrow-left"}
-							disabled={paramsState && paramsState.queryParams.page <= 0}
-							onClick={() => {
-								if (paramsState && paramsState.queryParams.page > 1) {
+					<div className="header-item">
+						<ButtonGroup>
+							<Button
+								size="small"
+								icon={"arrow-left"}
+								disabled={paramsState && paramsState.queryParams.page <= 0}
+								onClick={() => {
+									if (paramsState && paramsState.queryParams.page > 1) {
+										paramsState?.changeQueryParams(
+											"page",
+											paramsState?.queryParams.page - 1
+										);
+									}
+								}}
+							/>
+							<InputGroup
+								small
+								value={paramsState?.queryParams.limit.toString()}
+								onChange={(e) => {
+									if (!isNaN(Number(e.target.value))) {
+										paramsState?.changeQueryParams(
+											"limit",
+											Number(e.target.value)
+										);
+									}
+								}}
+							/>
+							<Button
+								size="small"
+								icon={"arrow-right"}
+								onClick={() =>
 									paramsState?.changeQueryParams(
 										"page",
-										paramsState?.queryParams.page - 1
-									);
+										paramsState?.queryParams.page + 1
+									)
 								}
-							}}
-						/>
+							/>
+						</ButtonGroup>
 					</div>
-					<div className="button">
-						<InputGroup
-							size={2}
-							value={paramsState?.queryParams.limit.toString()}
-							onChange={(e) => {
-								if (!isNaN(Number(e.target.value))) {
-									paramsState?.changeQueryParams(
-										"limit",
-										Number(e.target.value)
-									);
-								}
-							}}
-						/>
-					</div>
-					<div className="button">
-						<Button
-							size="small"
-							icon={"arrow-right"}
-							onClick={() =>
-								paramsState?.changeQueryParams(
-									"page",
-									paramsState?.queryParams.page + 1
-								)
-							}
-						/>
-					</div>
-					<div className="button">
-						<Button
-							size="small"
-							icon={"diagram-tree"}
-							onClick={() => switchViews && switchViews("tree")}
-							tooltipOptions={{
-								hover: { content: "Switch to Tree View" },
-							}}
-						/>
-					</div>
-					<div className="button">
-						<Button
-							size="small"
-							icon={"list-detail-view"}
-							onClick={() => switchViews && switchViews("json")}
-							tooltipOptions={{
-								hover: { content: "Switch to JSON View" },
-							}}
-						/>
-					</div>
-					<div className="button">
-						<Button
-							size="small"
-							icon={"export"}
-							onClick={() => toggleExportDialog(true)}
-							tooltipOptions={{ hover: { content: "Export data" } }}
-						/>
+					<div className="header-item">
+						<ButtonGroup>
+							<Button
+								size="small"
+								icon={"diagram-tree"}
+								disabled={type === "tree"}
+								onClick={() => switchViews && switchViews("tree")}
+								tooltipOptions={{
+									disabled: type === "tree",
+									position: "top-left",
+									content: "Switch to Tree View",
+								}}
+							/>
+							<Button
+								size="small"
+								icon={"list-detail-view"}
+								disabled={type === "json"}
+								onClick={() => switchViews && switchViews("json")}
+								tooltipOptions={{
+									disabled: type === "json",
+									position: "top-left",
+									content: "Switch to JSON View",
+								}}
+							/>
+						</ButtonGroup>
 					</div>
 				</div>
 				<div className="container">
@@ -209,80 +138,6 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 					)}
 				</div>
 			</div>
-			{/* Dialogs */}
-			<>
-				{exportDialog && (
-					<Dialog
-						size={"small"}
-						title={"Export Query Result"}
-						onConfirm={exportData}
-						onCancel={() => toggleExportDialog(false)}
-					>
-						<div className={"export-options"}>
-							<div className={"export-type"}>
-								<div>
-									<span>Export as: </span>
-								</div>
-								<div>
-									{/* <Radio.Group
-										options={["CSV", "NDJSON"]}
-										value={exportOptions.type}
-										buttonStyle={"solid"}
-										onChange={(e) => {
-											changeExportOptions("type", e);
-										}}
-									/> */}
-									<RadioGroup
-										label="Export as:"
-										selectedValue={exportOptions.type}
-										onChange={(e) => {
-											changeExportOptions("type", e);
-										}}
-									>
-										<Radio label="CSV" value="CSV" />
-										<Radio label="NDJSON" value="NDJSON" />
-									</RadioGroup>
-								</div>
-							</div>
-							<div className={"export-type"}>
-								<div>
-									<span>File name: </span>
-								</div>
-								<div>
-									<InputGroup
-										value={exportOptions.fileName}
-										onChange={(e) => changeExportOptions("fileName", e)}
-									/>
-								</div>
-							</div>
-							{exportOptions.type === "CSV" && (
-								<div>
-									<div className={"export-suboptions"}>
-										<div>
-											<Switch
-												label="Destructure data:"
-												checked={!!exportOptions.destructureData}
-												onChange={() => changeExportOptions("destructure")}
-											/>
-										</div>
-									</div>
-									<div>
-										<div>
-											<span>Fields: </span>
-										</div>
-										<div>
-											<TextArea
-												value={exportOptions.fields?.join(",")}
-												onChange={(e) => changeExportOptions("fields", e)}
-											/>
-										</div>
-									</div>
-								</div>
-							)}
-						</div>
-					</Dialog>
-				)}
-			</>
 		</>
 	);
 };

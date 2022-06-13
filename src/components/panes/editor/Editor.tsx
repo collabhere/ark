@@ -3,9 +3,8 @@ import { deserialize } from "bson";
 import "../styles.less";
 import { MONACO_COMMANDS, Shell } from "../../shell/Shell";
 import { Resizable } from "re-resizable";
-import { Menu, Dropdown } from "antd";
+import { Menu, Dropdown, Input } from "antd";
 import { DownOutlined } from "@ant-design/icons";
-import { VscGlobe, VscDatabase, VscAccount } from "react-icons/vsc";
 
 import { dispatch, listenEffect } from "../../../common/utils/events";
 import { handleErrors, notify } from "../../../common/utils/misc";
@@ -16,6 +15,17 @@ import { useRefresh } from "../../../hooks/useRefresh";
 import { bsonTest } from "../../../../util/misc";
 import { useContext } from "react";
 import { SettingsContext } from "../../layout/BaseContextProvider";
+import {
+	FormGroup,
+	Icon,
+	InputGroup,
+	Radio,
+	RadioGroup,
+	Switch,
+	Tag,
+	TextArea,
+} from "@blueprintjs/core";
+import { Dialog } from "../../../common/components/Dialog";
 
 const createDefaultCodeSnippet = (collection: string) => `// Mongo shell
 db.getCollection('${collection}').find({});
@@ -80,6 +90,13 @@ export const Editor: FC<EditorProps> = (props) => {
 			? createDefaultCodeSnippet(collection)
 			: createDefaultCodeSnippet("test")
 	);
+	const [exportDialog, toggleExportDialog] = useState<boolean>(false);
+	const [exportOptions, setExportOptions] = useState<
+		Ark.ExportNdjsonOptions | Ark.ExportCsvOptions
+	>({
+		type: "NDJSON",
+		fileName: "",
+	});
 
 	const onCodeChange = useCallback((code: string) => {
 		const _code = code.replace(/(\/\/.*)|(\n)/g, "");
@@ -205,6 +222,46 @@ export const Editor: FC<EditorProps> = (props) => {
 		if (shellId) return destroyShell(shellId).then(() => refreshEffect());
 	}, [destroyShell, refreshEffect, shellId]);
 
+	const changeExportOptions = useCallback(
+		(option: "fields" | "destructure" | "type" | "fileName", e?: any) => {
+			if (option === "type") {
+				if (e.target.value === "CSV") {
+					setExportOptions((options) => ({
+						...options,
+						type: "CSV",
+						destructureData: false,
+						fields: [],
+					}));
+				} else if (e.target.value === "NDJSON") {
+					setExportOptions((options) => ({
+						fileName: options.fileName,
+						type: "NDJSON",
+					}));
+				}
+			} else if (option === "destructure") {
+				setExportOptions((options) => ({
+					...options,
+					destructureData:
+						options.type === "CSV" ? !options.destructureData : false,
+				}));
+			} else if (option === "fileName") {
+				setExportOptions((options) => ({
+					...options,
+					fileName: e.target.value,
+				}));
+			} else {
+				setExportOptions((options) => ({
+					...options,
+					fields:
+						options.type === "CSV"
+							? e.target.value.split(",").map((field) => field.trim())
+							: undefined,
+				}));
+			}
+		},
+		[]
+	);
+
 	useEffect(() => {
 		if (queryParams && !initialRender) {
 			exec(code);
@@ -311,17 +368,24 @@ export const Editor: FC<EditorProps> = (props) => {
 	);
 
 	return (
-		<div className={"Editor"}>
-			<Resizable
-				defaultSize={{ height: "300px", width: "100%" }}
-				enable={{ bottom: true }}
-			>
-				<div className={"EditorHeader"}>
-					<div className={"EditorHeaderItem"}>
-						<span>
-							<VscGlobe />
-						</span>
-						{replicaHosts && currentReplicaHost ? (
+		<>
+			<div className={"editor"}>
+				<Resizable
+					defaultSize={{ height: "300px", width: "100%" }}
+					enable={{ bottom: true }}
+				>
+					<div className={"editor-header"}>
+						<div className={"editor-header-item"}>
+							<Tag
+								icon={"globe-network"}
+								interactive={!!replicaHosts && !!currentReplicaHost}
+								onClick={() => {}}
+								round
+							>
+								{!!replicaHosts && !!currentReplicaHost ? <></> : hosts[0]}
+							</Tag>
+							{/* 
+						{
 							<HostList
 								currentHost={currentReplicaHost}
 								hosts={replicaHosts}
@@ -333,154 +397,220 @@ export const Editor: FC<EditorProps> = (props) => {
 									}
 								}}
 							/>
-						) : (
-							<span>{hosts[0]}</span>
+						*/}
+						</div>
+						<div className={"editor-header-item"}>
+							<Tag icon={"database"} round>
+								{contextDB}
+							</Tag>
+						</div>
+						<div className={"editor-header-item"}>
+							<Tag icon={"person"} round>
+								{user || "(no auth)"}
+							</Tag>
+						</div>
+						{shellId && !shellLoadError && (
+							<>
+								<div className={"editor-header-item"}>
+									<Button
+										size="small"
+										icon={"floppy-disk"}
+										onClick={() => {
+											window.ark
+												.browseForDirs("Select A Save Location", "Set")
+												.then((result) => {
+													const { dirs } = result;
+													const saveLocation = dirs[dirs.length - 1];
+													return window.ark.scripts
+														.saveAs({
+															code,
+															saveLocation,
+															storedConnectionId: storedConnectionId,
+															fileName: "saved-script-1.js",
+														})
+														.then((script) => {
+															setSavedScriptId(script.id);
+														});
+												});
+										}}
+										tooltipOptions={{
+											position: "bottom",
+											content: "Save as",
+										}}
+									/>
+								</div>
+
+								{savedScriptId && (
+									<div className={"editor-header-item"}>
+										<Button
+											size="small"
+											icon={"saved"}
+											onClick={() => {
+												return window.ark.scripts
+													.save({
+														code,
+														id: savedScriptId,
+													})
+													.then((script) => {
+														setSavedScriptId(script.id);
+													});
+											}}
+											tooltipOptions={{
+												position: "bottom",
+												content: "Save",
+											}}
+										/>
+									</div>
+								)}
+								{!executing && (
+									<div className={"editor-header-item"}>
+										<Button
+											size="small"
+											icon={"play"}
+											variant="success"
+											onClick={() => exec(code)}
+											tooltipOptions={{
+												position: "bottom",
+												content: "Run",
+											}}
+										/>
+									</div>
+								)}
+								{executing && (
+									<Button
+										size="small"
+										icon={"stop"}
+										variant="danger"
+										onClick={() => terminateExecution()}
+										tooltipOptions={{
+											position: "bottom",
+											content: "Stop",
+										}}
+									/>
+								)}
+								<div className="header-item">
+									<Button
+										size="small"
+										icon={"export"}
+										onClick={() => toggleExportDialog(true)}
+										tooltipOptions={{
+											position: "top-left",
+											content: "Export data",
+										}}
+									/>
+								</div>
+							</>
 						)}
 					</div>
-					<div className={"EditorHeaderItem"}>
-						<span>
-							<VscDatabase />
-						</span>
-						<span>{contextDB}</span>
-					</div>
-					<div className={"EditorHeaderItem"}>
-						<span>
-							<VscAccount />
-						</span>
-						<span>{user || "no user"}</span>
-					</div>
-					{shellId && !shellLoadError && (
-						<>
-							<Button
-								size="small"
-								icon={"floppy-disk"}
-								onClick={() => {
-									window.ark
-										.browseForDirs("Select A Save Location", "Set")
-										.then((result) => {
-											const { dirs } = result;
-											const saveLocation = dirs[dirs.length - 1];
-											return window.ark.scripts
-												.saveAs({
-													code,
-													saveLocation,
-													storedConnectionId: storedConnectionId,
-													fileName: "saved-script-1.js",
-												})
-												.then((script) => {
-													setSavedScriptId(script.id);
-												});
+					{shellId ? (
+						<Shell
+							code={code}
+							onCodeChange={onCodeChange}
+							allCollections={COLLECTIONS} // @todo: Fetch these collection names
+							settings={settings}
+							onMonacoCommand={(command) => {
+								switch (command) {
+									case MONACO_COMMANDS.CLONE_SHELL: {
+										dispatch("browser:create_tab:editor", {
+											shellConfig,
+											contextDB,
+											collections: COLLECTIONS,
+											storedConnectionId,
 										});
-								}}
-								tooltipOptions={{
-									hover: {
-										content: "Save as",
-									},
-								}}
-							/>
-							{savedScriptId && (
-								<Button
-									size="small"
-									icon={"saved"}
-									onClick={() => {
-										return window.ark.scripts
-											.save({
-												code,
-												id: savedScriptId,
-											})
-											.then((script) => {
-												setSavedScriptId(script.id);
-											});
-									}}
-									tooltipOptions={{
-										hover: {
-											content: "Save",
-										},
-									}}
-								/>
-							)}
-							{!executing && (
-								<Button
-									size="small"
-									icon={"play"}
-									variant="success"
-									onClick={() => exec(code)}
-									tooltipOptions={{
-										hover: {
-											content: "Run",
-										},
-									}}
-								/>
-							)}
-							{executing && (
-								<Button
-									size="small"
-									icon={"stop"}
-									variant="danger"
-									onClick={() => terminateExecution()}
-									tooltipOptions={{
-										hover: {
-											content: "Stop",
-										},
-									}}
-								/>
-							)}
-						</>
+										return;
+									}
+									case MONACO_COMMANDS.EXEC_CODE: {
+										exec(code);
+									}
+								}
+							}}
+						/>
+					) : (
+						<div
+							style={{
+								display: "flex",
+								justifyContent: "center",
+								alignItems: "center",
+								height: "100%",
+							}}
+						>
+							{shellLoadError ? shellLoadError : <CircularLoading />}
+						</div>
 					)}
-				</div>
-				{shellId ? (
-					<Shell
-						code={code}
-						onCodeChange={onCodeChange}
-						allCollections={COLLECTIONS} // @todo: Fetch these collection names
-						settings={settings}
-						onMonacoCommand={(command) => {
-							switch (command) {
-								case MONACO_COMMANDS.CLONE_SHELL: {
-									dispatch("browser:create_tab:editor", {
-										shellConfig,
-										contextDB,
-										collections: COLLECTIONS,
-										storedConnectionId,
-									});
-									return;
-								}
-								case MONACO_COMMANDS.EXEC_CODE: {
-									exec(code);
-								}
-							}
+				</Resizable>
+				{currentResult && currentResult.bson && currentResult.type && (
+					<ResultViewer
+						bson={currentResult.bson}
+						type={currentResult.type}
+						allowDocumentEdits={currentResult.allowDocumentEdits}
+						shellConfig={{ ...shellConfig, database: contextDB }}
+						driverConnectionId={storedConnectionId}
+						switchViews={switchViews}
+						paramsState={{ queryParams, changeQueryParams }}
+						onRefresh={() => {
+							exec(code);
 						}}
 					/>
-				) : (
-					<div
-						style={{
-							display: "flex",
-							justifyContent: "center",
-							alignItems: "center",
-							height: "100%",
-						}}
-					>
-						{shellLoadError ? shellLoadError : <CircularLoading />}
-					</div>
 				)}
-			</Resizable>
-			{currentResult && currentResult.bson && currentResult.type && (
-				<ResultViewer
-					bson={currentResult.bson}
-					type={currentResult.type}
-					allowDocumentEdits={currentResult.allowDocumentEdits}
-					shellConfig={{ ...shellConfig, database: contextDB }}
-					driverConnectionId={storedConnectionId}
-					code={code}
-					switchViews={switchViews}
-					paramsState={{ queryParams, changeQueryParams }}
-					onExport={(params) => exportData(params.code, params.options)}
-					onRefresh={() => {
-						exec(code);
-					}}
-				/>
-			)}
-		</div>
+			</div>
+			{/* Dialogs */}
+			<>
+				{exportDialog && (
+					<Dialog
+						size={"small"}
+						title={"Run Export"}
+						onConfirm={() => {
+							exportData(code, exportOptions);
+							toggleExportDialog(false);
+							setExportOptions({
+								type: "NDJSON",
+								fileName: "",
+							});
+						}}
+						onCancel={() => toggleExportDialog(false)}
+					>
+						<div className={"export-options"}>
+							<div className={"export-type"}>
+								<RadioGroup
+									label="Export as"
+									selectedValue={exportOptions.type}
+									onChange={(e) => {
+										changeExportOptions("type", e);
+									}}
+								>
+									<Radio label="CSV" value="CSV" />
+									<Radio label="NDJSON" value="NDJSON" />
+								</RadioGroup>
+							</div>
+							<div className={"export-type"}>
+								<FormGroup label="Output destination">
+									<InputGroup
+										value={exportOptions.fileName}
+										onChange={(e) => changeExportOptions("fileName", e)}
+									/>
+								</FormGroup>
+							</div>
+							{exportOptions.type === "CSV" && (
+								<div>
+									<FormGroup inline label="Destructure data">
+										<Switch
+											checked={!!exportOptions.destructureData}
+											onChange={() => changeExportOptions("destructure")}
+										/>
+									</FormGroup>
+									<FormGroup label="Fields">
+										<TextArea
+											value={exportOptions.fields?.join(",")}
+											onChange={(e) => changeExportOptions("fields", e)}
+										/>
+									</FormGroup>
+								</div>
+							)}
+						</div>
+					</Dialog>
+				)}
+			</>
+		</>
 	);
 };
 

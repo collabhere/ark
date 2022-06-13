@@ -41,7 +41,7 @@ export const Sidebar: FC = () => {
 				<Button
 					active={currentSidebarOpened === "manager"}
 					variant="link"
-					icon="database"
+					icon="data-connection"
 					size="large"
 					tooltipOptions={{
 						content: "Manage Connections",

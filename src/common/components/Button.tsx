@@ -71,7 +71,7 @@ export const Button: FC<ButtonProps> = (props) => {
 	);
 
 	const buttonWithTooltips = tooltipOptions ? (
-		<Tooltip2 content={tooltipOptions.content}>{baseButton}</Tooltip2>
+		<Tooltip2 {...tooltipOptions}>{baseButton}</Tooltip2>
 	) : (
 		baseButton
 	);

@@ -87,7 +87,7 @@ export function Tabs(props: TabsProps) {
 					<div
 						key={tab.id}
 						className="tab-pane"
-						style={{ display: selectedTab.id === tab.id ? "flex" : "none" }}
+						style={{ display: selectedTab.id === tab.id ? "block" : "none" }}
 					>
 						{Component}
 					</div>
