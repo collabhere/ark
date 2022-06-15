@@ -41,7 +41,7 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 	return (
 		<>
 			<div className="result-viewer">
-				<div className="header">
+				<div className="result-viewer-header">
 					<div className="header-item">
 						{paramsState && (
 							<span>
