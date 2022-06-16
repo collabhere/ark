@@ -3,8 +3,6 @@ import { deserialize } from "bson";
 import "../styles.less";
 import { MONACO_COMMANDS, Shell } from "../../shell/Shell";
 import { Resizable } from "re-resizable";
-import { Menu, Dropdown, Input } from "antd";
-import { DownOutlined } from "@ant-design/icons";
 
 import { dispatch, listenEffect } from "../../../common/utils/events";
 import { handleErrors, notify } from "../../../common/utils/misc";
@@ -18,7 +16,9 @@ import { SettingsContext } from "../../layout/BaseContextProvider";
 import {
 	FormGroup,
 	Icon,
+	Menu,
 	InputGroup,
+	MenuItem,
 	Radio,
 	RadioGroup,
 	Switch,
@@ -26,6 +26,7 @@ import {
 	TextArea,
 } from "@blueprintjs/core";
 import { Dialog } from "../../../common/components/Dialog";
+import { Popover2 } from "@blueprintjs/popover2";
 
 const createDefaultCodeSnippet = (collection: string) => `// Mongo shell
 db.getCollection('${collection}').find({});
@@ -371,33 +372,39 @@ export const Editor: FC<EditorProps> = (props) => {
 		<>
 			<div className={"editor"}>
 				<Resizable
-					defaultSize={{ height: "300px", width: "100%" }}
+					size={{
+						height:
+							currentResult && currentResult.bson && currentResult.type
+								? "300px"
+								: "100%",
+						width: "100%",
+					}}
+					defaultSize={{
+						height: "100%",
+						width: "100%",
+					}}
 					enable={{ bottom: true }}
 				>
 					<div className={"editor-header"}>
 						<div className={"editor-header-item"}>
-							<Tag
-								icon={"globe-network"}
-								interactive={!!replicaHosts && !!currentReplicaHost}
-								onClick={() => {}}
-								round
-							>
-								{!!replicaHosts && !!currentReplicaHost ? <></> : hosts[0]}
-							</Tag>
-							{/* 
-						{
-							<HostList
-								currentHost={currentReplicaHost}
-								hosts={replicaHosts}
-								onHostChange={(host) => {
-									if (host.name !== currentReplicaHost.name) {
-										(shellId ? destroyShell(shellId) : Promise.resolve()).then(
-											() => switchReplicaShell(host)
-										);
-									}
-								}}
-							/>
-						*/}
+							{!!replicaHosts && !!currentReplicaHost ? (
+								<HostList
+									currentHost={currentReplicaHost}
+									hosts={replicaHosts}
+									onHostChange={(host) => {
+										if (host.name !== currentReplicaHost.name) {
+											(shellId
+												? destroyShell(shellId)
+												: Promise.resolve()
+											).then(() => switchReplicaShell(host));
+										}
+									}}
+								/>
+							) : (
+								<Tag icon={"globe-network"} round>
+									{hosts[0]}
+								</Tag>
+							)}
 						</div>
 						<div className={"editor-header-item"}>
 							<Tag icon={"database"} round>
@@ -488,13 +495,13 @@ export const Editor: FC<EditorProps> = (props) => {
 										}}
 									/>
 								)}
-								<div className="header-item">
+								<div className="editor-header-item">
 									<Button
 										size="small"
 										icon={"export"}
 										onClick={() => toggleExportDialog(true)}
 										tooltipOptions={{
-											position: "top-left",
+											position: "bottom",
 											content: "Export data",
 										}}
 									/>
@@ -617,13 +624,17 @@ export const Editor: FC<EditorProps> = (props) => {
 interface CreateMenuItem {
 	item: string;
 	cb: () => void;
+	active: boolean;
 }
 const createMenu = (items: CreateMenuItem[]) => (
 	<Menu>
 		{items.map((menuItem, i) => (
-			<Menu.Item key={i} onClick={() => menuItem.cb()}>
-				<a>{menuItem.item}</a>
-			</Menu.Item>
+			<MenuItem
+				disabled={menuItem.active}
+				text={menuItem.item}
+				key={i}
+				onClick={() => menuItem.cb()}
+			/>
 		))}
 	</Menu>
 );
@@ -637,19 +648,23 @@ const HostList = (props: HostListProps) => {
 	const { currentHost, hosts, onHostChange } = props;
 
 	return (
-		<Dropdown
-			overlay={createMenu(
+		<Popover2
+			position="bottom-right"
+			content={createMenu(
 				hosts.map((host) => ({
-					item: `${host.name} (${host.stateStr.substr(0, 1)})`,
+					item: `${host.name} (${host.stateStr.substring(0, 1)})`,
 					cb: () => onHostChange(host),
+					active: currentHost.name === host.name,
 				}))
 			)}
-			trigger={["click"]}
 		>
-			<a style={{ display: "flex" }} onClick={(e) => e.preventDefault()}>
-				{currentHost.name} ({currentHost.stateStr.substr(0, 1)})
-				<DownOutlined />
-			</a>
-		</Dropdown>
+			<Tag icon={"globe-network"} interactive round>
+				{currentHost.name +
+					" " +
+					"(" +
+					currentHost.stateStr.substring(0, 1) +
+					")"}
+			</Tag>
+		</Popover2>
 	);
 };
