@@ -8,7 +8,7 @@
 	"scripts": {
 		"start": "BROWSER=none ARK_ENTRY_URL=http://localhost:3000 concurrently \"vite\" \"sleep 2 && electron .\"",
 		"dev:electron": "tsc --build electron/tsconfig.json -w",
-		"dev:react": "vite dev --open",
+		"dev:react": "vite dev",
 		"build:renderer": "vite build",
 		"build:main": "tsc --build electron/tsconfig.json",
 		"build": "rimraf build && npm run build:renderer && npm run build:main",
@@ -165,7 +165,7 @@
 		"dayjs": "^1.11.2",
 		"defaults": "^1.0.3",
 		"electron-json-storage": "^4.5.0",
-		"monaco-editor": "^0.33.0",
+		"monaco-editor": "0.31.1",
 		"mongodb": "^4.6.0",
 		"mongodb-uri": "^0.9.7",
 		"nanoid": "^3.3.4",
