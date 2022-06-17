@@ -27,18 +27,15 @@ export const Browser = (): JSX.Element => {
 		[tabs]
 	);
 
-	const changeCurrentTabWithTab = useCallback(
-		(tab: Tab) => {
-			setCurrentTab(tab);
-		},
-		[tabs]
-	);
+	const changeCurrentTabWithTab = useCallback((tab: Tab) => {
+		setCurrentTab(tab);
+	}, []);
 
 	useEffect(() => {
 		if (!currentTab && tabs.length) {
 			changeCurrentTabWithIdx(0);
 		}
-	}, [tabs]);
+	}, [changeCurrentTabWithIdx, currentTab, tabs]);
 
 	const createConnectionFormTab = useCallback(
 		(connectionParams?: {
@@ -67,7 +64,7 @@ export const Browser = (): JSX.Element => {
 				];
 			});
 		},
-		[]
+		[changeCurrentTabWithIdx]
 	);
 
 	const createEditorTab = useCallback(
@@ -92,7 +89,7 @@ export const Browser = (): JSX.Element => {
 			});
 			setUntitledCount((count) => (count += 1));
 		},
-		[untitledCount]
+		[changeCurrentTabWithIdx, untitledCount]
 	);
 
 	const deleteTab = useCallback(
@@ -116,7 +113,7 @@ export const Browser = (): JSX.Element => {
 				return tabs;
 			});
 		},
-		[currentTab]
+		[changeCurrentTabWithIdx, currentTab]
 	);
 
 	/** Register browser event listeners */

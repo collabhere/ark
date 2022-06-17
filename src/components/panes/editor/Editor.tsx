@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect, useCallback } from "react";
+import React, { FC, useState, useEffect, useCallback, useMemo } from "react";
 import { deserialize } from "bson";
 import "../styles.less";
 import { MONACO_COMMANDS, Shell } from "../../shell/Shell";
@@ -368,17 +368,22 @@ export const Editor: FC<EditorProps> = (props) => {
 		[TAB_ID, destroyShell, shellId]
 	);
 
+	const editorSize = useMemo(
+		() => ({
+			height:
+				currentResult && currentResult.bson && currentResult.type
+					? "300px"
+					: "100%",
+			width: "100%",
+		}),
+		[currentResult]
+	);
+
 	return (
 		<>
 			<div className={"editor"}>
 				<Resizable
-					size={{
-						height:
-							currentResult && currentResult.bson && currentResult.type
-								? "300px"
-								: "100%",
-						width: "100%",
-					}}
+					size={editorSize}
 					defaultSize={{
 						height: "100%",
 						width: "100%",
