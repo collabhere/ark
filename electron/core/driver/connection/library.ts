@@ -106,7 +106,7 @@ export interface ReplicaSetMember {
 export interface GetConnectionResult {
     replicaSetDetails?: {
         members: ReplicaSetMember[];
-        set: string;
+        set: string | undefined;
     };
 }
 
@@ -115,16 +115,19 @@ export const getReplicaSetDetails = async (
 ): Promise<GetConnectionResult["replicaSetDetails"] | void> => {
     const connection = await client.connect();
     const admin = connection.db().admin();
-    const serverStatus = await admin.serverStatus();
-    const replSet = serverStatus.repl;
-
-    if (replSet) {
+    try {
         const replSetStatus = await admin.replSetGetStatus();
         const members = replSetStatus.members;
         return {
             members,
             set: replSetStatus.set,
         };
+    } catch (err) {
+        console.log(err);
+        return {
+            members: [],
+            set: undefined
+        }
     }
 };
 
@@ -171,7 +174,7 @@ export const createConnectionConfigurations = async ({
                 const client = new MongoClient(config.uri);
                 const replicaSetDetails = await getReplicaSetDetails(client);
 
-                if (replicaSetDetails) {
+                if (replicaSetDetails && replicaSetDetails.set) {
                     options.replicaSet = replicaSetDetails.set;
                 }
             }

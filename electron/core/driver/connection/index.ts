@@ -81,7 +81,7 @@ export const Connection: Connection = {
 				if (storedConnection.hosts && storedConnection.hosts.length > 1) {
 					const replSet = await getReplicaSetDetails(connection);
 
-					if (replSet) {
+					if (replSet && replSet.set) {
 						result.replicaSetDetails = replSet;
 					}
 				}
