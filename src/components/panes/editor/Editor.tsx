@@ -368,24 +368,17 @@ export const Editor: FC<EditorProps> = (props) => {
 		[TAB_ID, destroyShell, shellId]
 	);
 
-	const editorSize = useMemo(
-		() => ({
-			height:
-				currentResult && currentResult.bson && currentResult.type
-					? "300px"
-					: "100%",
-			width: "100%",
-		}),
-		[currentResult]
-	);
-
 	return (
 		<>
 			<div className={"editor"}>
 				<Resizable
-					size={editorSize}
+					minHeight={
+						currentResult && currentResult.bson && currentResult.type
+							? "250px"
+							: "100%"
+					}
 					defaultSize={{
-						height: "100%",
+						height: "250px",
 						width: "100%",
 					}}
 					enable={{ bottom: true }}
@@ -561,6 +554,9 @@ export const Editor: FC<EditorProps> = (props) => {
 						paramsState={{ queryParams, changeQueryParams }}
 						onRefresh={() => {
 							exec(code);
+						}}
+						onClose={() => {
+							setCurrentResult(undefined);
 						}}
 					/>
 				)}

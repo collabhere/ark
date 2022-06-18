@@ -15,6 +15,7 @@ export type ResultViewerProps = {
 	shellConfig: Ark.ShellConfig;
 	driverConnectionId: string;
 	allowDocumentEdits?: boolean;
+	onClose: () => void;
 	onRefresh: () => void;
 	switchViews?: (type: "tree" | "json") => void;
 	paramsState?: {
@@ -35,6 +36,7 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 		shellConfig,
 		allowDocumentEdits,
 		onRefresh,
+		onClose,
 		switchViews,
 	} = props;
 
@@ -69,6 +71,10 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 									);
 								}
 							}}
+							tooltipOptions={{
+								position: "top",
+								content: "Previous page",
+							}}
 						/>
 						<InputGroup
 							small
@@ -91,6 +97,10 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 									paramsState?.queryParams.page + 1
 								)
 							}
+							tooltipOptions={{
+								position: "top",
+								content: "Next page",
+							}}
 						/>
 					</ButtonGroup>
 				</div>
@@ -119,6 +129,17 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 							}}
 						/>
 					</ButtonGroup>
+				</div>
+				<div className="header-item">
+					<Button
+						size="small"
+						icon={"small-cross"}
+						onClick={() => onClose()}
+						tooltipOptions={{
+							position: "top-left",
+							content: "Close",
+						}}
+					/>
 				</div>
 			</div>
 			<div className="container">
