@@ -9,22 +9,19 @@
 	padding: 3px;
 }
 
-.button-none {
-	color: @text-color;
-}
-
 .button-primary {
-	background: @primary-tint-6;
+	background: @button-color-primary !important;
 	color: @text-color;
+	&:hover {
+		background: @button-color-secondary !important;
+	}
 }
 
 .button-secondary {
-	background: @primary-tint-4;
+	background: @container-bg-color;
 	color: @text-color;
 
 	&:hover {
-		// background: @primary-tint-3;
-		// color: @primary-tint-6;
 	}
 }
 
@@ -35,7 +32,7 @@
 .button-link-danger {
 	color: @text-color !important;
 	&:hover {
-		background-color: @danger-tint-1 !important;
+		background-color: @button-color-danger !important;
 	}
 }
 
@@ -48,10 +45,10 @@
 }
 
 .button-danger {
-	background: @danger;
+	background: @button-color-danger;
 
 	&:hover {
-		background: @danger-tint-1;
+		background: @button-color-danger;
 	}
 }
 

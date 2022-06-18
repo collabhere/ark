@@ -76,7 +76,7 @@ export const DocumentField: FC<PropsWithChildren<ContentRowProps>> = (
 						key: ContentRowActions.discard_edit,
 				  }
 				: {
-						item: "Edit Document",
+						item: "Inline Edit Document",
 						cb: () => onContextMenuAction(ContentRowActions.edit_document),
 						intent: "primary",
 						icon: "edit",
@@ -100,7 +100,7 @@ export interface DocumentConfig {
 	header: {
 		menu?: JSX.Element;
 		primary?: boolean;
-		title: string;
+		title: React.ReactNode | string;
 		key: string | number;
 		rightElement?: React.ReactNode;
 	};

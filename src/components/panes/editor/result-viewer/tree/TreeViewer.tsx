@@ -354,13 +354,28 @@ const contentBuilder: ContentBuilder = (
 
 	const onKeyRemove = (key: string) => onChange && onChange("delete_key", key);
 
+	const subDocRightElement = (key: string) => (
+		<div className="key-delete">
+			<Button
+				onClick={(e) => {
+					e.stopPropagation();
+					onKeyRemove(key);
+				}}
+				size={"small"}
+				icon={"delete"}
+				variant="link"
+			/>
+		</div>
+	);
+
 	const rows = Object.entries(document).reduce<React.ReactNode[]>(
 		(rows, [key, value], rowIdx) => {
 			const { type } = testBsonValue(value);
 
 			let inputJSX;
 
-			console.log("KEY", key, "TYPE", type, "VALUE", value);
+			// console.log("KEY", key, "TYPE", type, "VALUE", value);
+
 			switch (type) {
 				case "oid": {
 					inputJSX = (
@@ -461,6 +476,7 @@ const contentBuilder: ContentBuilder = (
 									header: {
 										key: String(key),
 										title: String(key),
+										rightElement: enableInlineEdits && subDocRightElement(key),
 									},
 								},
 							]}
@@ -502,6 +518,9 @@ const contentBuilder: ContentBuilder = (
 												header: {
 													key: String(index),
 													title: "(" + String(index + 1) + ")",
+													rightElement:
+														enableInlineEdits &&
+														subDocRightElement(key + "." + index),
 												},
 											}))}
 										/>
@@ -509,6 +528,7 @@ const contentBuilder: ContentBuilder = (
 									header: {
 										key: String(key),
 										title: String(key),
+										rightElement: enableInlineEdits && subDocRightElement(key),
 									},
 								},
 							]}
@@ -539,6 +559,7 @@ const contentBuilder: ContentBuilder = (
 									header: {
 										key: String(key),
 										title: String(key),
+										rightElement: enableInlineEdits && subDocRightElement(key),
 									},
 								},
 							]}
@@ -985,7 +1006,7 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 								key: ContentRowActions.discard_edit,
 						  }
 						: {
-								item: "Edit Document",
+								item: "Inline Edit Document",
 								cb: () => {
 									startEditingDocument(document);
 								},

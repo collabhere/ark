@@ -41,7 +41,7 @@ export const Button: FC<ButtonProps> = (props) => {
 		tooltipOptions,
 		dropdownOptions,
 		size = "medium",
-		variant = "none",
+		variant = "primary",
 		outlined,
 		disabled,
 		fill,

@@ -472,7 +472,6 @@ export const Editor: FC<EditorProps> = (props) => {
 										<Button
 											size="small"
 											icon={"play"}
-											variant="success"
 											onClick={() => exec(code)}
 											tooltipOptions={{
 												position: "bottom",
