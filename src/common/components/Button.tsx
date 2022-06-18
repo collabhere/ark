@@ -16,7 +16,7 @@ export interface PromiseButtonMouseEventHandler<T = any> {
 }
 
 export interface ButtonProps {
-	variant?: ActionProps["intent"] | "link";
+	variant?: ActionProps["intent"] | "link" | "link-danger";
 	shape?: "round" | "circle";
 	text?: React.ReactNode;
 	icon?: IconName;
@@ -52,7 +52,9 @@ export const Button: FC<ButtonProps> = (props) => {
 	const baseButton = (
 		<BPButton
 			active={active}
-			className={"button-" + variant + " " + "button-text-size-" + size}
+			className={
+				"button-base button-" + variant + " " + "button-text-size-" + size
+			}
 			disabled={loading || disabled}
 			onClick={(e) => {
 				onClick && asyncEventOverload(setLoading, onClick, e);
@@ -63,8 +65,10 @@ export const Button: FC<ButtonProps> = (props) => {
 			loading={icon ? loading : undefined}
 			large={size === "large"}
 			small={size === "small"}
-			minimal={variant === "link"}
-			intent={variant !== "link" ? variant : undefined}
+			minimal={variant === "link" || variant === "link-danger"}
+			intent={
+				variant !== "link" && variant !== "link-danger" ? variant : undefined
+			}
 			icon={icon ? icon : undefined}
 			rightIcon={rightIcon ? rightIcon : undefined}
 		/>

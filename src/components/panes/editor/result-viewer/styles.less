@@ -23,7 +23,6 @@
 		align-self: end;
 		align-items: center;
 		justify-content: flex-end;
-		flex-grow: 1;
 		min-height: @result-viewer-header-height;
 		padding: 2px;
 		width: 40%;
@@ -38,7 +37,7 @@
 
 	.container {
 		display: flex;
-		min-height: 0;
+		min-height: calc(100% - @result-viewer-header-height);
 		width: 100%;
 		padding: 4px;
 
@@ -61,13 +60,15 @@
 		flex-grow: 1;
 		min-height: 0;
 		gap: 8px;
+		/* To even out the margin-right on the header (.header) */
+		padding-left: 10px;
 
 		@tree-view-header-height: 32px;
 
 		.header {
 			min-height: @tree-view-header-height;
 
-			padding: 4px;
+			padding: 6px;
 			border-radius: @border-radius;
 			background-color: @container-bg-color;
 

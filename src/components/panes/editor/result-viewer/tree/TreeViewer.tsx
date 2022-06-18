@@ -1053,14 +1053,24 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 	return (
 		<div className="tree-viewer">
 			<div className="header">
+				{docsBeingEdited.size === 0 && (
+					<Button
+						disabled={!allowDocumentEdits}
+						onClick={() => bson.map((doc) => startEditingDocument(doc))}
+						size={"small"}
+						icon="edit"
+						variant={"link"}
+						text="Edit All"
+					/>
+				)}
 				{docsBeingEdited.size > 0 && (
 					<>
 						<Button
 							onClick={() => setShowSaveAllDialog(true)}
 							size={"small"}
 							icon="small-tick"
-							variant={"primary"}
-							text="Save all"
+							variant={"link"}
+							text="Save All"
 						/>
 						<Button
 							onClick={() => {
@@ -1068,9 +1078,9 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 								onRefresh();
 							}}
 							size={"small"}
-							icon="small-tick"
-							variant={"danger"}
-							text="Discard all"
+							icon="small-cross"
+							variant={"link-danger"}
+							text="Discard All"
 						/>
 					</>
 				)}

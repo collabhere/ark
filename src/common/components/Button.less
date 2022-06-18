@@ -1,5 +1,9 @@
 @import "../styles/variables.less";
 
+.button-base {
+	border-radius: @border-radius;
+}
+
 .button-icon-wrapper {
 	display: flex !important;
 	padding: 3px;
@@ -26,6 +30,13 @@
 
 .button-link {
 	color: @text-color !important;
+}
+
+.button-link-danger {
+	color: @text-color !important;
+	&:hover {
+		background-color: @danger-tint-1 !important;
+	}
 }
 
 .button-success {
