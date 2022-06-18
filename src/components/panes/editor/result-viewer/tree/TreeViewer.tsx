@@ -147,7 +147,7 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 							position: "left",
 						}}
 					>
-						<Icon icon="refresh" size={IconSize.STANDARD} />
+						<Button icon={"exchange"} size="small" variant="link" />
 					</Select>
 				)}
 				<div className="switchable-input-child">{input}</div>
@@ -247,6 +247,7 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 			jsx = wrap(
 				!commited && editable ? (
 					<NumericInput
+						buttonPosition="none"
 						onValueChange={(value) => onValueChange(value)}
 						onKeyPress={(e) => (e.key === "Enter" ? commitRow() : undefined)}
 						defaultValue={typeof num === "number" ? num : 0}
@@ -359,7 +360,7 @@ const contentBuilder: ContentBuilder = (
 
 			let inputJSX;
 
-			// console.log("KEY", key, "TYPE", type, "VALUE", value);
+			console.log("KEY", key, "TYPE", type, "VALUE", value);
 			switch (type) {
 				case "oid": {
 					inputJSX = (
@@ -449,8 +450,11 @@ const contentBuilder: ContentBuilder = (
 											{contentBuilder({
 												...contentBuilderOptions,
 												document: bsonTypes,
-												onRowAction: (action, key) =>
-													onRowAction(action, key, bsonTypes),
+												onChange: (changed, k, value) => {
+													onChange(changed, key + "." + k, value);
+												},
+												onRowAction: (action, k) =>
+													onRowAction(action, key + "." + k, bsonTypes),
 											})}
 										</div>
 									),
@@ -479,8 +483,19 @@ const contentBuilder: ContentBuilder = (
 														{contentBuilder({
 															...contentBuilderOptions,
 															document: document,
-															onRowAction: (action, key) =>
-																onRowAction(action, key, subdocumentArray),
+															onChange: (changed, k, value) => {
+																onChange(
+																	changed,
+																	key + "." + index + "." + k,
+																	value
+																);
+															},
+															onRowAction: (action, k) =>
+																onRowAction(
+																	action,
+																	key + "." + index + "." + k,
+																	subdocumentArray
+																),
 														})}
 													</div>
 												),
@@ -513,8 +528,11 @@ const contentBuilder: ContentBuilder = (
 											{contentBuilder({
 												...contentBuilderOptions,
 												document,
-												onRowAction: (action, key) =>
-													onRowAction(action, key, document),
+												onChange: (changed, k, value) => {
+													onChange(changed, key + "." + k, value);
+												},
+												onRowAction: (action, k) =>
+													onRowAction(action, key + "." + k, document),
 											})}
 										</div>
 									),
@@ -614,7 +632,7 @@ const NewFieldRows: FC<NewFieldRowsProps> = (props) => {
 			{addingKeys && rows.length ? (
 				rows.map((field, idx) => (
 					<>
-						<div className="new-field-row" key={idx}>
+						<div className="content-row" key={idx}>
 							<SwitchableInput
 								key={idx}
 								onCommit={(key, value) => {
@@ -632,27 +650,33 @@ const NewFieldRows: FC<NewFieldRowsProps> = (props) => {
 							/>
 						</div>
 						{rows.length - 1 === idx && (
-							<Button
-								onClick={() => {
-									addField();
-								}}
-								size={"small"}
-								icon="small-plus"
-								text="Add more"
-								variant={"primary"}
-							/>
+							<div className="content-row">
+								<Button
+									fill
+									outlined
+									onClick={() => {
+										addField();
+									}}
+									size={"small"}
+									icon="small-plus"
+									text="Add more"
+									variant={"link"}
+								/>
+							</div>
 						)}
 					</>
 				))
 			) : (
-				<div>
+				<div className="content-row">
 					<Button
+						fill
+						outlined
 						onClick={() => {
 							addField();
 						}}
 						size={"small"}
 						icon="small-plus"
-						variant={"primary"}
+						variant={"link"}
 						text={"Add new fields"}
 					/>
 				</div>

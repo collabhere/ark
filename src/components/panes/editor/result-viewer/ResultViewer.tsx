@@ -142,7 +142,7 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 					/>
 				</div>
 			</div>
-			<div className="container">
+			<div className="result-viewer-container">
 				{type === "json" ? (
 					<JSONViewer bson={bson} />
 				) : type === "tree" ? (
