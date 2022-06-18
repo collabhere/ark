@@ -22,7 +22,7 @@ export interface ButtonProps {
 	icon?: IconName;
 	active?: boolean;
 	rightIcon?: IconName;
-	size?: "large" | "small";
+	size?: "large" | "small" | "medium";
 	disabled?: boolean;
 	dropdownOptions?: Popover2Props;
 	outlined?: boolean;
@@ -40,7 +40,7 @@ export const Button: FC<ButtonProps> = (props) => {
 		onClick,
 		tooltipOptions,
 		dropdownOptions,
-		size,
+		size = "medium",
 		variant = "none",
 		outlined,
 		disabled,
@@ -52,7 +52,7 @@ export const Button: FC<ButtonProps> = (props) => {
 	const baseButton = (
 		<BPButton
 			active={active}
-			className={"button-" + variant}
+			className={"button-" + variant + " " + "button-text-size-" + size}
 			disabled={loading || disabled}
 			onClick={(e) => {
 				onClick && asyncEventOverload(setLoading, onClick, e);

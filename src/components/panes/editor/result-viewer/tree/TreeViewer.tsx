@@ -1,32 +1,30 @@
-import "./styles.less";
-import "../../../../common/styles/layout.less";
+import "../styles.less";
+import "../../../../../common/styles/layout.less";
 
-import React, { FC, useState, useEffect } from "react";
+import React, { FC, useState, useEffect, PropsWithChildren } from "react";
 import { ObjectId, serialize } from "bson";
 import { useCallback } from "react";
 import Bluebird from "bluebird";
 import {
-	CollapseContent,
-	CollapseList,
-} from "../../../../common/components/CollapseList";
+	DocumentField,
+	ContentRowActions,
+	DocumentConfig,
+	DocumentList,
+} from "./DocumentList";
 import {
 	Icon,
-	IconName,
-	MenuDivider,
 	MenuItem,
-	Menu,
-	Intent,
 	InputGroup,
 	NumericInput,
 	IconSize,
 } from "@blueprintjs/core";
 import { Select } from "@blueprintjs/select";
-import { ContextMenu2 } from "@blueprintjs/popover2";
 import { DateInput } from "@blueprintjs/datetime";
-import { Button } from "../../../../common/components/Button";
-import { DangerousActionPrompt } from "../../../dialogs/DangerousActionPrompt";
-import { handleErrors, notify } from "../../../../common/utils/misc";
-import { isObjectId } from "../../../../../util/misc";
+import { Button } from "../../../../../common/components/Button";
+import { DangerousActionPrompt } from "../../../../dialogs/DangerousActionPrompt";
+import { handleErrors, notify } from "../../../../../common/utils/misc";
+import { isObjectId } from "../../../../../../util/misc";
+import { createContextMenuItems, CreateMenuItem } from "./ContextMenu";
 
 interface BSONTest {
 	type:
@@ -239,7 +237,7 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 						timePrecision="millisecond"
 					/>
 				) : (
-					<div className="right">{`ISODate("` + date.toISOString() + `")`}</div>
+					`ISODate("` + date.toISOString() + `")`
 				)
 			);
 			break;
@@ -316,96 +314,6 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 			</div>
 			<div className="right">{jsx}</div>
 		</>
-	);
-};
-
-enum ContentRowActions {
-	copy_json = "copy_json",
-	copy_key = "copy_key",
-	copy_value = "copy_value",
-	edit_document = "edit_document",
-	discard_edit = "discard_edit",
-	delete_document = "delete_document",
-}
-
-interface ContentRowProps {
-	onContextMenuAction?: (action: ContentRowActions) => void;
-	enableInlineEdits: boolean;
-	allowModifyActions: boolean;
-}
-
-const ContentRow: FC<ContentRowProps> = (props) => {
-	const {
-		children,
-		onContextMenuAction = () => {},
-		enableInlineEdits,
-		allowModifyActions,
-	} = props;
-
-	const items: CreateMenuItem[] = [
-		{
-			item: "Copy",
-			key: "copy",
-			intent: "primary",
-			icon: "comparison",
-			submenu: [
-				{
-					key: ContentRowActions.copy_key,
-					item: "Key",
-					cb: () => onContextMenuAction(ContentRowActions.copy_key),
-				},
-				{
-					key: ContentRowActions.copy_value,
-					item: "Value",
-					cb: () => onContextMenuAction(ContentRowActions.copy_value),
-				},
-			],
-		},
-	];
-
-	if (allowModifyActions) {
-		items.push(
-			{
-				divider: true,
-				key: "div_1",
-			},
-			{
-				item: "Delete Document",
-				key: ContentRowActions.delete_document,
-				cb: () => onContextMenuAction(ContentRowActions.delete_document),
-				icon: "trash",
-				intent: "danger",
-			}
-		);
-
-		items.splice(
-			1,
-			0,
-			enableInlineEdits
-				? {
-						item: "Discard Edits",
-						cb: () => onContextMenuAction(ContentRowActions.discard_edit),
-						intent: "primary",
-						icon: "cross",
-						key: ContentRowActions.discard_edit,
-				  }
-				: {
-						item: "Edit Document",
-						cb: () => onContextMenuAction(ContentRowActions.edit_document),
-						intent: "primary",
-						icon: "edit",
-						key: ContentRowActions.edit_document,
-				  }
-		);
-	}
-
-	return (
-		<ContextMenu2
-			className="context-menu"
-			content={createContextMenuItems(items)}
-		>
-			<div className={"content-row"}>{children}</div>
-		</ContextMenu2>
 	);
 };
 
@@ -532,7 +440,7 @@ const contentBuilder: ContentBuilder = (
 				case "primitive[]": {
 					const bsonTypes = value as Ark.BSONTypes[];
 					inputJSX = (
-						<CollapseList
+						<DocumentList
 							key={key}
 							content={[
 								{
@@ -547,7 +455,6 @@ const contentBuilder: ContentBuilder = (
 										</div>
 									),
 									header: {
-										primary: true,
 										key: String(key),
 										title: String(key),
 									},
@@ -560,12 +467,12 @@ const contentBuilder: ContentBuilder = (
 				case "subdocument[]": {
 					const subdocumentArray = value as Ark.BSONArray;
 					inputJSX = (
-						<CollapseList
+						<DocumentList
 							key={key}
 							content={[
 								{
 									jsx: (
-										<CollapseList
+										<DocumentList
 											content={subdocumentArray.map((document, index) => ({
 												jsx: (
 													<div>
@@ -578,7 +485,6 @@ const contentBuilder: ContentBuilder = (
 													</div>
 												),
 												header: {
-													primary: true,
 													key: String(index),
 													title: "(" + String(index + 1) + ")",
 												},
@@ -586,7 +492,6 @@ const contentBuilder: ContentBuilder = (
 										/>
 									),
 									header: {
-										primary: true,
 										key: String(key),
 										title: String(key),
 									},
@@ -599,7 +504,7 @@ const contentBuilder: ContentBuilder = (
 				case "subdocument": {
 					const document = value as Ark.BSONDocument;
 					inputJSX = (
-						<CollapseList
+						<DocumentList
 							key={key + "_idx_" + rowIdx}
 							content={[
 								{
@@ -614,7 +519,6 @@ const contentBuilder: ContentBuilder = (
 										</div>
 									),
 									header: {
-										primary: true,
 										key: String(key),
 										title: String(key),
 									},
@@ -635,14 +539,14 @@ const contentBuilder: ContentBuilder = (
 			}
 
 			rows.push(
-				<ContentRow
+				<DocumentField
 					onContextMenuAction={(action) => onRowAction(action, key, value)}
 					key={key}
 					enableInlineEdits={!!enableInlineEdits}
 					allowModifyActions={allowModifyActions}
 				>
 					{inputJSX}
-				</ContentRow>
+				</DocumentField>
 			);
 
 			return rows;
@@ -656,43 +560,6 @@ const contentBuilder: ContentBuilder = (
 
 	return rows;
 };
-
-interface CreateMenuItem {
-	item?: string;
-	key?: string;
-	cb?: (key?: string) => void;
-	icon?: IconName;
-	intent?: Intent;
-	divider?: boolean;
-	submenu?: CreateMenuItem[];
-}
-const createContextMenuItems = (items: CreateMenuItem[]) => (
-	<Menu>
-		{items.map((menuItem, idx) =>
-			menuItem.divider ? (
-				<MenuDivider key={menuItem.key + "_idx_" + idx} />
-			) : menuItem.submenu ? (
-				<MenuItem
-					intent={menuItem.intent}
-					icon={menuItem.icon}
-					key={menuItem.key + "_idx_" + idx}
-					text={menuItem.item}
-					onClick={() => menuItem.cb && menuItem.cb(menuItem.key)}
-				>
-					{createContextMenuItems(menuItem.submenu)}
-				</MenuItem>
-			) : (
-				<MenuItem
-					intent={menuItem.intent}
-					icon={menuItem.icon}
-					key={menuItem.key + "_idx_" + idx}
-					text={menuItem.item}
-					onClick={() => menuItem.cb && menuItem.cb(menuItem.key)}
-				/>
-			)
-		)}
-	</Menu>
-);
 
 interface NewFieldRowsProps {
 	onChange?: (key: string, value: Ark.BSONTypes) => void;
@@ -1111,7 +978,7 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 	);
 
 	const createDocumentPanelListContent = useCallback(
-		(document, index): CollapseContent => {
+		(document, index): DocumentConfig => {
 			return {
 				jsx: (
 					<DocumentPanel
@@ -1210,7 +1077,7 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 			</div>
 			<div className="content">
 				{bson && bson.length && (
-					<CollapseList content={bson.map(createDocumentPanelListContent)} />
+					<DocumentList content={bson.map(createDocumentPanelListContent)} />
 				)}
 			</div>
 			{/* Dialogs */}

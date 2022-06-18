@@ -6,7 +6,7 @@ import { Resizable } from "re-resizable";
 
 import { dispatch, listenEffect } from "../../../common/utils/events";
 import { handleErrors, notify } from "../../../common/utils/misc";
-import { ResultViewer, ResultViewerProps } from "./ResultViewer/ResultViewer";
+import { ResultViewer, ResultViewerProps } from "./result-viewer/ResultViewer";
 import { Button } from "../../../common/components/Button";
 import { CircularLoading } from "../../../common/components/Loading";
 import { useRefresh } from "../../../hooks/useRefresh";

@@ -4,8 +4,8 @@ import { Dialog } from "../../../../common/components/Dialog";
 import "../../styles.less";
 import "../../../../common/styles/layout.less";
 import "./styles.less";
-import { TreeViewer } from "./TreeViewer";
-import { JSONViewer } from "./JSONViewer";
+import { TreeViewer } from "./tree/TreeViewer";
+import { JSONViewer } from "./json/JSONViewer";
 import { InputGroup, ButtonGroup } from "@blueprintjs/core";
 
 export type ResultViewerProps = {
