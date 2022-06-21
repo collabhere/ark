@@ -3,7 +3,7 @@ import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import React, { FC, useContext } from "react";
 import { SettingsContext } from "../../../../layout/BaseContextProvider";
-import { formatBSONToText } from "../../../../../../util/misc";
+import { formatBsonDocument, replaceQuotes } from "../../../../../../util/misc";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -17,17 +17,16 @@ export const JSONViewer: FC<JSONViewerProps> = (props) => {
 
 	const { settings } = useContext(SettingsContext);
 
-	const replaceQuotes = (json: string) => {
-		return json
-			.replace(/"(ObjectId\(.*?\))"/g, (_, m) => m)
-			.replace(/"(ISODate\(.*?\))"/g, (_, m) => m);
-	};
+	const formatBSONToText = (doc: Ark.BSONArray, timezone = "local") =>
+		Array.isArray(doc)
+			? doc.map((elem) => formatBsonDocument(elem, timezone))
+			: typeof doc === "object"
+			? formatBsonDocument(doc, timezone)
+			: doc;
 
 	return (
 		<div className={"json-viewer"}>
-			{replaceQuotes(
-				JSON.stringify(formatBSONToText(bson, settings?.timezone), null, 4)
-			)}
+			{replaceQuotes(formatBSONToText(bson, settings?.timezone))}
 		</div>
 	);
 };

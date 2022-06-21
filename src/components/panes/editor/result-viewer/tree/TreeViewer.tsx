@@ -25,7 +25,11 @@ import { DateInput } from "@blueprintjs/datetime";
 import { Button } from "../../../../../common/components/Button";
 import { DangerousActionPrompt } from "../../../../dialogs/DangerousActionPrompt";
 import { handleErrors, notify } from "../../../../../common/utils/misc";
-import { isObjectId } from "../../../../../../util/misc";
+import {
+	formatBSONToText,
+	isObjectId,
+	replaceQuotes,
+} from "../../../../../../util/misc";
 import { createContextMenuItems, CreateMenuItem } from "./ContextMenu";
 
 interface BSONTest {
@@ -897,9 +901,12 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 
 	const refreshDocument = useCallback((document: Ark.BSONDocument) => {
 		setRefreshCounts((counts) => {
-			counts[document._id.toString()] =
-				(counts[document._id.toString()] || 0) + 1;
-			return { ...counts };
+			if (document._id) {
+				counts[document._id.toString()] =
+					(counts[document._id.toString()] || 0) + 1;
+				return { ...counts };
+			}
+			return counts;
 		});
 	}, []);
 
@@ -1061,9 +1068,11 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 
 	const discardChanges = useCallback(
 		(document: Ark.BSONDocument) => {
-			refreshDocument(document);
-			removeDocumentUpdates(document._id.toString());
-			stopEditingDocument(document);
+			if (document._id) {
+				refreshDocument(document);
+				removeDocumentUpdates(document._id.toString());
+				stopEditingDocument(document);
+			}
 		},
 		[refreshDocument, removeDocumentUpdates, stopEditingDocument]
 	);
@@ -1242,18 +1251,20 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 			</div>
 			{/* Dialogs */}
 			<>
-				{docBeingDeleted && (
+				{docBeingDeleted && docBeingDeleted._id && (
 					<DangerousActionPrompt
 						dangerousAction={() => {
-							return window.ark.driver.run(
-								"query",
-								"deleteOne",
-								driverArgs({
-									query: serialize({
-										_id: new ObjectId(docBeingDeleted._id),
-									}),
-								})
-							);
+							if (docBeingDeleted._id)
+								return window.ark.driver.run(
+									"query",
+									"deleteOne",
+									driverArgs({
+										query: serialize({
+											_id: new ObjectId(docBeingDeleted._id),
+										}),
+									})
+								);
+							return Promise.reject(new Error("Document does not have an _id"));
 						}}
 						dangerousActionCallback={() => {
 							setDocBeingDeleted(undefined);
@@ -1310,10 +1321,14 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 						title={"Saving Changes"}
 					/>
 				)}
-				{showSaveDialog && docBeingSaved && (
+				{showSaveDialog && docBeingSaved && docBeingSaved._id && (
 					<DangerousActionPrompt
 						size="large"
-						dangerousAction={() => updateDocument(docBeingSaved._id.toString())}
+						dangerousAction={() =>
+							docBeingSaved._id
+								? updateDocument(docBeingSaved._id.toString())
+								: Promise.reject(new Error("Document does not have an _id"))
+						}
 						dangerousActionCallback={(err, result) => {
 							if (err || !result.ack) {
 								notify({
@@ -1338,7 +1353,7 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 							<UpdatesList
 								collection={shellConfig.collection}
 								updates={updates.filter(
-									(update) => update._id === docBeingSaved._id.toString()
+									(update) => update._id === docBeingSaved._id?.toString()
 								)}
 							/>
 						}
@@ -1394,7 +1409,7 @@ const UpdatesList: FC<UpdateListProps> = (props) => {
 								</p>
 								<Collapse isOpen={opened[update._id.toString()]}>
 									<Code className="multi-line">
-										{JSON.stringify(update.update, undefined, 2)}
+										{replaceQuotes(formatBSONToText([update.update as any]))}
 									</Code>
 								</Collapse>
 							</div>

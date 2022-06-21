@@ -41,24 +41,30 @@ export const applyTimezone = (date: Date, timezone: string) =>
 		? dayjs.utc(date).tz(dayjs.tz.guess()).format()
 		: date.toISOString();
 
-export const formatBsonDocument = (elem: Ark.BSONTypes, timezone: string) => {
-	if (isPrimitive(elem)) {
-		return elem;
-	} else if (elem instanceof Date) {
-		return `ISODate('` + applyTimezone(elem, timezone) + `')`;
-	} else if (Array.isArray(elem)) {
-		return elem.map((elem) => formatBsonDocument(elem, timezone));
+export const replaceQuotes = (json: any) => {
+	return JSON.stringify(json, null, 4)
+		.replace(/"(ObjectId\(.*?\))"/g, (_, m) => m)
+		.replace(/"(ISODate\(.*?\))"/g, (_, m) => m);
+};
+
+export const formatBsonDocument = (value: Ark.BSONTypes, timezone = "local") => {
+	if (isPrimitive(value)) {
+		return value;
+	} else if (value instanceof Date) {
+		return `ISODate('` + applyTimezone(value, timezone) + `')`;
+	} else if (Array.isArray(value)) {
+		return value.map((elem) => formatBsonDocument(elem, timezone));
 	} else if (
-		ObjectId.isValid(elem as Extract<Ark.BSONTypes, string | ObjectId>) &&
-		elem !== null
+		ObjectId.isValid(value as Extract<Ark.BSONTypes, string | ObjectId>) &&
+		value !== null
 	) {
-		return `ObjectId('` + elem.toString() + `')`;
-	} else if (typeof elem === "object" && elem !== null) {
-		return Object.keys(elem).reduce(
-			(acc, key) => ((acc[key] = formatBsonDocument(elem[key], timezone)), acc),
+		return `ObjectId('` + value.toString() + `')`;
+	} else if (typeof value === "object" && value !== null) {
+		return Object.keys(value).reduce(
+			(acc, key) => ((acc[key] = formatBsonDocument(value[key], timezone)), acc),
 			{}
 		);
-	} else if (elem === null) {
+	} else if (value === null) {
 		return "null";
 	}
 };
