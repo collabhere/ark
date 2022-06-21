@@ -1,6 +1,7 @@
 import { Collapse, Icon, IconSize } from "@blueprintjs/core";
 import { ContextMenu2 } from "@blueprintjs/popover2";
 import React, { FC, PropsWithChildren, useState } from "react";
+import { Button } from "../../../../../common/components/Button";
 import { createContextMenuItems, CreateMenuItem } from "./ContextMenu";
 
 export enum ContentRowActions {
@@ -95,24 +96,27 @@ export const DocumentField: FC<PropsWithChildren<ContentRowProps>> = (
 	);
 };
 
+interface DocumentConfigHeader {
+	menu?: JSX.Element;
+	primary?: boolean;
+	title: React.ReactNode | string;
+	key: string | number;
+	rightElement?: React.ReactNode;
+}
+
 export interface DocumentConfig {
 	jsx: React.ReactNode;
-	header: {
-		menu?: JSX.Element;
-		primary?: boolean;
-		title: React.ReactNode | string;
-		key: string | number;
-		rightElement?: React.ReactNode;
-	};
+	header: DocumentConfigHeader;
 }
 
 export interface DocumentTreeProps {
+	allowAddDocument?: boolean;
 	tabIndex?: number;
 	content: DocumentConfig[];
 }
 
 export const DocumentList: FC<DocumentTreeProps> = (props) => {
-	const { tabIndex, content } = props;
+	const { tabIndex, content, allowAddDocument = false } = props;
 	const [openKeys, setOpenKeys] = useState<Set<number>>(new Set());
 
 	const toggleKey = (key: number) =>
@@ -122,49 +126,68 @@ export const DocumentList: FC<DocumentTreeProps> = (props) => {
 			)
 		);
 
+	const createDocument = (
+		jsx: React.ReactNode,
+		header: DocumentConfigHeader,
+		key: number
+	) => (
+		<ContextMenu2
+			key={header.key}
+			disabled={!header.menu}
+			content={header.menu}
+		>
+			<div
+				className={"item" + (header.primary ? " primary" : "")}
+				onClick={() => {
+					toggleKey(key);
+				}}
+			>
+				<div className="handle">
+					<Icon
+						size={IconSize.STANDARD}
+						icon={
+							("chevron-" + (openKeys.has(key) ? "down" : "right")) as
+								| "chevron-right"
+								| "chevron-down"
+						}
+					/>
+				</div>
+				<span className="heading">{header.title}</span>
+				{header.rightElement && (
+					<div className="top-right-element">{header.rightElement}</div>
+				)}
+			</div>
+			<Collapse isOpen={openKeys.has(key)}>
+				<div
+					className="panel"
+					onFocus={() => {
+						if (!openKeys.has(key)) toggleKey(key);
+					}}
+				>
+					{jsx}
+				</div>
+			</Collapse>
+		</ContextMenu2>
+	);
+
 	return (
 		<div tabIndex={tabIndex} className="document-tree">
 			{content.map(({ jsx, header }, key) => {
-				return (
-					<ContextMenu2
-						key={header.key}
-						disabled={!header.menu}
-						content={header.menu}
-					>
-						<div
-							className={"item" + (header.primary ? " primary" : "")}
-							onClick={() => {
-								toggleKey(key);
-							}}
-						>
-							<div className="handle">
-								<Icon
-									size={IconSize.STANDARD}
-									icon={
-										("chevron-" + (openKeys.has(key) ? "down" : "right")) as
-											| "chevron-right"
-											| "chevron-down"
-									}
-								/>
-							</div>
-							<span className="heading">{header.title}</span>
-							{header.rightElement && (
-								<div className="top-right-element">{header.rightElement}</div>
-							)}
-						</div>
-						<Collapse isOpen={openKeys.has(key)}>
-							<div
-								className="panel"
-								onFocus={() => {
-									if (!openKeys.has(key)) toggleKey(key);
-								}}
-							>
-								{jsx}
-							</div>
-						</Collapse>
-					</ContextMenu2>
-				);
+				return createDocument(jsx, header, key);
 			})}
+			{allowAddDocument && (
+				<div className="content-row">
+					<Button
+						fill
+						outlined
+						onClick={() => {}}
+						size={"small"}
+						icon="small-plus"
+						variant={"link"}
+						text={"Add a document"}
+					/>
+				</div>
+			)}
 		</div>
 	);
 };

@@ -17,6 +17,8 @@ import {
 	InputGroup,
 	NumericInput,
 	IconSize,
+	Code,
+	Collapse,
 } from "@blueprintjs/core";
 import { Select } from "@blueprintjs/select";
 import { DateInput } from "@blueprintjs/datetime";
@@ -1276,6 +1278,7 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 				)}
 				{showSaveAllDialog && (
 					<DangerousActionPrompt
+						size="large"
 						dangerousAction={() => updateAllDocuments()}
 						dangerousActionCallback={(err) => {
 							if (err) {
@@ -1308,6 +1311,7 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 				)}
 				{showSaveDialog && docBeingSaved && (
 					<DangerousActionPrompt
+						size="large"
 						dangerousAction={() => updateDocument(docBeingSaved._id.toString())}
 						dangerousActionCallback={(err, result) => {
 							if (err || !result.ack) {
@@ -1337,7 +1341,7 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 								)}
 							/>
 						}
-						title={"Saving Changes"}
+						title={"Review Changes"}
 					/>
 				)}
 			</>
@@ -1352,15 +1356,49 @@ interface UpdateListProps {
 
 const UpdatesList: FC<UpdateListProps> = (props) => {
 	const { updates } = props;
+
+	const [opened, setOpened] = useState<Record<string, boolean>>({});
+
+	const toggle = (key) =>
+		setOpened((x) => {
+			x[key] = !x[key];
+			return { ...x };
+		});
+
+	useEffect(() => {
+		if (updates.length > 0) {
+			const update = updates[0];
+			toggle(update._id.toString());
+		}
+	}, []);
+
 	return (
 		<div className="updates-list">
+			<p className="help-text">
+				Review update documents that will be applied to each document before
+				confirming the update.
+			</p>
+			<br />
 			{updates.length
 				? updates.map((update) => (
-						<div className="item" key={update._id.toString()}>
-							<p>{`ID - ${update._id.toString()}`}</p>
-
-							<code>{JSON.stringify(update.update)}</code>
-						</div>
+						<>
+							<div className="item" key={update._id.toString()}>
+								<p>
+									<Code>{`_id => ObjectId(${update._id.toString()})`}</Code>
+									<a onClick={() => toggle(update._id.toString())}>
+										{opened[update._id.toString()]
+											? "Hide update"
+											: "See update"}
+									</a>
+								</p>
+								<Collapse isOpen={opened[update._id.toString()]}>
+									<Code className="multi-line">
+										{JSON.stringify(update.update, undefined, 2)}
+									</Code>
+								</Collapse>
+							</div>
+							<br />
+						</>
 				  ))
 				: `No changes were made.`}
 		</div>

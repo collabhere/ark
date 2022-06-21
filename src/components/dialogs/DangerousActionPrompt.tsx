@@ -9,6 +9,7 @@ interface DangerousActionPromptProps {
 	dangerousAction: (e: React.MouseEvent) => Promise<any>;
 	onCancel: () => void;
 	dangerousActionCallback: PromiseCompleteCallback;
+	size?: "small" | "large";
 }
 
 export const DangerousActionPrompt: FC<DangerousActionPromptProps> = ({
@@ -18,10 +19,11 @@ export const DangerousActionPrompt: FC<DangerousActionPromptProps> = ({
 	onCancel,
 	dangerousActionCallback,
 	dangerousAction,
+	size = "small",
 }) => {
 	return (
 		<Dialog
-			size="small"
+			size={size}
 			variant="danger"
 			title={title}
 			onCancel={onCancel}
