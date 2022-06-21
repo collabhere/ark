@@ -77,7 +77,7 @@ const testBsonValue = (value: Ark.BSONTypes): BSONTest => ({
 
 interface SwitchableInputProps {
 	onCommit: (key: string, value: Ark.BSONTypes) => void;
-	onChange?: (key: string, value: Ark.BSONTypes) => void;
+	onReset?: (key: string) => void;
 	onAction?: (action: ContentRowActions) => void;
 	onKeyRemove?: (key: string) => void;
 	initialType: "text" | "date" | "number" | "boolean" | "oid";
@@ -85,18 +85,20 @@ interface SwitchableInputProps {
 	value: string | Date | number | boolean | ObjectId | null;
 	editable?: boolean;
 	editableKey?: boolean;
+	hideReset?: boolean;
 }
 
 const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 	const {
 		onCommit,
 		onKeyRemove,
-		onChange,
+		onReset,
 		initialType,
 		field,
 		value,
 		editable,
 		editableKey,
+		hideReset = false,
 	} = props;
 
 	const [type, setType] = useState(initialType);
@@ -111,21 +113,23 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 		if (isModified) {
 			typeof value !== "undefined" && setEditedValue(value);
 			onCommit(editedKey, value || editedValue);
+			setDeleted(false);
 			setCommited(true);
 		}
 	};
 
 	const onValueChange = (value: SwitchableInputProps["value"]) => {
 		setEditedValue(value);
-		onChange && onChange(editedKey, value);
 	};
 
-	const onUndoAction = () => {
+	const resetKey = () => {
+		setCommited(false);
 		setDeleted(false);
-		onChange && onChange(editedKey, editedValue);
+		setEditedValue(value);
+		onReset && onReset(editedKey);
 	};
 
-	const onDeleteAction = (key: string) => {
+	const deleteKey = (key: string) => {
 		setDeleted(true);
 		onKeyRemove && onKeyRemove(key);
 	};
@@ -151,32 +155,52 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 					</Select>
 				)}
 				<div className="switchable-input-child">{input}</div>
-				{!commited && editable && (
-					<div className="button-container">
-						{isModified && (
-							<div className="button">
-								<Button
-									onClick={() => {
-										commitRow();
-									}}
-									size={"small"}
-									icon="small-tick"
-									variant={"link"}
-								/>
-							</div>
-						)}
+				<div className="button-container">
+					{isModified && !commited && editable && (
 						<div className="button">
 							<Button
-								onClick={() =>
-									deleted ? onUndoAction() : onDeleteAction(field)
-								}
+								onClick={() => {
+									commitRow();
+								}}
 								size={"small"}
-								icon={deleted ? "undo" : "delete"}
-								variant="link"
+								icon="small-tick"
+								variant={"link"}
+								tooltipOptions={{
+									content: "Modify",
+									position: "auto-start",
+								}}
 							/>
 						</div>
-					</div>
-				)}
+					)}
+					{!hideReset && isModified && !deleted && (
+						<div className="button">
+							<Button
+								onClick={() => resetKey()}
+								size={"small"}
+								icon={"reset"}
+								variant="link"
+								tooltipOptions={{
+									content: "Reset",
+									position: "auto-start",
+								}}
+							/>
+						</div>
+					)}
+					{editable && (
+						<div className="button">
+							<Button
+								onClick={() => (deleted ? resetKey() : deleteKey(field))}
+								size={"small"}
+								icon={deleted ? "reset" : "trash"}
+								variant="link"
+								tooltipOptions={{
+									content: deleted ? "Reset" : "Delete",
+									position: "auto-start",
+								}}
+							/>
+						</div>
+					)}
+				</div>
 			</div>
 		);
 	};
@@ -186,7 +210,7 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 	switch (type) {
 		case "text": {
 			const input = (editedValue || "") as string;
-			jsx = wrap(
+			jsx =
 				!commited && editable ? (
 					<InputGroup
 						small
@@ -196,13 +220,12 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 					/>
 				) : (
 					String(input)
-				)
-			);
+				);
 			break;
 		}
 		case "oid": {
 			const input = (editedValue || new ObjectId()) as string;
-			jsx = wrap(
+			jsx =
 				!commited && editable ? (
 					<div className="object-id">
 						<span>{'ObjectId("'}</span>
@@ -218,13 +241,12 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 					</div>
 				) : (
 					`ObjectId("` + input.toString() + `")`
-				)
-			);
+				);
 			break;
 		}
 		case "date": {
 			const date = (editedValue || new Date()) as Date;
-			jsx = wrap(
+			jsx =
 				!commited && editable ? (
 					<DateInput
 						shortcuts
@@ -238,29 +260,32 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 					/>
 				) : (
 					`ISODate("` + date.toISOString() + `")`
-				)
-			);
+				);
 			break;
 		}
 		case "number": {
 			const num = (editedValue || 0) as number;
-			jsx = wrap(
+			jsx =
 				!commited && editable ? (
 					<NumericInput
 						buttonPosition="none"
 						onValueChange={(value) => onValueChange(value)}
 						onKeyPress={(e) => (e.key === "Enter" ? commitRow() : undefined)}
 						defaultValue={typeof num === "number" ? num : 0}
+						onPaste={(e) => {
+							if (!/^\d+$/.test(e.clipboardData.getData("text"))) {
+								e.preventDefault();
+							}
+						}}
 					/>
 				) : (
 					String(num)
-				)
-			);
+				);
 			break;
 		}
 		case "boolean": {
 			const bool = !!editedValue as boolean;
-			jsx = wrap(
+			jsx =
 				!commited && editable ? (
 					<Select<boolean>
 						items={[true, false]}
@@ -281,8 +306,7 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 					</Select>
 				) : (
 					String(bool)
-				)
-			);
+				);
 			break;
 		}
 		default: {
@@ -313,7 +337,7 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 					<Icon icon="symbol-circle" size={IconSize.STANDARD} />
 				)}
 			</div>
-			<div className="right">{jsx}</div>
+			<div className="right">{wrap(jsx)}</div>
 		</>
 	);
 };
@@ -323,7 +347,7 @@ interface ContentBuilderOptions {
 	enableInlineEdits: boolean;
 	allowModifyActions: boolean;
 	onChange(
-		changed: "update_value" | "delete_key",
+		changed: "update_value" | "delete_key" | "reset_key",
 		key: string,
 		value?: Ark.BSONTypes
 	): void;
@@ -332,6 +356,7 @@ interface ContentBuilderOptions {
 		key: string | number,
 		value: Ark.BSONTypes
 	) => void;
+	renderSubdocRightElement: (key: string) => React.ReactNode;
 }
 
 interface ContentBuilder {
@@ -347,6 +372,7 @@ const contentBuilder: ContentBuilder = (
 		onChange,
 		onRowAction,
 		allowModifyActions,
+		renderSubdocRightElement,
 	} = contentBuilderOptions;
 
 	const onValueChange = (key: string, newValue: Ark.BSONTypes) =>
@@ -354,19 +380,7 @@ const contentBuilder: ContentBuilder = (
 
 	const onKeyRemove = (key: string) => onChange && onChange("delete_key", key);
 
-	const subDocRightElement = (key: string) => (
-		<div className="key-delete">
-			<Button
-				onClick={(e) => {
-					e.stopPropagation();
-					onKeyRemove(key);
-				}}
-				size={"small"}
-				icon={"delete"}
-				variant="link"
-			/>
-		</div>
-	);
+	const onKeyReset = (key: string) => onChange && onChange("reset_key", key);
 
 	const rows = Object.entries(document).reduce<React.ReactNode[]>(
 		(rows, [key, value], rowIdx) => {
@@ -388,6 +402,7 @@ const contentBuilder: ContentBuilder = (
 							onAction={(action) => onRowAction(action, key, value)}
 							onCommit={onValueChange}
 							onKeyRemove={onKeyRemove}
+							onReset={onKeyReset}
 						/>
 					);
 					break;
@@ -403,6 +418,7 @@ const contentBuilder: ContentBuilder = (
 							onAction={(action) => onRowAction(action, key, value)}
 							onCommit={onValueChange}
 							onKeyRemove={onKeyRemove}
+							onReset={onKeyReset}
 						/>
 					);
 					break;
@@ -418,6 +434,7 @@ const contentBuilder: ContentBuilder = (
 							onAction={(action) => onRowAction(action, key, value)}
 							onCommit={onValueChange}
 							onKeyRemove={onKeyRemove}
+							onReset={onKeyReset}
 						/>
 					);
 					break;
@@ -433,6 +450,7 @@ const contentBuilder: ContentBuilder = (
 							onAction={(action) => onRowAction(action, key, value)}
 							onCommit={onValueChange}
 							onKeyRemove={onKeyRemove}
+							onReset={onKeyReset}
 						/>
 					);
 					break;
@@ -449,6 +467,7 @@ const contentBuilder: ContentBuilder = (
 							onAction={(action) => onRowAction(action, key, value)}
 							onCommit={onValueChange}
 							onKeyRemove={onKeyRemove}
+							onReset={onKeyReset}
 						/>
 					);
 					break;
@@ -470,13 +489,15 @@ const contentBuilder: ContentBuilder = (
 												},
 												onRowAction: (action, k) =>
 													onRowAction(action, key + "." + k, bsonTypes),
+												renderSubdocRightElement,
 											})}
 										</div>
 									),
 									header: {
 										key: String(key),
 										title: String(key),
-										rightElement: enableInlineEdits && subDocRightElement(key),
+										rightElement:
+											enableInlineEdits && renderSubdocRightElement(key),
 									},
 								},
 							]}
@@ -493,6 +514,7 @@ const contentBuilder: ContentBuilder = (
 								{
 									jsx: (
 										<DocumentList
+											allowAddDocument={enableInlineEdits}
 											content={subdocumentArray.map((document, index) => ({
 												jsx: (
 													<div>
@@ -520,7 +542,7 @@ const contentBuilder: ContentBuilder = (
 													title: "(" + String(index + 1) + ")",
 													rightElement:
 														enableInlineEdits &&
-														subDocRightElement(key + "." + index),
+														renderSubdocRightElement(key + "." + index),
 												},
 											}))}
 										/>
@@ -528,7 +550,8 @@ const contentBuilder: ContentBuilder = (
 									header: {
 										key: String(key),
 										title: String(key),
-										rightElement: enableInlineEdits && subDocRightElement(key),
+										rightElement:
+											enableInlineEdits && renderSubdocRightElement(key),
 									},
 								},
 							]}
@@ -559,7 +582,8 @@ const contentBuilder: ContentBuilder = (
 									header: {
 										key: String(key),
 										title: String(key),
-										rightElement: enableInlineEdits && subDocRightElement(key),
+										rightElement:
+											enableInlineEdits && renderSubdocRightElement(key),
 									},
 								},
 							]}
@@ -594,7 +618,13 @@ const contentBuilder: ContentBuilder = (
 	);
 
 	if (enableInlineEdits) {
-		rows.push(<NewFieldRows key={rows.length} onChange={onValueChange} />);
+		rows.push(
+			<NewFieldRows
+				key={rows.length}
+				onChange={onValueChange}
+				onRemove={onKeyReset}
+			/>
+		);
 	}
 
 	return rows;
@@ -602,9 +632,10 @@ const contentBuilder: ContentBuilder = (
 
 interface NewFieldRowsProps {
 	onChange?: (key: string, value: Ark.BSONTypes) => void;
+	onRemove?: (key: string) => void;
 }
 const NewFieldRows: FC<NewFieldRowsProps> = (props) => {
-	const { onChange } = props;
+	const { onChange, onRemove } = props;
 
 	const [rows, setRows] = useState<
 		{ key: string; value: Ark.BSONTypes; commited?: boolean }[]
@@ -634,6 +665,7 @@ const NewFieldRows: FC<NewFieldRowsProps> = (props) => {
 	};
 
 	const removeKeyValue = (idx) => {
+		onRemove && onRemove(rows[idx].key);
 		setRows((fields) => {
 			fields.splice(idx, 1);
 			return [...fields];
@@ -641,21 +673,23 @@ const NewFieldRows: FC<NewFieldRowsProps> = (props) => {
 	};
 
 	const commitRow = (idx: number) => {
+		onChange && onChange(rows[idx].key, rows[idx].value);
 		setRows((fields) => {
 			fields[idx].commited = true;
 			return [...fields];
 		});
-		onChange && onChange(rows[idx].key, rows[idx].value);
 	};
 
 	return (
 		<>
 			{addingKeys && rows.length ? (
 				rows.map((field, idx) => (
-					<>
-						<div className="content-row" key={idx}>
+					<div key={field.key + "." + idx}>
+						<div className="content-row">
 							<SwitchableInput
 								key={idx}
+								hideReset
+								editable
 								onCommit={(key, value) => {
 									setKeyValue(idx, key, value);
 									commitRow(idx);
@@ -666,7 +700,6 @@ const NewFieldRows: FC<NewFieldRowsProps> = (props) => {
 								initialType="text"
 								field={field.key}
 								value={field.value as string}
-								editable={!field.commited}
 								editableKey={!field.commited}
 							/>
 						</div>
@@ -685,7 +718,7 @@ const NewFieldRows: FC<NewFieldRowsProps> = (props) => {
 								/>
 							</div>
 						)}
-					</>
+					</div>
 				))
 			) : (
 				<div className="content-row">
@@ -726,6 +759,8 @@ const DocumentPanel: FC<DocumentPanelProps> = (props) => {
 		onDocumentChangeDiscard,
 	} = props;
 
+	const [deleted, setDeleted] = useState<Record<string, boolean>>({});
+
 	const onRowAction = useCallback(
 		(action: ContentRowActions, key: string, value: Ark.BSONTypes) => {
 			// console.log(`[onRowAction] action=${action} key=${key} value=${value}`);
@@ -755,6 +790,30 @@ const DocumentPanel: FC<DocumentPanelProps> = (props) => {
 		[onDocumentEdit, onDocumentChangeDiscard, onDocumentDelete]
 	);
 
+	const renderSubdocRightElement = (key: string) => (
+		<div className="key-delete">
+			<Button
+				onClick={(e) => {
+					e.stopPropagation();
+					if (deleted[key]) {
+						setDeleted((deleted) => ({ ...deleted, [key]: false }));
+						onDocumentModified("reset_key", key);
+					} else {
+						setDeleted((deleted) => ({ ...deleted, [key]: true }));
+						onDocumentModified("delete_key", key);
+					}
+				}}
+				size={"small"}
+				icon={deleted[key] ? "reset" : "trash"}
+				variant="link"
+				tooltipOptions={{
+					content: deleted[key] ? "Revert deletion" : "Delete document",
+					position: "auto-start",
+				}}
+			/>
+		</div>
+	);
+
 	return (
 		<>
 			{contentBuilder({
@@ -764,6 +823,7 @@ const DocumentPanel: FC<DocumentPanelProps> = (props) => {
 				onChange: onDocumentModified,
 				onRowAction: (action, key, value) =>
 					onRowAction(action, String(key), value),
+				renderSubdocRightElement,
 			})}
 		</>
 	);
@@ -843,6 +903,24 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 
 	const clearUpdates = () => setUpdates([]);
 
+	const deleteSetAndUnsetIfEmpty = (updates, idx) => {
+		const info = updates[idx];
+		const update = info.update;
+		let noSet = !update.$set;
+		let noUnset = !update.$unset;
+		if (update.$set && Object.keys(update.$set).length === 0) {
+			delete update.$set;
+			noSet = true;
+		}
+		if (update.$unset && Object.keys(update.$unset).length === 0) {
+			delete update.$unset;
+			noUnset = true;
+		}
+		if (noSet && noUnset) {
+			updates.splice(idx, 1);
+		}
+	};
+
 	const unsetKey = (id: string, key: string) =>
 		setUpdates((updates) => {
 			const idx = updates.findIndex((u) => u._id === id);
@@ -852,6 +930,10 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 				} else {
 					(updates[idx].update.$unset as any) = { [key]: "" };
 				}
+				if (updates[idx].update.$set) {
+					delete (updates[idx].update.$set as any)[key];
+				}
+				deleteSetAndUnsetIfEmpty(updates, idx);
 			} else {
 				updates.push({
 					_id: id,
@@ -873,6 +955,10 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 				} else {
 					(updates[idx].update.$set as any) = { [key]: value };
 				}
+				if (updates[idx].update.$unset) {
+					delete (updates[idx].update.$unset as any)[key];
+				}
+				deleteSetAndUnsetIfEmpty(updates, idx);
 			} else {
 				updates.push({
 					_id: id,
@@ -881,6 +967,21 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 						$unset: undefined,
 					},
 				});
+			}
+			return Array.from(updates);
+		});
+
+	const resetKey = (id: string, key: string) =>
+		setUpdates((updates) => {
+			const idx = updates.findIndex((u) => u._id === id);
+			if (idx > -1) {
+				if (updates[idx].update.$set) {
+					delete (updates[idx].update.$set as any)[key];
+				}
+				if (updates[idx].update.$unset) {
+					delete (updates[idx].update.$unset as any)[key];
+				}
+				deleteSetAndUnsetIfEmpty(updates, idx);
 			}
 			return Array.from(updates);
 		});
@@ -1036,6 +1137,8 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 								setKeyValue(document._id.toString(), key, value);
 							} else if (change === "delete_key") {
 								unsetKey(document._id.toString(), key);
+							} else if (change === "reset_key") {
+								resetKey(document._id.toString(), key);
 							}
 						}}
 						onDocumentEdit={() => startEditingDocument(document)}
