@@ -2,6 +2,24 @@
 
 @import "./common/styles/variables.less";
 
+* {
+	code {
+		font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+			monospace !important;
+
+		border-radius: @border-radius !important;
+		background-color: @container-fg-color-bright !important;
+		color: @text-color !important;
+
+		padding: 4px !important;
+
+		&.multi-line {
+			display: block;
+			white-space: pre-wrap;
+		}
+	}
+}
+
 *::-webkit-scrollbar {
 	background-color: @scrollbar-bg-color;
 	// border-radius: @border-radius;
@@ -39,11 +57,6 @@ body {
 #root {
 	height: 100%;
 	width: 100%;
-}
-
-code {
-	font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
-		monospace;
 }
 
 pre {

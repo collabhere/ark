@@ -1263,15 +1263,16 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 							setDocBeingDeleted(undefined);
 						}}
 						prompt={
-							<>
+							<div className="delete-list">
 								<p>{"Are you sure you would like to delete this document?"}</p>
-								<p>{"Object ID - " + docBeingDeleted._id.toString()}</p>
+								<p>
+									<Code>{`_id => ObjectId("${docBeingDeleted._id.toString()}")`}</Code>
+								</p>
 								<br />
 								<p>
 									{`This deletion will be run on the collection - ${shellConfig.collection}. `}
-									<a>Change</a>
 								</p>
-							</>
+							</div>
 						}
 						title={"Deleting Document"}
 					/>
