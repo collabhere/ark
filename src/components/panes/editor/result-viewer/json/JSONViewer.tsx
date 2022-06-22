@@ -1,12 +1,6 @@
-import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc";
-import timezone from "dayjs/plugin/timezone";
 import React, { FC, useContext } from "react";
 import { SettingsContext } from "../../../../layout/BaseContextProvider";
 import { formatBsonDocument, replaceQuotes } from "../../../../../../util/misc";
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
 
 export interface JSONViewerProps {
 	bson: Ark.BSONArray;

@@ -1,5 +1,10 @@
 import { ObjectId } from "bson";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 export const promisifyCallback = (thisArg: any, func: any, ...args: any) =>
 	new Promise((resolve, reject) =>
@@ -36,42 +41,44 @@ export const isPrimitive = (val: unknown) =>
 	!val || (typeof val !== "object" && !(val instanceof Date));
 
 
-export const applyTimezone = (date: Date, timezone: string) =>
-	timezone === "local"
+export function applyTimezone(date: Date, timezone: string) {
+	return timezone === "local"
 		? dayjs.utc(date).tz(dayjs.tz.guess()).format()
 		: date.toISOString();
+}
 
-export const replaceQuotes = (json: any) => {
+export function replaceQuotes(json: any) {
 	return JSON.stringify(json, null, 4)
 		.replace(/"(ObjectId\(.*?\))"/g, (_, m) => m)
 		.replace(/"(ISODate\(.*?\))"/g, (_, m) => m);
-};
+}
 
-export const formatBsonDocument = (value: Ark.BSONTypes, timezone = "local") => {
-	if (isPrimitive(value)) {
-		return value;
-	} else if (value instanceof Date) {
-		return `ISODate('` + applyTimezone(value, timezone) + `')`;
-	} else if (Array.isArray(value)) {
-		return value.map((elem) => formatBsonDocument(elem, timezone));
+export function formatBsonDocument(bson: Ark.BSONTypes, timezone = "local"): Ark.BSONTypes | undefined {
+	if (isPrimitive(bson)) {
+		return bson;
+	} else if (bson instanceof Date) {
+		return `ISODate('` + applyTimezone(bson, timezone) + `')`;
+	} else if (Array.isArray(bson)) {
+		return bson.map((elem) => formatBsonDocument(elem, timezone));
 	} else if (
-		ObjectId.isValid(value as Extract<Ark.BSONTypes, string | ObjectId>) &&
-		value !== null
+		ObjectId.isValid(bson as Extract<Ark.BSONTypes, string | ObjectId>) &&
+		bson !== null
 	) {
-		return `ObjectId('` + value.toString() + `')`;
-	} else if (typeof value === "object" && value !== null) {
-		return Object.keys(value).reduce(
-			(acc, key) => ((acc[key] = formatBsonDocument(value[key], timezone)), acc),
+		return `ObjectId('` + bson.toString() + `')`;
+	} else if (typeof bson === "object" && bson !== null && !(bson instanceof ObjectId)) {
+		return Object.keys(bson).reduce<{ [k: string]: Ark.BSONTypes | undefined }>(
+			(acc, key) => ((acc[key] = formatBsonDocument(bson[key], timezone)), acc),
 			{}
 		);
-	} else if (value === null) {
+	} else if (bson === null) {
 		return "null";
 	}
-};
+}
 
-export const formatBSONToText = (doc: Ark.BSONArray, timezone = "local") =>
-	Array.isArray(doc)
+export function formatBSONToText(doc: Ark.BSONArray, timezone = "local"): Ark.BSONTypes | undefined {
+	return Array.isArray(doc)
 		? doc.map((elem) => formatBsonDocument(elem, timezone))
 		: typeof doc === "object"
 			? formatBsonDocument(doc, timezone)
 			: doc;
+}
