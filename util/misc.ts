@@ -27,8 +27,7 @@ export const pick = <T extends Record<string, any>>(
 		{} as Record<string, any>
 	);
 
-/* A BSON Array will be an object with keys as the array index */
-export const bsonTest = (bson: any): boolean => Boolean(bson && bson["0"]);
+export const bsonTest = (bson: any): boolean => typeof bson === "object" && !Array.isArray(bson);
 
 export const isObjectId = (possibleObjectId: any): boolean =>
 	/^[0-9a-fA-F]{24}$/.test(

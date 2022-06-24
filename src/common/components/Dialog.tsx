@@ -30,7 +30,7 @@ function DialogFooter(
 			<div className={Classes.DIALOG_FOOTER_ACTIONS}>
 				{onCancel && (
 					<div className={Classes.DIALOG_CLOSE_BUTTON}>
-						<Button text={"Cancel"} onClick={onCancel} />
+						<Button variant="link" text={"Cancel"} onClick={onCancel} />
 					</div>
 				)}
 				{onConfirm && (

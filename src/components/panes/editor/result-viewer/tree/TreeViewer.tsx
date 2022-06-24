@@ -1245,8 +1245,10 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 				)}
 			</div>
 			<div className="content">
-				{bson && bson.length && (
+				{bson && bson.length ? (
 					<DocumentList content={bson.map(createDocumentPanelListContent)} />
+				) : (
+					<span>No results to show.</span>
 				)}
 			</div>
 			{/* Dialogs */}
