@@ -48,23 +48,24 @@ export function applyTimezone(date: Date, timezone: string) {
 }
 
 export function replaceQuotes(json: any) {
+	const replacer = (_, x) => x.replace(/\\/g, "");
 	return JSON.stringify(json, null, 4)
-		.replace(/"(ObjectId\(.*?\))"/g, (_, m) => m)
-		.replace(/"(ISODate\(.*?\))"/g, (_, m) => m);
+		.replace(/"(ObjectId\(.*?\))"/g, replacer)
+		.replace(/"(ISODate\(.*?\))"/g, replacer);
 }
 
 export function formatBsonDocument(bson: Ark.BSONTypes, timezone = "local"): Ark.BSONTypes | undefined {
 	if (isPrimitive(bson)) {
 		return bson;
 	} else if (bson instanceof Date) {
-		return `ISODate('` + applyTimezone(bson, timezone) + `')`;
+		return `ISODate("` + applyTimezone(bson, timezone) + `")`;
 	} else if (Array.isArray(bson)) {
 		return bson.map((elem) => formatBsonDocument(elem, timezone));
 	} else if (
 		ObjectId.isValid(bson as Extract<Ark.BSONTypes, string | ObjectId>) &&
 		bson !== null
 	) {
-		return `ObjectId('` + bson.toString() + `')`;
+		return `ObjectId("` + bson.toString() + `")`;
 	} else if (typeof bson === "object" && bson !== null && !(bson instanceof ObjectId)) {
 		return Object.keys(bson).reduce<{ [k: string]: Ark.BSONTypes | undefined }>(
 			(acc, key) => ((acc[key] = formatBsonDocument(bson[key], timezone)), acc),
