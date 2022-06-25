@@ -62,6 +62,9 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 		type: "directConnection" as const,
 		username: "",
 		password: "",
+		encryptionKeySource: "generated" as const,
+		encryptionKey: "",
+		encryptionKeySourceType: "file" as const,
 		options: {
 			tls: false,
 			authMechanism:
@@ -150,6 +153,9 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 						uri: mongoURI,
 						name:
 							connectionData.name || "Test Connection " + new Date().valueOf(),
+						encryptionKeySource: "generated" as const,
+						key: "",
+						encryptionKeySourceType: "file" as const,
 					},
 				})
 				.then((connectionId) => {
@@ -167,6 +173,9 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 					config: {
 						uri: mongoURI,
 						name: "",
+						encryptionKeySource: "generated" as const,
+						key: "",
+						encryptionKeySourceType: "file" as const,
 					},
 				})
 				.then((res) => {
@@ -348,6 +357,36 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 				}
 				key={"SCRAM-SHA-256"}
 				text={"SCRAM-SHA-256"}
+			/>
+		</Menu>
+	);
+
+	const encrytionSourceMenu = (
+		<Menu>
+			<MenuItem
+				onClick={() => editConnection("encryptionKeySource", "generated")}
+				key={"generated"}
+				text={"Generate a key"}
+			/>
+			<MenuItem
+				onClick={() => editConnection("encryptionKeySource", "userDefined")}
+				key={"userDefined"}
+				text={"Use an existing key"}
+			/>
+		</Menu>
+	);
+
+	const encrytionSourceTypeMenu = (
+		<Menu>
+			<MenuItem
+				onClick={() => editConnection("encryptionKeySourceType", "file")}
+				key={"file"}
+				text={"File"}
+			/>
+			<MenuItem
+				onClick={() => editConnection("encryptionKeySourceType", "url")}
+				key={"url"}
+				text={"URL"}
 			/>
 		</Menu>
 	);
@@ -645,6 +684,108 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 										/>
 									</div>
 								</FormGroup>
+								<FormGroup label="Encryption Key Source">
+									<div className="input-field">
+										<Button
+											fill
+											dropdownOptions={{
+												content: encrytionSourceMenu,
+												interactionKind: "click-target",
+												fill: true,
+											}}
+											text={
+												connectionData.encryptionKeySource === "userDefined"
+													? "Use an existing key"
+													: "Generate a key"
+											}
+										/>
+									</div>
+								</FormGroup>
+								{connectionData.encryptionKeySource === "userDefined" && (
+									<FormGroup label="Encryption Key Source type">
+										<div className="input-field">
+											<Button
+												fill
+												dropdownOptions={{
+													content: encrytionSourceTypeMenu,
+													interactionKind: "click-target",
+													fill: true,
+												}}
+												text={
+													connectionData.encryptionKeySourceType === "file"
+														? "File"
+														: "URL"
+												}
+											/>
+										</div>
+									</FormGroup>
+								)}
+								{connectionData.encryptionKeySource === "userDefined" &&
+									connectionData.encryptionKeySourceType === "file" && (
+										<FormGroup
+											className="flex-fill"
+											label="Encryption Key File"
+											helperText={"Select the encryption key file."}
+										>
+											<div className="input-field">
+												<FileInput
+													fill
+													text={
+														connectionData &&
+														connectionData.key &&
+														connectionData.encryptionKeySourceType === "file"
+															? connectionData.key
+															: "Select encryption key..."
+													}
+													// inputProps={{
+													// 	accept: "image/png,image/svg,image/jpeg",
+													// }}
+													onInputChange={(e) => {
+														const list = e.currentTarget.files;
+														const file = list?.item(0) as File & {
+															path: string;
+														};
+														if (file) {
+															if (
+																file.type === "image/png" ||
+																file.type === "image/svg" ||
+																file.type === "image/jpeg"
+															) {
+																notify({
+																	title: "Validation failed",
+																	type: "error",
+																	description:
+																		"Only PNG, SVG, and JPEG types are supported!",
+																});
+															} else if (file.size >= 10000) {
+																notify({
+																	title: "Validation failed",
+																	type: "error",
+																	description:
+																		"File size must be less than 10KBs",
+																});
+															} else {
+																editConnection("key", file.path);
+															}
+														}
+													}}
+												/>
+											</div>
+										</FormGroup>
+									)}
+								{connectionData.encryptionKeySource === "userDefined" &&
+									connectionData.encryptionKeySourceType === "url" && (
+										<FormGroup label="Encryption Key URL">
+											<div className="input-field">
+												<InputGroup
+													value={connectionData?.key}
+													onChange={(e) =>
+														editConnection("key", e.target.value)
+													}
+												/>
+											</div>
+										</FormGroup>
+									)}
 							</div>
 						)}
 						{form === "ssh" && (

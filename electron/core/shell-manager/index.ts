@@ -51,7 +51,7 @@ export function createShellManager(params: CreateShellParams) {
                 args: { id: connectionId },
             });
 
-            const uri = getConnectionUri(storedConnection);
+            const uri = await getConnectionUri(storedConnection);
 
             const mongoOptions = {
                 ...storedConnection.options,

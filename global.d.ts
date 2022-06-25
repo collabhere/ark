@@ -15,7 +15,6 @@ import { Query } from "./electron/core/driver/query";
 
 declare global {
 	namespace Ark {
-
 		interface StoredIcon {
 			name: string;
 			path: string;
@@ -28,7 +27,6 @@ declare global {
 			id?: string;
 			[k: string]: any;
 		}
-
 
 		interface DriverStores {
 			memoryStore: MemoryStore<MemEntry>;
@@ -54,6 +52,8 @@ declare global {
 			password?: string;
 			icon?: boolean;
 			type: "directConnection" | "replicaSet";
+			encryptionKeySource: "userDefined" | "generated";
+			encryptionKeySourceType: "file" | "url";
 			options: Pick<
 				MongoClientOptions,
 				| "authSource"
@@ -196,11 +196,15 @@ declare global {
 			) => Promise<{ path: string }>;
 			copyText(text: string): void;
 			getIcon(id: string): Promise<StoredIcon>;
-			copyIcon(cacheFolder: string, name: string, path: string): Promise<{ path: string }>;
+			copyIcon(
+				cacheFolder: string,
+				name: string,
+				path: string
+			): Promise<{ path: string }>;
 			rmIcon(path: string): Promise<void>;
 			scripts: Scripts;
 			driver: {
-				run: Driver["run"]
+				run: Driver["run"];
 			};
 			settings: GeneralSettings;
 			shell: Shell;

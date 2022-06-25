@@ -101,7 +101,7 @@ export const Connection: Connection = {
 	},
 	load: async ({ storedConnection }) => {
 		if (storedConnection) {
-			const uri = getConnectionUri(storedConnection);
+			const uri = await getConnectionUri(storedConnection);
 			return { ...storedConnection, uri };
 		} else {
 			throw new Error(ERR_CODES.CORE$DRIVER$NO_STORED_CONNECTION);
@@ -126,7 +126,7 @@ export const Connection: Connection = {
 				}
 			}
 
-			const connectionUri = getConnectionUri(storedConnection);
+			const connectionUri = await getConnectionUri(storedConnection);
 			const client = new MongoClient(connectionUri);
 			const connection = await client.connect();
 			const listDatabaseResult = await connection.db().admin().listDatabases();
@@ -191,7 +191,7 @@ export const Connection: Connection = {
 				await sshTunnel(config.ssh, config.hosts);
 			}
 
-			const connectionUri = getConnectionUri(config);
+			const connectionUri = await getConnectionUri(config);
 
 			const client = new MongoClient(connectionUri);
 

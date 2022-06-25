@@ -2,13 +2,17 @@ import { MongoClient, MongoClientOptions } from "mongodb";
 import type { SrvRecord } from "dns";
 import { promises as netPromises } from "dns";
 import { nanoid } from "nanoid";
-import path from "path";
+import path, { dirname, resolve } from "path";
 import mongoUri from "mongodb-uri";
 import * as crypto from "crypto";
+import axios from 'axios';
 import tunnel, { Config } from "tunnel-ssh";
+import { Buffer } from 'buffer';
 
 import { ARK_FOLDER_PATH } from "../../../utils/constants";
 import { Connection } from ".";
+import { mkdir, readFile, writeFile } from "fs/promises";
+import { existsSync } from "fs";
 
 export const sshTunnel = async (
     sshConfig: Ark.StoredConnection["ssh"],
@@ -51,7 +55,7 @@ export const sshTunnel = async (
     });
 };
 
-export const getConnectionUri = (
+export const getConnectionUri = async (
     {
         hosts,
         database = "admin",
@@ -59,9 +63,14 @@ export const getConnectionUri = (
         password,
         options,
         iv,
-        key
+        key,
+        encryptionKeySource
     }: Ark.StoredConnection
 ) => {
+    const pwd = (password && key && iv && encryptionKeySource)
+        ? await decrypt(password, key, encryptionKeySource, iv)
+        : password;
+
     const uri = mongoUri.format({
         hosts: hosts.map((host) => ({
             host: host.split(":")[0],
@@ -71,9 +80,7 @@ export const getConnectionUri = (
         database,
         options,
         username,
-        password: (password && key && iv)
-            ? decrypt(password, key, iv)
-            : password,
+        password: pwd,
     });
 
     return uri;
@@ -128,24 +135,53 @@ export const getReplicaSetDetails = async (
     }
 };
 
-export const encrypt = (password: string) => {
+export const encrypt = async (
+    password: string,
+    encryptionKey?: string,
+    encryptionKeySourceType?: string,
+) => {
     const iv = crypto.randomBytes(16);
-    const key = crypto.randomBytes(32);
+    const key = encryptionKey
+        ? encryptionKeySourceType === "url"
+            ? (await axios.get(encryptionKey)).data.toString()
+            : (await readFile(encryptionKey)).toString()
+        : crypto.generateKeySync("aes", { length: 256 });
 
-    const cipher = crypto.createCipheriv("aes-256-cbc", Buffer.from(key), iv);
+    const cipherKey = encryptionKey
+		? crypto.createSecretKey(Buffer.from(key, "hex").toString("hex"), "hex")
+		: key;
+
+    const cipher = crypto.createCipheriv("aes-256-cbc", cipherKey, iv);
     return {
-        pwd: Buffer.concat([cipher.update(password), cipher.final()]).toString(
+        pwd: password && Buffer.concat([cipher.update(password), cipher.final()]).toString(
             "hex"
         ),
-        key: key.toString("hex"),
+        key: encryptionKey
+            ? key.toString("hex")
+            : key.export().toString("hex"),
         iv: iv.toString("hex"),
     };
 };
 
-export const decrypt = (password: string, key: string, iv: string) => {
+export const decrypt = async (
+    password: string,
+    key: string,
+    keySource: string,
+    iv: string
+) => {
+
+    const encryptionKey = keySource === "url"
+        ? (await axios.get(key)).data
+        : await readFile(key);
+
+    const secret = crypto.createSecretKey(
+        Buffer.from(encryptionKey, 'hex').toString(),
+        "hex"
+    );
+
     const decipher = crypto.createDecipheriv(
         "aes-256-cbc",
-        Buffer.from(key, "hex"),
+        secret,
         Buffer.from(iv, "hex")
     );
     return decipher.update(password, "hex", "utf8") + decipher.final("utf8");
@@ -186,8 +222,13 @@ export const createConnectionConfigurations = async ({
         }
 
         const encryption = parsedUri.password
-            ? encrypt(parsedUri.password)
+            ? await encrypt(parsedUri.password)
             : undefined;
+
+        const filePath = resolve(ARK_FOLDER_PATH, 'keys', config.name);
+        if (encryption && encryption.key) {
+            await writeFile(filePath, encryption.key);
+        }
 
         return {
             id,
@@ -197,11 +238,13 @@ export const createConnectionConfigurations = async ({
             hosts: hosts,
             username: parsedUri.username,
             password: encryption?.pwd,
-            key: encryption?.key,
+            key: filePath,
             iv: encryption?.iv,
             database: parsedUri.database,
             options: { ...parsedUri.options, ...options },
             ssh: { useSSH: false },
+            encryptionKeySource: 'generated',
+            encryptionKeySourceType: 'file'
         };
     } else {
         const id = config.id || nanoid();
@@ -222,14 +265,30 @@ export const createConnectionConfigurations = async ({
             config.options = { ...opts };
         }
 
-        const encryption = config.password ? encrypt(config.password) : undefined;
+        const encryption = config.password
+            ? !config.encryptionKeySource || config.encryptionKeySource === 'generated'
+                ? await encrypt(config.password)
+                : await encrypt(config.password, config.key, config.encryptionKeySourceType)
+            : undefined;
 
-        config.password = encryption?.pwd;
-        config.key = encryption?.key;
-        config.iv = encryption?.iv;
+        const filePath = config.encryptionKeySource === 'generated' && !config.key
+            ? resolve(ARK_FOLDER_PATH, 'keys', config.name)
+            : config.key as string;
+
+        if (config.encryptionKeySource === 'generated') {
+            if (!existsSync(dirname(filePath))) {
+                await mkdir(dirname(filePath));
+            }
+            await writeFile(filePath, encryption?.key, { flag: 'w' });
+        }
 
         return {
             ...config,
+            password: encryption?.pwd,
+            iv: encryption?.iv,
+            key: filePath,
+            encryptionKeySource: 'generated',
+            encryptionKeySourceType: 'file',
             id,
         };
     }
