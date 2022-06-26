@@ -22,6 +22,11 @@ export interface ConnectionFormProps {
 	mode?: "edit" | "clone";
 }
 
+const UNIX_DIR_REGEX = new RegExp("^/$|(/[a-zA-Z_0-9-]+)+$");
+const WINDOWS_DIR_REGEX = new RegExp(
+	'^[a-zA-Z]:\\(((?![<>:"/\\|?*]).)+((?<![ .])\\)?)*$'
+);
+
 export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 	const [type, setType] = useState<"basic" | "advanced">(
 		props.mode === "edit" || props.mode === "clone" ? "advanced" : "basic"
@@ -207,15 +212,29 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 	const validateAdvancedConfig = useCallback(() => {
 		const error: Partial<Parameters<typeof notify>[0]> = {};
 		if (!connectionData.type) {
-			error.description = "Invalid connection typ";
+			error.description = "Invalid connection type.";
 		} else if (!connectionData.hosts || !(!!host && !isNaN(Number(port)))) {
-			error.description = "Invalid hosts";
+			error.description = "Invalid hosts.";
 		} else if (
 			connectionData.options.tls &&
 			tlsAuthMethod === "CACertificate" &&
 			!connectionData.options.tlsCertificateFile
 		) {
-			error.description = "Specify the TLS certificate file to be used";
+			error.description = "Specify the TLS certificate file to be used.";
+		} else if (
+			connectionData.encryptionKey.source === "userDefined" &&
+			!connectionData.encryptionKey.keyFile &&
+			!connectionData.encryptionKey.url
+		) {
+			error.description = "The encryption key file or URL must be specified.";
+		} else if (
+			connectionData.encryptionKey.source === "generated" &&
+			connectionData.encryptionKey.keyFile &&
+			((window.navigator.platform.includes("Win") &&
+				!WINDOWS_DIR_REGEX.test(connectionData.encryptionKey.keyFile)) ||
+				!UNIX_DIR_REGEX.test(connectionData.encryptionKey.keyFile))
+		) {
+			error.description = "Invalid encryption key directory structure.";
 		} else if (connectionData.ssh.useSSH) {
 			if (
 				!connectionData.ssh.host ||
@@ -811,18 +830,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 															path: string;
 														};
 														if (file) {
-															if (
-																file.type === "image/png" ||
-																file.type === "image/svg" ||
-																file.type === "image/jpeg"
-															) {
-																notify({
-																	title: "Validation failed",
-																	type: "error",
-																	description:
-																		"Only PNG, SVG, and JPEG types are supported!",
-																});
-															} else if (file.size >= 10000) {
+															if (file.size >= 10000) {
 																notify({
 																	title: "Validation failed",
 																	type: "error",
