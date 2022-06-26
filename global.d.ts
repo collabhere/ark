@@ -47,13 +47,16 @@ declare global {
 			hosts: Array<string>;
 			database?: string;
 			username?: string;
-			key?: string;
 			iv?: string;
 			password?: string;
 			icon?: boolean;
 			type: "directConnection" | "replicaSet";
-			encryptionKeySource: "userDefined" | "generated";
-			encryptionKeySourceType: "file" | "url";
+			encryptionKey: {
+				source?: "userDefined" | "generated";
+				type?: "file" | "url";
+				keyFile?: string;
+				url?: string;
+			};
 			options: Pick<
 				MongoClientOptions,
 				| "authSource"

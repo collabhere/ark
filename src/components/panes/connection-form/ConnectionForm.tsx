@@ -62,9 +62,12 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 		type: "directConnection" as const,
 		username: "",
 		password: "",
-		encryptionKeySource: "generated" as const,
-		encryptionKey: "",
-		encryptionKeySourceType: "file" as const,
+		encryptionKey: {
+			source: "generated" as const,
+			type: "file" as const,
+			keyFile: "",
+			url: "",
+		},
 		options: {
 			tls: false,
 			authMechanism:
@@ -81,6 +84,13 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 	const connectionDetails = props.connectionParams
 		? {
 				...props.connectionParams,
+				encryptionKey: props.connectionParams.encryptionKey
+					? props.connectionParams.encryptionKey
+					: {
+							source: "generated" as const,
+							type: "file" as const,
+							keyFile: "",
+					  },
 				id:
 					props.connectionParams && props.mode === "clone"
 						? ""
@@ -153,9 +163,11 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 						uri: mongoURI,
 						name:
 							connectionData.name || "Test Connection " + new Date().valueOf(),
-						encryptionKeySource: "generated" as const,
-						key: "",
-						encryptionKeySourceType: "file" as const,
+						encryptionKey: {
+							source: "generated",
+							type: "file",
+							keyFile: "",
+						},
 					},
 				})
 				.then((connectionId) => {
@@ -173,9 +185,11 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 					config: {
 						uri: mongoURI,
 						name: "",
-						encryptionKeySource: "generated" as const,
-						key: "",
-						encryptionKeySourceType: "file" as const,
+						encryptionKey: {
+							source: "generated",
+							type: "file",
+							keyFile: "",
+						},
 					},
 				})
 				.then((res) => {
@@ -364,12 +378,28 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 	const encrytionSourceMenu = (
 		<Menu>
 			<MenuItem
-				onClick={() => editConnection("encryptionKeySource", "generated")}
+				onClick={() => {
+					editConnection("encryptionKey", {
+						...connectionData.encryptionKey,
+						source: "generated",
+						type: "file",
+						keyFile: "",
+						url: "",
+					});
+				}}
 				key={"generated"}
 				text={"Generate a key"}
 			/>
 			<MenuItem
-				onClick={() => editConnection("encryptionKeySource", "userDefined")}
+				onClick={() => {
+					editConnection("encryptionKey", {
+						...connectionData.encryptionKey,
+						source: "userDefined",
+						type: "file",
+						keyFile: "",
+						url: "",
+					});
+				}}
 				key={"userDefined"}
 				text={"Use an existing key"}
 			/>
@@ -379,12 +409,24 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 	const encrytionSourceTypeMenu = (
 		<Menu>
 			<MenuItem
-				onClick={() => editConnection("encryptionKeySourceType", "file")}
+				onClick={() => {
+					editConnection("encryptionKey", {
+						...connectionData.encryptionKey,
+						type: "file",
+						url: "",
+					});
+				}}
 				key={"file"}
 				text={"File"}
 			/>
 			<MenuItem
-				onClick={() => editConnection("encryptionKeySourceType", "url")}
+				onClick={() => {
+					editConnection("encryptionKey", {
+						...connectionData.encryptionKey,
+						type: "url",
+						keyFile: "",
+					});
+				}}
 				key={"url"}
 				text={"URL"}
 			/>
@@ -694,14 +736,14 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 												fill: true,
 											}}
 											text={
-												connectionData.encryptionKeySource === "userDefined"
+												connectionData.encryptionKey.source === "userDefined"
 													? "Use an existing key"
 													: "Generate a key"
 											}
 										/>
 									</div>
 								</FormGroup>
-								{connectionData.encryptionKeySource === "userDefined" && (
+								{connectionData.encryptionKey.source === "userDefined" && (
 									<FormGroup label="Encryption Key Source type">
 										<div className="input-field">
 											<Button
@@ -712,7 +754,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 													fill: true,
 												}}
 												text={
-													connectionData.encryptionKeySourceType === "file"
+													connectionData.encryptionKey.type === "file"
 														? "File"
 														: "URL"
 												}
@@ -720,21 +762,44 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 										</div>
 									</FormGroup>
 								)}
-								{connectionData.encryptionKeySource === "userDefined" &&
-									connectionData.encryptionKeySourceType === "file" && (
+								{connectionData.encryptionKey.source === "generated" && (
+									<FormGroup
+										label="Directory to save the encryption key"
+										helperText={
+											"Full path to a directory. Make sure the key isn't deleted as it will be needed when the connection is made."
+										}
+									>
+										<div className="input-field">
+											<InputGroup
+												value={connectionData?.encryptionKey.keyFile}
+												onChange={(e) => {
+													editConnection("encryptionKey", {
+														...connectionData.encryptionKey,
+														keyFile: e.target.value,
+														url: "",
+													});
+												}}
+											/>
+										</div>
+									</FormGroup>
+								)}
+								{connectionData.encryptionKey.source === "userDefined" &&
+									connectionData.encryptionKey.type === "file" && (
 										<FormGroup
 											className="flex-fill"
 											label="Encryption Key File"
-											helperText={"Select the encryption key file."}
+											helperText={
+												"The encryption key must be a 256 bit hex encoded string."
+											}
 										>
 											<div className="input-field">
 												<FileInput
 													fill
 													text={
 														connectionData &&
-														connectionData.key &&
-														connectionData.encryptionKeySourceType === "file"
-															? connectionData.key
+														connectionData.encryptionKey &&
+														connectionData.encryptionKey.type === "file"
+															? connectionData.encryptionKey.keyFile
 															: "Select encryption key..."
 													}
 													// inputProps={{
@@ -765,7 +830,11 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 																		"File size must be less than 10KBs",
 																});
 															} else {
-																editConnection("key", file.path);
+																editConnection("encryptionKey", {
+																	...connectionData.encryptionKey,
+																	keyFile: file.path,
+																	url: "",
+																});
 															}
 														}
 													}}
@@ -773,15 +842,19 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 											</div>
 										</FormGroup>
 									)}
-								{connectionData.encryptionKeySource === "userDefined" &&
-									connectionData.encryptionKeySourceType === "url" && (
+								{connectionData.encryptionKey.source === "userDefined" &&
+									connectionData.encryptionKey.type === "url" && (
 										<FormGroup label="Encryption Key URL">
 											<div className="input-field">
 												<InputGroup
-													value={connectionData?.key}
-													onChange={(e) =>
-														editConnection("key", e.target.value)
-													}
+													value={connectionData?.encryptionKey.url}
+													onChange={(e) => {
+														editConnection("encryptionKey", {
+															...connectionData.encryptionKey,
+															keyFile: "",
+															url: e.target.value,
+														});
+													}}
 												/>
 											</div>
 										</FormGroup>
