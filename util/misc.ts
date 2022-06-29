@@ -47,7 +47,7 @@ export function applyTimezone(date: Date, timezone: string) {
 }
 
 export function replaceQuotes(json: any) {
-	const replacer = (_, x) => x.replace(/\\/g, "");
+	const replacer = (_: string, x: string) => x.replace(/\\/g, "");
 	return JSON.stringify(json, null, 4)
 		.replace(/"(ObjectId\(.*?\))"/g, replacer)
 		.replace(/"(ISODate\(.*?\))"/g, replacer);
