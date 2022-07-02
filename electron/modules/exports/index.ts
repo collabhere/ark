@@ -4,20 +4,15 @@ import path from "path";
 import { CSVTransform } from "./csv-transform";
 import { NDJSONTransform } from "./ndjson-transform";
 
-export interface MongoExportOptions<T> {
-	mode: "export";
-	params: T & (Ark.ExportCsvOptions | Ark.ExportNdjsonOptions);
-}
+export type MongoExportOptions = (Ark.ExportCsvOptions | Ark.ExportNdjsonOptions);
 
 export async function exportData(
 	result: any,
-	options: MongoExportOptions<unknown>
+	options: MongoExportOptions
 ) {
-	const params = options.params;
+	return new Promise<string>((resolve, reject) => {
 
-	return new Promise((resolve, reject) => {
-
-		const filePath = path.join(params.saveLocation, params.fileName);
+		const filePath = path.join(options.saveLocation, options.fileName);
 
 		const reader = result._cursor.stream();
 		let transformer: Transform;
@@ -31,9 +26,9 @@ export async function exportData(
 			resolve(filePath);
 		});
 
-		if (params.type === "CSV") {
+		if (options.type === "CSV") {
 			transformer = CSVTransform({
-				fields: params.fields,
+				fields: options.fields,
 			});
 
 			transformer.on("data", async (chunk) => {

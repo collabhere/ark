@@ -111,8 +111,9 @@ export function createShellManager(params: CreateShellParams) {
             );
 
             const result: ShellEvalResult = {
-                result: bson.serialize(evalResult),
-                editable: false
+                result: bson.serialize(evalResult.result),
+                editable: false,
+                isCursor: evalResult.isCursor
             };
 
             if (Array.isArray(evalResult)
@@ -132,9 +133,9 @@ export function createShellManager(params: CreateShellParams) {
 
             shell.validateDriver();
 
-            const exportPath = await shell.evaluator.export(data.code, shell.database, data.options);
+            const result = await shell.evaluator.export(data.code, shell.database, data.options);
 
-            return { exportPath };
+            return result;
         },
         destroy: async (data: DestroyShell) => {
             const shell = shells.get(data.shell);

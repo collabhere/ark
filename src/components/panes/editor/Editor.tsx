@@ -127,7 +127,7 @@ export const Editor: FC<EditorProps> = (props) => {
 			shellId
 				? window.ark.shell
 						.eval(shellId, _code, debouncedQueryParams)
-						.then(function ({ editable, result, err }) {
+						.then(function ({ editable, result, isCursor, err }) {
 							if (err) {
 								console.log("exec shell");
 								console.log(err);
@@ -145,6 +145,7 @@ export const Editor: FC<EditorProps> = (props) => {
 									type: "tree",
 									bson: bsonArray,
 									allowDocumentEdits: editable,
+									hidePagination: !isCursor,
 								});
 							} else {
 								notify({
@@ -516,9 +517,9 @@ export const Editor: FC<EditorProps> = (props) => {
 				</Resizable>
 				{currentResult && currentResult.bson && currentResult.type && (
 					<ResultViewer
+						{...currentResult}
 						bson={currentResult.bson}
 						type={currentResult.type}
-						allowDocumentEdits={currentResult.allowDocumentEdits}
 						shellConfig={{ ...shellConfig, database: contextDB }}
 						driverConnectionId={storedConnectionId}
 						switchViews={switchViews}

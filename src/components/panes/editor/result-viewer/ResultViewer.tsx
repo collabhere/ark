@@ -14,6 +14,7 @@ export type ResultViewerProps = {
 	shellConfig: Ark.ShellConfig;
 	driverConnectionId: string;
 	allowDocumentEdits?: boolean;
+	hidePagination?: boolean;
 	onClose: () => void;
 	onRefresh: () => void;
 	switchViews?: (type: "tree" | "json") => void;
@@ -34,6 +35,7 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 		driverConnectionId,
 		shellConfig,
 		allowDocumentEdits,
+		hidePagination,
 		onRefresh,
 		onClose,
 		switchViews,
@@ -44,63 +46,63 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 	return (
 		<div className="result-viewer">
 			<div className="result-viewer-header">
-				{/* <div className="header-item">
-					
-				</div> */}
-
-				{paramsState && (
-					<div className="header-item">
-						<span>Page: {paramsState.queryParams.page}</span>
-						<span>Limit: {displayLimit}</span>
-					</div>
+				{!hidePagination && (
+					<>
+						{paramsState && (
+							<div className="header-item">
+								<span>Page: {paramsState.queryParams.page}</span>
+								<span>Limit: {displayLimit}</span>
+							</div>
+						)}
+						<div className="header-item">
+							<ButtonGroup>
+								<Button
+									size="small"
+									icon={"arrow-left"}
+									disabled={paramsState && paramsState.queryParams.page <= 0}
+									onClick={() => {
+										if (paramsState && paramsState.queryParams.page > 1) {
+											paramsState?.changeQueryParams(
+												"page",
+												paramsState?.queryParams.page - 1
+											);
+										}
+									}}
+									tooltipOptions={{
+										position: "top",
+										content: "Previous page",
+									}}
+								/>
+								<InputGroup
+									small
+									value={paramsState?.queryParams.limit.toString()}
+									onChange={(e) => {
+										if (!isNaN(Number(e.currentTarget.value))) {
+											paramsState?.changeQueryParams(
+												"limit",
+												Number(e.currentTarget.value)
+											);
+										}
+									}}
+								/>
+								<Button
+									size="small"
+									icon={"arrow-right"}
+									onClick={() =>
+										paramsState?.changeQueryParams(
+											"page",
+											paramsState?.queryParams.page + 1
+										)
+									}
+									tooltipOptions={{
+										position: "top",
+										content: "Next page",
+									}}
+								/>
+							</ButtonGroup>
+						</div>
+					</>
 				)}
-				<div className="header-item">
-					<ButtonGroup>
-						<Button
-							size="small"
-							icon={"arrow-left"}
-							disabled={paramsState && paramsState.queryParams.page <= 0}
-							onClick={() => {
-								if (paramsState && paramsState.queryParams.page > 1) {
-									paramsState?.changeQueryParams(
-										"page",
-										paramsState?.queryParams.page - 1
-									);
-								}
-							}}
-							tooltipOptions={{
-								position: "top",
-								content: "Previous page",
-							}}
-						/>
-						<InputGroup
-							small
-							value={paramsState?.queryParams.limit.toString()}
-							onChange={(e) => {
-								if (!isNaN(Number(e.currentTarget.value))) {
-									paramsState?.changeQueryParams(
-										"limit",
-										Number(e.currentTarget.value)
-									);
-								}
-							}}
-						/>
-						<Button
-							size="small"
-							icon={"arrow-right"}
-							onClick={() =>
-								paramsState?.changeQueryParams(
-									"page",
-									paramsState?.queryParams.page + 1
-								)
-							}
-							tooltipOptions={{
-								position: "top",
-								content: "Next page",
-							}}
-						/>
-					</ButtonGroup>
-				</div>
 				<div className="header-item">
 					<ButtonGroup>
 						<Button
