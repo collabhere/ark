@@ -116,8 +116,8 @@ export function createShellManager(params: CreateShellParams) {
                 isCursor: evalResult.isCursor
             };
 
-            if (Array.isArray(evalResult)
-                && evalResult.every(document =>
+            if (Array.isArray(evalResult.result)
+                && evalResult.result.every(document =>
                     document._id && isObjectId(document._id)
                 )
             ) {
