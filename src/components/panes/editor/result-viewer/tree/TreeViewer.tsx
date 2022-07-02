@@ -26,6 +26,7 @@ import { Button } from "../../../../../common/components/Button";
 import { DangerousActionPrompt } from "../../../../dialogs/DangerousActionPrompt";
 import { handleErrors, notify } from "../../../../../common/utils/misc";
 import {
+	formatBsonDocument,
 	formatBSONToText,
 	isObjectId,
 	replaceQuotes,
@@ -776,7 +777,7 @@ const DocumentPanel: FC<DocumentPanelProps> = (props) => {
 					break;
 				}
 				case ContentRowActions.copy_value: {
-					window.ark.copyText(value?.toString() || "");
+					window.ark.copyText(replaceQuotes(formatBsonDocument(value)));
 					break;
 				}
 				case ContentRowActions.edit_document: {
@@ -1082,7 +1083,8 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 			const items: CreateMenuItem[] = [
 				{
 					item: "Copy JSON",
-					cb: () => window.ark.copyText(JSON.stringify(document, null, 4)),
+					cb: () =>
+						window.ark.copyText(replaceQuotes(formatBSONToText(document))),
 					intent: "primary",
 					icon: "comparison",
 					key: ContentRowActions.copy_json,
