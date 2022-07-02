@@ -26,6 +26,8 @@ const UNIX_DIR_REGEX = new RegExp("^/$|(/[a-zA-Z_0-9-]+)+$");
 const WINDOWS_DIR_REGEX = new RegExp(
 	'^[a-zA-Z]:\\(((?![<>:"/\\|?*]).)+((?<![ .])\\)?)*$'
 );
+const PLATFORM = window.navigator.platform;
+const PATH_SEPARATOR = PLATFORM.includes("Win") ? "\\" : "/";
 
 export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 	const [type, setType] = useState<"basic" | "advanced">(
@@ -90,7 +92,16 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 		? {
 				...props.connectionParams,
 				encryptionKey: props.connectionParams.encryptionKey
-					? props.connectionParams.encryptionKey
+					? {
+							...props.connectionParams.encryptionKey,
+							keyFile:
+								props.connectionParams.encryptionKey.source === "generated"
+									? props.connectionParams.encryptionKey.keyFile
+											?.split(PATH_SEPARATOR)
+											.slice(0, -1)
+											.join(PATH_SEPARATOR)
+									: props.connectionParams.encryptionKey.keyFile,
+					  }
 					: {
 							source: "generated" as const,
 							type: "file" as const,
@@ -230,7 +241,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 		} else if (
 			connectionData.encryptionKey.source === "generated" &&
 			connectionData.encryptionKey.keyFile &&
-			((window.navigator.platform.includes("Win") &&
+			((PLATFORM.includes("Win") &&
 				!WINDOWS_DIR_REGEX.test(connectionData.encryptionKey.keyFile)) ||
 				!UNIX_DIR_REGEX.test(connectionData.encryptionKey.keyFile))
 		) {

@@ -9,7 +9,7 @@ import axios from 'axios';
 import tunnel, { Config } from "tunnel-ssh";
 import { Buffer } from 'buffer';
 
-import { ARK_FOLDER_PATH } from "../../../utils/constants";
+import { ARK_FOLDER_PATH, ENCRYPTION_KEY_FILENAME } from "../../../utils/constants";
 import { Connection } from ".";
 import { mkdir, readFile, writeFile } from "fs/promises";
 import { existsSync } from "fs";
@@ -66,9 +66,12 @@ export const getConnectionUri = async (
         encryptionKey
     }: Ark.StoredConnection
 ) => {
-    const pwd = (password && (encryptionKey.keyFile || encryptionKey.url) && iv && encryptionKey.source)
-        ? await decrypt(password, encryptionKey, iv)
-        : password;
+    const pwd = (password &&
+        (encryptionKey.keyFile || encryptionKey.url) &&
+        iv &&
+        encryptionKey.source)
+            ? await decrypt(password, encryptionKey, iv)
+            : password;
 
     const uri = mongoUri.format({
         hosts: hosts.map((host) => ({
@@ -138,25 +141,42 @@ export const encrypt = async (
     password: string,
     encryptionKey?: Ark.StoredConnection["encryptionKey"],
 ) => {
+
+    const arkKeyPath = resolve(ARK_FOLDER_PATH, ENCRYPTION_KEY_FILENAME);
+
+    let arkEncryptionKey;
+    if (!existsSync(arkKeyPath)) {
+        arkEncryptionKey = crypto.generateKeySync("aes", { length: 256 });
+        await writeFile(
+            arkKeyPath,
+            arkEncryptionKey.export().toString("hex"),
+            { flag: 'w' }
+        );
+    }
+
+    let key;
+    if (encryptionKey && encryptionKey.source === "userDefined") {
+        if (encryptionKey.type === "url" && encryptionKey.url) {
+            key = (await axios.get(encryptionKey.url)).data.toString();
+        } else if (encryptionKey.type === "file" && encryptionKey.keyFile) {
+            key =  (await readFile(encryptionKey.keyFile)).toString();
+        }
+    } else if (!encryptionKey) {
+        if (arkEncryptionKey) {
+            key = arkEncryptionKey;
+        } else {
+            key =  (await readFile(arkKeyPath)).toString();
+        }
+    }
+
     const iv = crypto.randomBytes(16);
-    const key = encryptionKey && encryptionKey.source === "userDefined"
-        ? encryptionKey.type === "url" && encryptionKey.url
-            ? (await axios.get(encryptionKey.url)).data.toString()
-            : encryptionKey.type === "file" && encryptionKey.keyFile
-                ? (await readFile(encryptionKey.keyFile)).toString()
-                : undefined
-        : crypto.generateKeySync("aes", { length: 256 });
-
-    const cipherKey = encryptionKey
-		? crypto.createSecretKey(Buffer.from(key, "hex").toString("hex"), "hex")
-		: key;
-
+    const cipherKey = crypto.createSecretKey(Buffer.from(key, "hex").toString("hex"), "hex");
     const cipher = crypto.createCipheriv("aes-256-cbc", cipherKey, iv);
     return {
         pwd: password && Buffer.concat([cipher.update(password), cipher.final()]).toString(
             "hex"
         ),
-        key: encryptionKey
+        key: encryptionKey || !arkEncryptionKey
             ? key.toString("hex")
             : key.export().toString("hex"),
         iv: iv.toString("hex"),
@@ -226,7 +246,7 @@ export const createConnectionConfigurations = async ({
             ? await encrypt(parsedUri.password)
             : undefined;
 
-        const filePath = resolve(ARK_FOLDER_PATH, 'keys', config.name);
+        const filePath = resolve(ARK_FOLDER_PATH, ENCRYPTION_KEY_FILENAME);
         if (encryption && encryption.key) {
             await writeFile(filePath, encryption.key);
         }
@@ -274,28 +294,22 @@ export const createConnectionConfigurations = async ({
                 : await encrypt(config.password, config.encryptionKey)
             : undefined;
 
-        let filePath = resolve(ARK_FOLDER_PATH, 'keys', config.name);
+        let filePath = resolve(ARK_FOLDER_PATH, ENCRYPTION_KEY_FILENAME);
         if (
             config.encryptionKey.source === "generated"
             && config.encryptionKey.keyFile
         ) {
-            if (!existsSync(config.encryptionKey.keyFile)) {
-                await mkdir(config.encryptionKey.keyFile, { recursive: true });
+            filePath = resolve(config.encryptionKey.keyFile, config.name);
+            if (!existsSync(dirname(filePath))) {
+                await mkdir(dirname(filePath));
             }
 
-            filePath = resolve(config.encryptionKey.keyFile, config.name);
+            await writeFile(filePath, encryption?.key, { flag: 'w' });
         } else if (
             config.encryptionKey.source === "userDefined"
             && config.encryptionKey.keyFile
         ) {
             filePath = config.encryptionKey.keyFile;
-        }
-
-        if (config.encryptionKey.source === 'generated') {
-            if (!existsSync(dirname(filePath))) {
-                await mkdir(dirname(filePath));
-            }
-            await writeFile(filePath, encryption?.key, { flag: 'w' });
         }
 
         return {
