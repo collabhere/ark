@@ -29,7 +29,7 @@ export function createShellManager(params: CreateShellParams) {
 
     const manager = {
         create: async (data: CreateShell) => {
-            const { contextDB, connectionId } = data;
+            const { contextDB, connectionId, encryptionKey } = data;
 
             const connection = driver.getConnection(connectionId);
 
@@ -51,7 +51,7 @@ export function createShellManager(params: CreateShellParams) {
                 args: { id: connectionId },
             });
 
-            const uri = getConnectionUri(storedConnection);
+            const uri = await getConnectionUri(storedConnection, encryptionKey);
 
             const mongoOptions = {
                 ...storedConnection.options,

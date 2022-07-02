@@ -2,9 +2,21 @@ import "./styles.less";
 
 import React, { useCallback, useContext } from "react";
 import { Button } from "../../common/components/Button";
-import { Menu, MenuItem, MenuDivider } from "@blueprintjs/core";
+import {
+	Menu,
+	MenuItem,
+	MenuDivider,
+	FormGroup,
+	FileInput,
+} from "@blueprintjs/core";
 import { Popover2 } from "@blueprintjs/popover2";
-import { VscFileCode, VscClose, VscWatch, VscTerminal } from "react-icons/vsc";
+import {
+	VscFileCode,
+	VscClose,
+	VscWatch,
+	VscTerminal,
+	VscKey,
+} from "react-icons/vsc";
 import { useState } from "react";
 import { SelectConnectionForFilePath } from "../dialogs/SelectConnectionForScript";
 import { Dialog } from "../../common/components/Dialog";
@@ -12,6 +24,16 @@ import { Checkbox, InputGroup } from "@blueprintjs/core";
 import { notify } from "../../common/utils/misc";
 import { useEffect } from "react";
 import { SettingsContext } from "./BaseContextProvider";
+
+export interface EncryptionKey {
+	source: "userDefined" | "generated";
+	type: "file" | "url";
+	keyFile: string;
+	url: string;
+}
+
+const PLATFORM = window.navigator.platform;
+const PATH_SEPARATOR = PLATFORM.includes("Win") ? "\\" : "/";
 
 export const TitleBar = (): JSX.Element => {
 	const { settings, setSettings } = useContext(SettingsContext);
@@ -25,6 +47,33 @@ export const TitleBar = (): JSX.Element => {
 		autoUpdates: true,
 		hotKeys: true,
 	});
+
+	const [secretKeyDialog, showSecretKeyDialog] = useState(false);
+	const [encryptionKey, setEncryptionKey] = useState<EncryptionKey>({
+		source: settings?.encryptionKey?.source || "generated",
+		type: settings?.encryptionKey?.type || "file",
+		keyFile:
+			settings?.encryptionKey?.type === "file"
+				? settings.encryptionKey.value
+						.split(PATH_SEPARATOR)
+						.slice(0, -1)
+						.join(PATH_SEPARATOR)
+				: "",
+		url:
+			settings?.encryptionKey?.type === "url"
+				? settings.encryptionKey.value
+				: "",
+	});
+
+	useEffect(() => {
+		if (
+			!settings?.encryptionKey?.source ||
+			!settings.encryptionKey.type ||
+			!settings.encryptionKey.value
+		) {
+			showSecretKeyDialog(true);
+		}
+	}, [settings]);
 
 	useEffect(() => {
 		setLocalsettings({
@@ -69,8 +118,235 @@ export const TitleBar = (): JSX.Element => {
 		[setSettings, settings]
 	);
 
+	const changeEncryptionKey = useCallback(
+		(forceCreate?: boolean) => {
+			//Validations
+
+			const encryptionKeyPromise =
+				encryptionKey.source === "generated" || forceCreate
+					? window.ark.driver.run("connection", "createEncryptionKey", {
+							path: !forceCreate ? encryptionKey.keyFile : "",
+					  })
+					: Promise.resolve("");
+
+			encryptionKeyPromise.then((path: string) => {
+				changeSettings("encryptionKey", {
+					type: encryptionKey.type,
+					source: encryptionKey.source,
+					value:
+						encryptionKey.type === "url"
+							? encryptionKey.url
+							: encryptionKey.source === "userDefined"
+							? encryptionKey.keyFile
+							: path,
+				});
+			});
+		},
+		[
+			changeSettings,
+			encryptionKey.keyFile,
+			encryptionKey.source,
+			encryptionKey.type,
+			encryptionKey.url,
+		]
+	);
+
+	const encrytionSourceTypeMenu = (
+		<Menu>
+			<MenuItem
+				onClick={() => {
+					setEncryptionKey((encryptionKey) => ({
+						...encryptionKey,
+						type: "file",
+						url: "",
+					}));
+				}}
+				key={"file"}
+				text={"File"}
+			/>
+			<MenuItem
+				onClick={() => {
+					setEncryptionKey((encryptionKey) => ({
+						...encryptionKey,
+						type: "url",
+						keyFile: "",
+					}));
+				}}
+				key={"url"}
+				text={"URL"}
+			/>
+		</Menu>
+	);
+
+	const encryptionSourceMenu = (
+		<Menu>
+			<MenuItem
+				onClick={() => {
+					setEncryptionKey((encryptionKey) => ({
+						...encryptionKey,
+						source: "generated",
+						type: "file",
+						keyFile: "",
+						url: "",
+					}));
+				}}
+				key={"generated"}
+				text={"Generate a key"}
+			/>
+			<MenuItem
+				onClick={() => {
+					setEncryptionKey((encryptionKey) => ({
+						...encryptionKey,
+						source: "userDefined",
+						type: "file",
+						keyFile: "",
+						url: "",
+					}));
+				}}
+				key={"userDefined"}
+				text={"Use an existing key"}
+			/>
+		</Menu>
+	);
+
+	const encryptionDialog = (
+		<div>
+			<FormGroup label="Encryption Key Source">
+				<div className="input-field">
+					<Button
+						fill
+						dropdownOptions={{
+							content: encryptionSourceMenu,
+							interactionKind: "click-target",
+							fill: true,
+						}}
+						text={
+							encryptionKey.source === "userDefined"
+								? "Use an existing key"
+								: "Generate a key"
+						}
+					/>
+				</div>
+			</FormGroup>
+			{encryptionKey.source === "userDefined" && (
+				<FormGroup label="Encryption Key Source type">
+					<div className="input-field">
+						<Button
+							fill
+							dropdownOptions={{
+								content: encrytionSourceTypeMenu,
+								interactionKind: "click-target",
+								fill: true,
+							}}
+							text={encryptionKey.type === "file" ? "File" : "URL"}
+						/>
+					</div>
+				</FormGroup>
+			)}
+			{encryptionKey.source === "generated" && (
+				<FormGroup
+					label="Directory to save the encryption key"
+					helperText={
+						"Full path to a directory. Make sure the key isn't deleted as it will be needed when the connection is made."
+					}
+				>
+					<div className="input-field">
+						<InputGroup
+							value={encryptionKey.keyFile}
+							onChange={(e) => {
+								setEncryptionKey((encryptionKey) => ({
+									...encryptionKey,
+									keyFile: e.target.value,
+									url: "",
+								}));
+							}}
+						/>
+					</div>
+				</FormGroup>
+			)}
+			{encryptionKey.source === "userDefined" && encryptionKey.type === "file" && (
+				<FormGroup
+					className="flex-fill"
+					label="Encryption Key File"
+					helperText={
+						"The encryption key must be a 256 bit hex encoded string."
+					}
+				>
+					<div className="input-field">
+						<FileInput
+							fill
+							text={
+								encryptionKey && encryptionKey.type === "file"
+									? encryptionKey.keyFile
+									: "Select encryption key..."
+							}
+							onInputChange={(e) => {
+								const list = e.currentTarget.files;
+								const file = list?.item(0) as File & {
+									path: string;
+								};
+								if (file) {
+									if (file.size >= 10000) {
+										notify({
+											title: "Validation failed",
+											type: "error",
+											description: "File size must be less than 10KBs",
+										});
+									} else {
+										setEncryptionKey((encryptionKey) => ({
+											...encryptionKey,
+											keyFile: file.path,
+											url: "",
+										}));
+									}
+								}
+							}}
+						/>
+					</div>
+				</FormGroup>
+			)}
+			{encryptionKey.source === "userDefined" && encryptionKey.type === "url" && (
+				<FormGroup label="Encryption Key URL">
+					<div className="input-field">
+						<InputGroup
+							value={encryptionKey.url}
+							onChange={(e) => {
+								setEncryptionKey((encryptionKey) => ({
+									...encryptionKey,
+									keyFile: "",
+									url: e.target.value,
+								}));
+							}}
+						/>
+					</div>
+				</FormGroup>
+			)}
+		</div>
+	);
+
 	return (
 		<div className="title-bar">
+			{secretKeyDialog && (
+				<Dialog
+					size="large"
+					onCancel={() => {
+						if (
+							!settings?.encryptionKey?.source ||
+							!settings.encryptionKey.type ||
+							!settings.encryptionKey.value
+						) {
+							changeEncryptionKey(true);
+						}
+						showSecretKeyDialog(false);
+					}}
+					onConfirm={() => {
+						changeEncryptionKey();
+						showSecretKeyDialog(false);
+					}}
+				>
+					{encryptionDialog}
+				</Dialog>
+			)}
 			<div className="header-container">
 				<div className="logo">Ark</div>
 				<div>
@@ -182,10 +458,17 @@ export const TitleBar = (): JSX.Element => {
 								/>
 								<MenuDivider />
 								<MenuItem
+									text="Encryption Key"
+									icon={<VscKey />}
+									key="7"
+									onClick={() => showSecretKeyDialog(true)}
+								/>
+								<MenuDivider />
+								<MenuItem
 									intent="danger"
 									text="Exit"
 									icon={<VscClose />}
-									key="7"
+									key="8"
 									onClick={() => window.ark.titlebar.close()}
 								/>
 							</Menu>

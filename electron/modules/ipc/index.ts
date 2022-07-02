@@ -37,11 +37,13 @@ interface IPCInitParams {
 function IPC() {
 
 	const iconStore = createDiskStore<Ark.StoredIcon>("icons");
+	const settingsStore = createDiskStore<Ark.Settings>("settings");
 
 	const driver = createDriver({
 		memoryStore: createMemoryStore<MemEntry>(),
 		diskStore: createDiskStore<Ark.StoredConnection>("connections"),
-		iconStore
+		iconStore,
+		settingsStore
 	});
 
 	const shellManager = createShellManager({
@@ -51,7 +53,6 @@ function IPC() {
 
 	// Stores opened scripts
 	const scriptDiskStore = createDiskStore<StoredScript>("scripts");
-	const settingsStore = createDiskStore<Ark.Settings>("settings");
 
 	return {
 		init: ({ window }: IPCInitParams) => {
