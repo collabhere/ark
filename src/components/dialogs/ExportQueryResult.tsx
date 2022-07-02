@@ -2,6 +2,7 @@ import "./styles.less";
 import {
 	FileInput,
 	FormGroup,
+	InputGroup,
 	Radio,
 	RadioGroup,
 	Switch,
@@ -9,6 +10,7 @@ import {
 } from "@blueprintjs/core";
 import React, { FC, useCallback, useState } from "react";
 import { Dialog } from "../../common/components/Dialog";
+import { notify } from "../../common/utils/misc";
 
 interface ExportQueryResultProps {
 	onExport: (
@@ -17,18 +19,32 @@ interface ExportQueryResultProps {
 	onCancel: () => void;
 }
 
+const defaultFileName = () => `query-export-${new Date().toISOString()}.ndjson`;
+
 export const ExportQueryResult: FC<ExportQueryResultProps> = (props) => {
 	const { onExport, onCancel } = props;
+
 	const [exportOptions, setExportOptions] = useState<
 		Ark.ExportNdjsonOptions | Ark.ExportCsvOptions
 	>({
 		type: "NDJSON",
-		fileName: "",
+		saveLocation: "",
+		fileName: defaultFileName(),
 	});
+
+	const validateExportOptions = useCallback(() => {
+		if (!exportOptions.saveLocation) {
+			return { ok: false, err: "Please set a save location." };
+		}
+		if (!exportOptions.fileName) {
+			return { ok: false, err: "Please set a file name." };
+		}
+		return { ok: true };
+	}, [exportOptions.saveLocation, exportOptions.fileName]);
 
 	const changeExportOptions = useCallback(
 		(
-			option: "fields" | "destructure" | "type" | "fileName",
+			option: "fields" | "type" | "saveLocation" | "fileName",
 			value?: string
 		) => {
 			if (option === "type") {
@@ -36,22 +52,22 @@ export const ExportQueryResult: FC<ExportQueryResultProps> = (props) => {
 					setExportOptions((options) => ({
 						...options,
 						type: "CSV",
-						destructureData: false,
+						fileName: options.fileName.replace(/\.ndjson$/i, ".csv"),
 						fields: [],
 					}));
 				} else if (value === "NDJSON") {
 					setExportOptions((options) => ({
-						fileName: options.fileName,
+						saveLocation: options.saveLocation,
+						fileName: options.fileName.replace(/\.csv$/i, ".ndjson"),
 						type: "NDJSON",
 					}));
 				}
-			} else if (option === "destructure") {
+			} else if (option === "saveLocation" && typeof value !== "undefined") {
 				setExportOptions((options) => ({
 					...options,
-					destructureData:
-						options.type === "CSV" ? !options.destructureData : false,
+					saveLocation: value,
 				}));
-			} else if (option === "fileName" && value) {
+			} else if (option === "fileName" && typeof value !== "undefined") {
 				setExportOptions((options) => ({
 					...options,
 					fileName: value,
@@ -72,13 +88,23 @@ export const ExportQueryResult: FC<ExportQueryResultProps> = (props) => {
 	return (
 		<Dialog
 			size={"small"}
-			title={"Setup Export"}
+			title={"Start Export"}
 			onConfirm={() => {
-				onExport(exportOptions);
-				setExportOptions({
-					type: "NDJSON",
-					fileName: "",
-				});
+				const { ok, err } = validateExportOptions();
+				if (ok) {
+					onExport(exportOptions);
+					setExportOptions({
+						type: "NDJSON",
+						saveLocation: "",
+						fileName: "",
+					});
+				} else {
+					notify({
+						type: "error",
+						title: "Export Error",
+						description: err ? err : "",
+					});
+				}
 			}}
 			onCancel={() => onCancel()}
 		>
@@ -100,8 +126,8 @@ export const ExportQueryResult: FC<ExportQueryResultProps> = (props) => {
 						<FileInput
 							fill
 							text={
-								exportOptions.fileName
-									? exportOptions.fileName
+								exportOptions.saveLocation
+									? exportOptions.saveLocation
 									: "Choose a destination..."
 							}
 							onClick={(e) => {
@@ -111,28 +137,23 @@ export const ExportQueryResult: FC<ExportQueryResultProps> = (props) => {
 									.then((result) => {
 										const { dirs } = result;
 										const saveLocation = dirs[dirs.length - 1];
-										changeExportOptions("fileName", saveLocation);
+										changeExportOptions("saveLocation", saveLocation);
 									});
 							}}
 						/>
 					</FormGroup>
 				</div>
+				<FormGroup label="File Name">
+					<InputGroup
+						fill
+						value={exportOptions.fileName}
+						onChange={(e) => changeExportOptions("fileName", e.target.value)}
+					/>
+				</FormGroup>
 				{exportOptions.type === "CSV" && (
 					<div className="export-type">
 						<FormGroup
-							helperText="Enabling this will add headers for objects and arrays. These headers will be the paths to the respective keys."
-							labelFor="destructure-switch"
-						>
-							<Switch
-								inline
-								label="Destructure objects and arrays"
-								id="destructure-switch"
-								checked={!!exportOptions.destructureData}
-								onChange={() => changeExportOptions("destructure")}
-							/>
-						</FormGroup>
-						<FormGroup
-							helperText="Provide comma separated fields from the query result to use as headers of the CSV."
+							helperText="Provide comma separated fields from the query result to use as headers of the CSV. You can use '.' (dot) notiation to display subdocument keys and array elements."
 							label="Fields"
 						>
 							<TextArea

@@ -1,6 +1,5 @@
-import React, { FC, useCallback, useState } from "react";
+import React, { FC, useState } from "react";
 import { Button } from "../../../../common/components/Button";
-import { Dialog } from "../../../../common/components/Dialog";
 import "../../styles.less";
 import "../../../../common/styles/layout.less";
 import "./styles.less";
@@ -40,23 +39,21 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 		switchViews,
 	} = props;
 
+	const [displayLimit] = useState(paramsState?.queryParams.limit || 50);
+
 	return (
 		<div className="result-viewer">
 			<div className="result-viewer-header">
-				<div className="header-item">
-					{paramsState && (
-						<span>
-							Showing{" "}
-							{(paramsState.queryParams.page - 1) *
-								paramsState.queryParams.limit +
-								1}{" "}
-							to{" "}
-							{(paramsState.queryParams.page - 1) *
-								paramsState.queryParams.limit +
-								paramsState.queryParams.limit}
-						</span>
-					)}
-				</div>
+				{/* <div className="header-item">
+					
+				</div> */}
+
+				{paramsState && (
+					<div className="header-item">
+						<span>Page: {paramsState.queryParams.page}</span>
+						<span>Limit: {displayLimit}</span>
+					</div>
+				)}
 				<div className="header-item">
 					<ButtonGroup>
 						<Button
@@ -80,10 +77,10 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 							small
 							value={paramsState?.queryParams.limit.toString()}
 							onChange={(e) => {
-								if (!isNaN(Number(e.target.value))) {
+								if (!isNaN(Number(e.currentTarget.value))) {
 									paramsState?.changeQueryParams(
 										"limit",
-										Number(e.target.value)
+										Number(e.currentTarget.value)
 									);
 								}
 							}}

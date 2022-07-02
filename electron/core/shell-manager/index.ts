@@ -132,9 +132,9 @@ export function createShellManager(params: CreateShellParams) {
 
             shell.validateDriver();
 
-            await shell.evaluator.export(data.code, shell.database, data.options);
+            const exportPath = await shell.evaluator.export(data.code, shell.database, data.options);
 
-            return;
+            return { exportPath };
         },
         destroy: async (data: DestroyShell) => {
             const shell = shells.get(data.shell);

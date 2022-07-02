@@ -16,9 +16,19 @@ import { SettingsContext } from "../../layout/BaseContextProvider";
 import { Menu, MenuItem, Tag } from "@blueprintjs/core";
 import { Popover2 } from "@blueprintjs/popover2";
 import { ExportQueryResult } from "../../dialogs/ExportQueryResult";
+import { useDebounce } from "../../../hooks/useDebounce";
 
-const createDefaultCodeSnippet = (collection: string) => `// Mongo shell
-db.getCollection('${collection}').find({});
+const createDefaultCodeSnippet = (collection: string, helpText = true) => `${
+	helpText
+		? `/**
+ * Ark Editor
+ * 
+ * Welcome to Ark's script editor.
+ * 
+ */
+`
+		: ""
+}db.getCollection('${collection}').find({ });
 `;
 
 interface ReplicaSetMember {
@@ -60,6 +70,8 @@ export const Editor: FC<EditorProps> = (props) => {
 		limit: 50,
 		timeout: settings?.shellTimeout,
 	});
+
+	const debouncedQueryParams = useDebounce(queryParams, 600);
 
 	const [effectRefToken, refreshEffect] = useRefresh();
 	const [executing, setExecuting] = useState(false);
@@ -114,12 +126,11 @@ export const Editor: FC<EditorProps> = (props) => {
 			setCurrentResult(undefined);
 			shellId
 				? window.ark.shell
-						.eval(shellId, _code, queryParams)
+						.eval(shellId, _code, debouncedQueryParams)
 						.then(function ({ editable, result, err }) {
 							if (err) {
 								console.log("exec shell");
 								console.log(err);
-								// setTextResult(msg + "<br/>" + html);
 								return;
 							}
 
@@ -150,7 +161,7 @@ export const Editor: FC<EditorProps> = (props) => {
 						.finally(() => setExecuting(false))
 				: setExecuting(false);
 		},
-		[shellId, storedConnectionId, queryParams]
+		[shellId, storedConnectionId, debouncedQueryParams]
 	);
 
 	const destroyShell = useCallback(
@@ -179,14 +190,15 @@ export const Editor: FC<EditorProps> = (props) => {
 	const exportData = useCallback(
 		(code, options) => {
 			const _code = code.replace(/(\/\/.*)|(\n)/g, "");
+			setExecuting(true);
 			shellId &&
 				window.ark.shell
 					.export(shellId, _code, options)
-					.then(() => {
-						console.log("Export complete");
+					.then((result) => {
+						const { exportPath } = result;
 						notify({
 							title: "Export complete!",
-							description: `Path: ~/.ark/exports/${options.fileName}`,
+							description: `File saved to path - ${exportPath}`,
 							type: "success",
 						});
 					})
@@ -197,7 +209,8 @@ export const Editor: FC<EditorProps> = (props) => {
 							type: "error",
 						});
 						console.error("exec shell error: ", err);
-					});
+					})
+					.finally(() => setExecuting(false));
 		},
 		[shellId]
 	);
@@ -207,13 +220,13 @@ export const Editor: FC<EditorProps> = (props) => {
 	}, [destroyShell, refreshEffect, shellId]);
 
 	useEffect(() => {
-		if (queryParams && !initialRender) {
+		if (debouncedQueryParams && !initialRender) {
 			exec(code);
 		}
 
 		/* Just need these dependencies for code to re-execute
 			when either the page or the limit is changed */
-	}, [queryParams, initialRender]);
+	}, [debouncedQueryParams]);
 
 	useEffect(() => {
 		if (settings?.shellTimeout) {
@@ -496,7 +509,10 @@ export const Editor: FC<EditorProps> = (props) => {
 						shellConfig={{ ...shellConfig, database: contextDB }}
 						driverConnectionId={storedConnectionId}
 						switchViews={switchViews}
-						paramsState={{ queryParams, changeQueryParams }}
+						paramsState={{
+							queryParams,
+							changeQueryParams,
+						}}
 						onRefresh={() => {
 							exec(code);
 						}}

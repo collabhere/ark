@@ -30,7 +30,7 @@ export interface Evaluator {
 		code: string,
 		database: string,
 		options: Ark.ExportCsvOptions | Ark.ExportNdjsonOptions
-	): Promise<void>;
+	): Promise<string>;
 }
 
 interface CreateEvaluatorOptions {
