@@ -3,6 +3,7 @@ import { Evaluator } from "./evaluator";
 export interface CreateShell {
     contextDB: string;
     connectionId: string;
+    encryptionKey?: Ark.Settings["encryptionKey"]
 }
 
 export interface DestroyShell {

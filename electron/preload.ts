@@ -30,8 +30,8 @@ const arkContext: Ark.Context = {
 		delete: (scriptId) => invoke("script_actions", { action: "delete", params: { scriptId } })
 	},
 	shell: {
-		create: (contextDB, connectionId) =>
-			invoke("shell_create", { contextDB, connectionId }),
+		create: (contextDB, connectionId, encryptionKey) =>
+			invoke("shell_create", { contextDB, connectionId, encryptionKey }),
 		eval: (shell, code, options) =>
 			invoke("shell_eval", { code, shell, ...options }),
 		export: (shell, code, options) =>

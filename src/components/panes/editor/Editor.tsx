@@ -164,7 +164,7 @@ export const Editor: FC<EditorProps> = (props) => {
 				`[switch replica] creating shell ${member.name} ${member.stateStr}`
 			);
 			return window.ark.shell
-				.create(contextDB, storedConnectionId)
+				.create(contextDB, storedConnectionId, settings?.encryptionKey)
 				.then(({ id }) => {
 					console.log(
 						`[switch replica] created shell ${id} ${member.name} ${member.stateStr}`
@@ -173,7 +173,7 @@ export const Editor: FC<EditorProps> = (props) => {
 					setCurrentReplicaHost(member);
 				});
 		},
-		[contextDB, storedConnectionId]
+		[contextDB, storedConnectionId, settings?.encryptionKey]
 	);
 	const exportData = useCallback(
 		(code, options) => {
@@ -254,7 +254,11 @@ export const Editor: FC<EditorProps> = (props) => {
 					} else {
 						console.log("[editor onload] single-host");
 						return Promise.all([
-							window.ark.shell.create(contextDB, storedConnectionId),
+							window.ark.shell.create(
+								contextDB,
+								storedConnectionId,
+								settings?.encryptionKey
+							),
 							window.ark.driver.run("connection", "info", {
 								id: storedConnectionId,
 							}),

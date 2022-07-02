@@ -11,6 +11,14 @@ import {
 	sshTunnel,
 	URIConfiguration,
 } from "./library";
+import { mkdir, writeFile } from "fs/promises";
+import { generateKeySync } from "crypto";
+import { resolve } from "path";
+import { existsSync } from "fs";
+import {
+	ARK_FOLDER_PATH,
+	ENCRYPTION_KEY_FILENAME,
+} from "../../../utils/constants";
 
 export interface Connection {
 	info(
@@ -73,9 +81,12 @@ export interface Connection {
 		dep: Ark.DriverDependency,
 		arg: {
 			pwd: string;
-			encryptionKey: Ark.StoredConnection["encryptionKey"];
 			iv: string;
 		}
+	): Promise<string>;
+	createEncryptionKey(
+		dep: Ark.DriverDependency,
+		arg: { path?: string }
 	): Promise<string>;
 }
 
@@ -109,9 +120,13 @@ export const Connection: Connection = {
 		const connections = await diskStore.getAll();
 		return connections;
 	},
-	load: async ({ storedConnection }) => {
+	load: async ({ storedConnection, _stores }) => {
 		if (storedConnection) {
-			const uri = await getConnectionUri(storedConnection);
+			const settings = await _stores.settingsStore.get("general");
+			const uri = await getConnectionUri(
+				storedConnection,
+				settings?.encryptionKey
+			);
 			return { ...storedConnection, uri };
 		} else {
 			throw new Error(ERR_CODES.CORE$DRIVER$NO_STORED_CONNECTION);
@@ -133,7 +148,11 @@ export const Connection: Connection = {
 				}
 			}
 
-			const connectionUri = await getConnectionUri(storedConnection);
+			const settings = await stores.settingsStore.get("general");
+			const connectionUri = await getConnectionUri(
+				storedConnection,
+				settings?.encryptionKey
+			);
 			const client = new MongoClient(connectionUri);
 			const connection = await client.connect();
 			const listDatabaseResult = await connection.db().admin().listDatabases();
@@ -169,7 +188,8 @@ export const Connection: Connection = {
 	save: async ({ _stores: stores }, args) => {
 		const { diskStore, iconStore } = stores;
 
-		const config = await createConnectionConfigurations(args);
+		const settings = await stores.settingsStore.get("general");
+		const config = await createConnectionConfigurations(args, settings?.encryptionKey);
 
 		if (config.id && args.icon) {
 			config.icon = true;
@@ -185,14 +205,18 @@ export const Connection: Connection = {
 
 		return config.id;
 	},
-	test: async (_, args) => {
+	test: async ({ _stores: store }, args) => {
 		try {
-			const config = await createConnectionConfigurations(args);
+			const settings = await store.settingsStore.get("general");
+			const config = await createConnectionConfigurations(args, settings?.encryptionKey);
 			if (config.ssh && config.ssh.useSSH) {
 				await sshTunnel(config.ssh, config.hosts);
 			}
 
-			const connectionUri = await getConnectionUri(config);
+			const connectionUri = await getConnectionUri(
+				config,
+				settings?.encryptionKey
+			);
 
 			const client = new MongoClient(connectionUri);
 
@@ -254,7 +278,25 @@ export const Connection: Connection = {
 			throw new Error(ERR_CODES.CORE$DRIVER$NO_CACHED_CONNECTION);
 		}
 	},
-	decryptPassword: async function (_, { pwd, encryptionKey, iv }) {
-		return Promise.resolve(decrypt(pwd, encryptionKey, iv));
+	decryptPassword: async function ({ _stores: stores }, { pwd, iv }) {
+		const settings = await stores.settingsStore.get("general");
+		return Promise.resolve(decrypt(pwd, settings?.encryptionKey, iv));
+	},
+	createEncryptionKey: async function (_, { path }) {
+		const key: string = generateKeySync("aes", { length: 256 })
+			.export()
+			.toString("hex");
+
+		if (path && !existsSync(path)) {
+			await mkdir(path, { recursive: true });
+		}
+
+		const encryptionKeyPath = path
+			? resolve(path, ENCRYPTION_KEY_FILENAME)
+			: resolve(ARK_FOLDER_PATH, ENCRYPTION_KEY_FILENAME);
+
+		await writeFile(encryptionKeyPath, key);
+
+		return Promise.resolve(encryptionKeyPath);
 	},
 };

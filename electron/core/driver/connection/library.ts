@@ -62,14 +62,11 @@ export const getConnectionUri = async (
         username,
         password,
         options,
-        iv,
-        encryptionKey
-    }: Ark.StoredConnection
+        iv
+    }: Ark.StoredConnection,
+    encryptionKey?: Ark.Settings["encryptionKey"]
 ) => {
-    const pwd = (password &&
-        (encryptionKey.keyFile || encryptionKey.url) &&
-        iv &&
-        encryptionKey.source)
+    const pwd = (password && iv && encryptionKey?.value && encryptionKey?.type)
             ? await decrypt(password, encryptionKey, iv)
             : password;
 
@@ -139,35 +136,14 @@ export const getReplicaSetDetails = async (
 
 export const encrypt = async (
     password: string,
-    encryptionKey?: Ark.StoredConnection["encryptionKey"],
+    encryptionKey?: Ark.Settings["encryptionKey"],
 ) => {
 
-    const arkKeyPath = resolve(ARK_FOLDER_PATH, ENCRYPTION_KEY_FILENAME);
-
-    let arkEncryptionKey;
-    if (!existsSync(arkKeyPath)) {
-        arkEncryptionKey = crypto.generateKeySync("aes", { length: 256 });
-        await writeFile(
-            arkKeyPath,
-            arkEncryptionKey.export().toString("hex"),
-            { flag: 'w' }
-        );
-    }
-
-    let key;
-    if (encryptionKey && encryptionKey.source === "userDefined") {
-        if (encryptionKey.type === "url" && encryptionKey.url) {
-            key = (await axios.get(encryptionKey.url)).data.toString();
-        } else if (encryptionKey.type === "file" && encryptionKey.keyFile) {
-            key =  (await readFile(encryptionKey.keyFile)).toString();
-        }
-    } else if (!encryptionKey) {
-        if (arkEncryptionKey) {
-            key = arkEncryptionKey;
-        } else {
-            key =  (await readFile(arkKeyPath)).toString();
-        }
-    }
+    const key = encryptionKey?.type === "url" && encryptionKey?.value
+        ? (await axios.get(encryptionKey?.value)).data
+        : encryptionKey?.value 
+            ? (await readFile(encryptionKey.value)).toString()
+            : undefined;
 
     const iv = crypto.randomBytes(16);
     const cipherKey = crypto.createSecretKey(Buffer.from(key, "hex").toString("hex"), "hex");
@@ -176,23 +152,20 @@ export const encrypt = async (
         pwd: password && Buffer.concat([cipher.update(password), cipher.final()]).toString(
             "hex"
         ),
-        key: encryptionKey || !arkEncryptionKey
-            ? key.toString("hex")
-            : key.export().toString("hex"),
         iv: iv.toString("hex"),
     };
 };
 
 export const decrypt = async (
     password: string,
-    encryptionKey: Ark.StoredConnection["encryptionKey"],
+    encryptionKey: Ark.Settings["encryptionKey"],
     iv: string
 ) => {
 
-    const key = encryptionKey.type === "url" && encryptionKey.url
-        ? (await axios.get(encryptionKey.url)).data
-        : encryptionKey.keyFile 
-            ? await readFile(encryptionKey.keyFile)
+    const key = encryptionKey?.type === "url" && encryptionKey?.value
+        ? (await axios.get(encryptionKey?.value)).data
+        : encryptionKey?.value 
+            ? await readFile(encryptionKey.value)
             : undefined;
 
     const secret = crypto.createSecretKey(
@@ -208,10 +181,10 @@ export const decrypt = async (
     return decipher.update(password, "hex", "utf8") + decipher.final("utf8");
 };
 
-export const createConnectionConfigurations = async ({
-    type,
-    config,
-}: Parameters<Connection["save"]>[1]): Promise<Ark.StoredConnection> => {
+export const createConnectionConfigurations = async (
+    { type, config }: Parameters<Connection["save"]>[1],
+    encryptionKey: Ark.Settings["encryptionKey"]
+): Promise<Ark.StoredConnection> => {
     const options: MongoClientOptions = {};
     let hosts: Array<string>;
 
@@ -243,13 +216,8 @@ export const createConnectionConfigurations = async ({
         }
 
         const encryption = parsedUri.password
-            ? await encrypt(parsedUri.password)
+            ? await encrypt(parsedUri.password, encryptionKey)
             : undefined;
-
-        const filePath = resolve(ARK_FOLDER_PATH, ENCRYPTION_KEY_FILENAME);
-        if (encryption && encryption.key) {
-            await writeFile(filePath, encryption.key);
-        }
 
         return {
             id,
@@ -263,11 +231,6 @@ export const createConnectionConfigurations = async ({
             database: parsedUri.database,
             options: { ...parsedUri.options, ...options },
             ssh: { useSSH: false },
-            encryptionKey: {
-                keyFile: filePath,
-                source: "generated",
-                type: "file"
-            }
         };
     } else {
         const id = config.id || nanoid();
@@ -289,42 +252,13 @@ export const createConnectionConfigurations = async ({
         }
 
         const encryption = config.password
-            ? !config.encryptionKey.source ||
-              config.encryptionKey.source === 'generated'
-                ? await encrypt(config.password)
-                : await encrypt(config.password, config.encryptionKey)
+            ? await encrypt(config.password, encryptionKey)
             : undefined;
-
-        let filePath = resolve(ARK_FOLDER_PATH, ENCRYPTION_KEY_FILENAME);
-        if (
-            config.encryptionKey.source === "generated"
-            && config.encryptionKey.keyFile
-        ) {
-            filePath = resolve(config.encryptionKey.keyFile, ENCRYPTION_KEY_FILENAME);
-            if (!existsSync(dirname(filePath))) {
-                await mkdir(dirname(filePath));
-            }
-
-            await writeFile(filePath, encryption?.key, { flag: 'w' });
-        } else if (
-            config.encryptionKey.source === "userDefined"
-            && config.encryptionKey.keyFile
-        ) {
-            filePath = config.encryptionKey.keyFile;
-        }
 
         return {
             ...config,
             password: encryption?.pwd,
             iv: encryption?.iv,
-            encryptionKey: {
-                keyFile: config.encryptionKey.type !== "url"
-                    ? filePath
-                    : "",
-                url: config.encryptionKey.url,
-                source: config.encryptionKey.source,
-                type: config.encryptionKey.type
-            },
             id,
         };
     }

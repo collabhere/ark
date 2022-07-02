@@ -32,6 +32,7 @@ declare global {
 			memoryStore: MemoryStore<MemEntry>;
 			diskStore: DiskStore<StoredConnection>;
 			iconStore: DiskStore<StoredIcon>;
+			settingsStore: DiskStore<Settings>;
 		}
 		interface DriverDependency {
 			_stores: DriverStores;
@@ -51,12 +52,6 @@ declare global {
 			password?: string;
 			icon?: boolean;
 			type: "directConnection" | "replicaSet";
-			encryptionKey: {
-				source?: "userDefined" | "generated";
-				type?: "file" | "url";
-				keyFile?: string;
-				url?: string;
-			};
 			options: Pick<
 				MongoClientOptions,
 				| "authSource"
@@ -154,7 +149,8 @@ declare global {
 		interface Shell {
 			create: (
 				contextDB: string,
-				storedConnectionId: string
+				storedConnectionId: string,
+				encryptionKey?: Settings["encryptionKey"]
 			) => Promise<{ id: string }>;
 			destroy: (uri: string) => Promise<{ id: string }>;
 			eval: (
@@ -222,6 +218,11 @@ declare global {
 			miniMap?: "on" | "off";
 			autoUpdates?: "on" | "off";
 			hotKeys?: "on" | "off";
+			encryptionKey?: {
+				type: "file" | "url";
+				source: "generated" | "userDefined";
+				value: string;
+			};
 		}
 	}
 	interface Window {
