@@ -1,6 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { Hotkeys } from "../../common/components/Hotkeys";
-import { listenEffect } from "../../common/utils/events";
 import { TitleBar } from "./TitleBar";
 
 export interface SettingsContextType {
@@ -36,7 +35,6 @@ export interface ManagedConnection extends Ark.StoredConnection {
 	active?: boolean;
 	iconFileName?: string;
 }
-
 interface PageBodyProps {
 	children?: React.ReactNode;
 }
@@ -49,6 +47,7 @@ export const BaseContextProvider = (props: PageBodyProps): JSX.Element => {
 
 	const [connections, setConnections] = useState<ManagedConnection[]>([]);
 	const [settings, setSettings] = useState<Ark.Settings>({});
+	const [settingsFetched, setSettingsFetched] = useState(false);
 
 	const [enableHotkeys, setEnableHotkeys] = useState(true);
 
@@ -61,32 +60,38 @@ export const BaseContextProvider = (props: PageBodyProps): JSX.Element => {
 	}, []);
 
 	const connect = useCallback((id: string) => {
-		return window.ark.driver.run("connection", "connect", { id }).then(() =>
-			Promise.all([
-				window.ark.driver.run("connection", "load", { id }),
-				window.ark.getIcon(id),
-			]).then(([connection, icon]) => {
-				setConnections((connections) => {
-					const idx = connections.findIndex(
-						(conn) => conn.id === connection.id
-					);
-					if (idx > -1) {
-						connections[idx].active = true;
-						connections[idx].iconFileName = icon.name;
-						return [...connections];
-					}
-					return connections;
-				});
-
-				const managed: ManagedConnection = {
-					...connection,
-					active: true,
-					iconFileName: icon.name,
-				};
-
-				return managed;
+		return window.ark.driver
+			.run("connection", "connect", {
+				id,
 			})
-		);
+			.then(() =>
+				Promise.all([
+					window.ark.driver.run("connection", "load", {
+						id,
+					}),
+					window.ark.getIcon(id),
+				]).then(([connection, icon]) => {
+					setConnections((connections) => {
+						const idx = connections.findIndex(
+							(conn) => conn.id === connection.id
+						);
+						if (idx > -1) {
+							connections[idx].active = true;
+							connections[idx].iconFileName = icon.name;
+							return [...connections];
+						}
+						return connections;
+					});
+
+					const managed: ManagedConnection = {
+						...connection,
+						active: true,
+						iconFileName: icon.name,
+					};
+
+					return managed;
+				})
+			);
 	}, []);
 
 	const disconnect = useCallback((id: string) => {
@@ -139,6 +144,7 @@ export const BaseContextProvider = (props: PageBodyProps): JSX.Element => {
 					setSettings(settings);
 					setEnableHotkeys(settings.hotKeys !== "off");
 				}
+				setSettingsFetched(true);
 			})
 			.catch((err) => {
 				console.log("Settings context error:", err);
@@ -147,30 +153,32 @@ export const BaseContextProvider = (props: PageBodyProps): JSX.Element => {
 
 	return (
 		<div className="layout">
-			<SettingsContext.Provider
-				value={{
-					settings,
-					setSettings,
-					currentSidebarOpened,
-					setCurrentSidebarOpened,
-				}}
-			>
-				<ConnectionsContext.Provider
+			{settingsFetched && (
+				<SettingsContext.Provider
 					value={{
-						connections,
-						setConnections,
-						load,
-						connect,
-						deleteConnectionOnDisk,
-						disconnect,
+						settings,
+						setSettings,
+						currentSidebarOpened,
+						setCurrentSidebarOpened,
 					}}
 				>
-					{enableHotkeys && <Hotkeys />}
+					<ConnectionsContext.Provider
+						value={{
+							connections,
+							setConnections,
+							load,
+							connect,
+							deleteConnectionOnDisk,
+							disconnect,
+						}}
+					>
+						{enableHotkeys && <Hotkeys />}
 
-					<TitleBar />
-					<div className="page-content">{children}</div>
-				</ConnectionsContext.Provider>
-			</SettingsContext.Provider>
+						<TitleBar />
+						<div className="page-content">{children}</div>
+					</ConnectionsContext.Provider>
+				</SettingsContext.Provider>
+			)}
 		</div>
 	);
 };

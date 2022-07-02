@@ -15,7 +15,6 @@ import { Query } from "./electron/core/driver/query";
 
 declare global {
 	namespace Ark {
-
 		interface StoredIcon {
 			name: string;
 			path: string;
@@ -29,11 +28,11 @@ declare global {
 			[k: string]: any;
 		}
 
-
 		interface DriverStores {
 			memoryStore: MemoryStore<MemEntry>;
 			diskStore: DiskStore<StoredConnection>;
 			iconStore: DiskStore<StoredIcon>;
+			settingsStore: DiskStore<Settings>;
 		}
 		interface DriverDependency {
 			_stores: DriverStores;
@@ -49,7 +48,6 @@ declare global {
 			hosts: Array<string>;
 			database?: string;
 			username?: string;
-			key?: string;
 			iv?: string;
 			password?: string;
 			icon?: boolean;
@@ -151,7 +149,8 @@ declare global {
 		interface Shell {
 			create: (
 				contextDB: string,
-				storedConnectionId: string
+				storedConnectionId: string,
+				encryptionKey?: Settings["encryptionKey"]
 			) => Promise<{ id: string }>;
 			destroy: (uri: string) => Promise<{ id: string }>;
 			eval: (
@@ -196,11 +195,15 @@ declare global {
 			) => Promise<{ path: string }>;
 			copyText(text: string): void;
 			getIcon(id: string): Promise<StoredIcon>;
-			copyIcon(cacheFolder: string, name: string, path: string): Promise<{ path: string }>;
+			copyIcon(
+				cacheFolder: string,
+				name: string,
+				path: string
+			): Promise<{ path: string }>;
 			rmIcon(path: string): Promise<void>;
 			scripts: Scripts;
 			driver: {
-				run: Driver["run"]
+				run: Driver["run"];
 			};
 			settings: GeneralSettings;
 			shell: Shell;
@@ -215,6 +218,11 @@ declare global {
 			miniMap?: "on" | "off";
 			autoUpdates?: "on" | "off";
 			hotKeys?: "on" | "off";
+			encryptionKey?: {
+				type: "file" | "url";
+				source: "generated" | "userDefined";
+				value: string;
+			};
 		}
 	}
 	interface Window {

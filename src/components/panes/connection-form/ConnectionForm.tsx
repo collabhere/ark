@@ -53,6 +53,16 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 			: ""
 	);
 
+	const editConnection = useCallback(function <T extends Ark.StoredConnection>(
+		key: keyof T,
+		value: T[keyof T]
+	) {
+		if (key && value !== undefined) {
+			setConnectionData((conn) => ({ ...conn, [key]: value }));
+		}
+	},
+	[]);
+
 	const emptyConnection = () => ({
 		id: "",
 		name: "",
@@ -62,6 +72,12 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 		type: "directConnection" as const,
 		username: "",
 		password: "",
+		encryptionKey: {
+			source: "generated" as const,
+			type: "file" as const,
+			keyFile: "",
+			url: "",
+		},
 		options: {
 			tls: false,
 			authMechanism:
@@ -108,6 +124,24 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 		/* We just need the icon fetched during the initial render.
 		Subsequent updates are being handled within the component */
 		/* eslint-disable-next-line */
+	}, []);
+
+	useEffect(() => {
+		if (
+			connectionData.password &&
+			(props.mode === "edit" || props.mode === "clone")
+		) {
+			window.ark.driver
+				.run<"decryptPassword">("connection", "decryptPassword", {
+					pwd: connectionData.password,
+					iv: connectionData.iv || "",
+				})
+				.then((pwd) => {
+					editConnection("password", pwd);
+				});
+		}
+		// We just need to decrypt the password on initial render
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const validateUri = useCallback((uri: string) => {
@@ -184,15 +218,15 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 	const validateAdvancedConfig = useCallback(() => {
 		const error: Partial<Parameters<typeof notify>[0]> = {};
 		if (!connectionData.type) {
-			error.description = "Invalid connection typ";
+			error.description = "Invalid connection type.";
 		} else if (!connectionData.hosts || !(!!host && !isNaN(Number(port)))) {
-			error.description = "Invalid hosts";
+			error.description = "Invalid hosts.";
 		} else if (
 			connectionData.options.tls &&
 			tlsAuthMethod === "CACertificate" &&
 			!connectionData.options.tlsCertificateFile
 		) {
-			error.description = "Specify the TLS certificate file to be used";
+			error.description = "Specify the TLS certificate file to be used.";
 		} else if (connectionData.ssh.useSSH) {
 			if (
 				!connectionData.ssh.host ||
@@ -271,16 +305,6 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 			return Promise.resolve();
 		}
 	}, [connectionData, host, port, validateAdvancedConfig]);
-
-	const editConnection = useCallback(function <T extends Ark.StoredConnection>(
-		key: keyof T,
-		value: T[keyof T]
-	) {
-		if (key && value !== undefined) {
-			setConnectionData((conn) => ({ ...conn, [key]: value }));
-		}
-	},
-	[]);
 
 	const editSSHDetails = useCallback(
 		function <T extends Ark.StoredConnection["ssh"]>(
