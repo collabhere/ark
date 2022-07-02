@@ -166,8 +166,11 @@ export const Editor: FC<EditorProps> = (props) => {
 
 	const destroyShell = useCallback(
 		(shellId: string) =>
-			window.ark.shell.destroy(shellId).then(() => setShellId(undefined)),
-		[]
+			Promise.all([
+				window.ark.shell.destroy(shellId).then(() => setShellId(undefined)),
+				savedScriptId && window.ark.scripts.delete(savedScriptId),
+			]),
+		[savedScriptId]
 	);
 
 	const switchReplicaShell = useCallback(
@@ -379,23 +382,24 @@ export const Editor: FC<EditorProps> = (props) => {
 									<Button
 										size="small"
 										icon={"floppy-disk"}
-										onClick={() => {
-											window.ark
-												.browseForDirs("Select A Save Location", "Set")
-												.then((result) => {
-													const { dirs } = result;
-													const saveLocation = dirs[dirs.length - 1];
-													return window.ark.scripts
-														.saveAs({
-															code,
-															saveLocation,
-															storedConnectionId: storedConnectionId,
-															fileName: "saved-script-1.js",
-														})
-														.then((script) => {
-															setSavedScriptId(script.id);
-														});
-												});
+										onClick={{
+											callback: (err, script) => {
+												if (err) {
+													notify({
+														description: err.message
+															? err.message
+															: "Could not save script.",
+														type: "error",
+													});
+												} else if (script) {
+													setSavedScriptId(script.id);
+												}
+											},
+											promise: () =>
+												window.ark.scripts.saveAs({
+													code,
+													storedConnectionId,
+												}),
 										}}
 										tooltipOptions={{
 											position: "bottom",
@@ -403,21 +407,30 @@ export const Editor: FC<EditorProps> = (props) => {
 										}}
 									/>
 								</div>
-
 								{savedScriptId && (
 									<div className={"editor-header-item"}>
 										<Button
 											size="small"
 											icon={"saved"}
-											onClick={() => {
-												return window.ark.scripts
-													.save({
+											onClick={{
+												callback: (err, script) => {
+													if (err) {
+														notify({
+															description: err.message
+																? err.message
+																: "Could not save script.",
+															type: "error",
+														});
+													} else if (script) {
+														setSavedScriptId(script.id);
+													}
+												},
+												promise: () => {
+													return window.ark.scripts.save({
 														code,
 														id: savedScriptId,
-													})
-													.then((script) => {
-														setSavedScriptId(script.id);
 													});
+												},
 											}}
 											tooltipOptions={{
 												position: "bottom",

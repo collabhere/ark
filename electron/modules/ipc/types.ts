@@ -30,7 +30,6 @@ export type IconActions = IconActionCopy | IconActionDelete | IconActionGetIcon;
 export interface StoredScript {
     id: string;
     fullpath: string;
-    fileName?: string;
     storedConnectionId?: string;
 }
 
@@ -47,10 +46,8 @@ export interface ScriptSaveActionData {
 export interface ScriptSaveAsActionData {
     action: "save_as";
     params: {
-        saveLocation?: string;
-        storedConnectionId?: string;
-        fileName?: string;
-        code?: string;
+        storedConnectionId: string;
+        code: string;
     } & Omit<ScriptSaveParams, "id">;
 }
 

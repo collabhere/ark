@@ -161,8 +161,7 @@ function IPC() {
 								const script: StoredScript = {
 									id,
 									storedConnectionId,
-									fullpath: fileLocation,
-									fileName
+									fullpath: fileLocation
 								};
 
 								await scriptDiskStore.set(id, script);
@@ -191,27 +190,32 @@ function IPC() {
 							return storedScript;
 						} else if (data.action === "save_as") {
 
-							const { code, saveLocation, storedConnectionId, fileName } = data.params;
+							const result = await dialog.showSaveDialog(window, {
+								title: "Save Script",
+								buttonLabel: "Save as",
+								properties: ["showOverwriteConfirmation"]
+							});
 
-							const fullpath = path.join(
-								saveLocation
-									? saveLocation
-									: '',
-								fileName
-									? fileName
-									: 'untitled-ark-script.js'
-							);
+							if (result.canceled) {
+								return;
+							}
+
+							if (!result.filePath) {
+								throw new Error(ERR_CODES.SCRIPTS$SAVE$NO_ENT);
+							}
+
+							const { code, storedConnectionId } = data.params;
+
+							const fullpath = result.filePath;
 
 							await fs.promises.writeFile(fullpath, code || '');
-
 
 							const id = nanoid();
 
 							const script: StoredScript = {
 								id,
 								storedConnectionId,
-								fullpath,
-								fileName
+								fullpath
 							};
 
 							await scriptDiskStore.set(id, script);
@@ -219,6 +223,9 @@ function IPC() {
 							return script;
 						} else if (data.action === "delete") {
 							const { scriptId } = data.params;
+
+							await scriptDiskStore.remove(scriptId);
+
 						}
 					}
 				})
