@@ -4,11 +4,12 @@ import { MemEntry } from "../../../modules/ipc/types";
 import { ERR_CODES } from "../../../../util/errors";
 import {
 	createConnectionConfigurations,
+	decrypt,
 	GetConnectionResult,
 	getConnectionUri,
 	getReplicaSetDetails,
 	sshTunnel,
-	URIConfiguration
+	URIConfiguration,
 } from "./library";
 
 export interface Connection {
@@ -68,6 +69,14 @@ export interface Connection {
 		dep: Ark.DriverDependency,
 		arg: { id: string }
 	): Promise<ListDatabasesResult["databases"]>;
+	decryptPassword(
+		dep: Ark.DriverDependency,
+		arg: {
+			pwd: string;
+			encryptionKey: Ark.StoredConnection["encryptionKey"];
+			iv: string;
+		}
+	): Promise<string>;
 }
 
 export const Connection: Connection = {
@@ -91,9 +100,10 @@ export const Connection: Connection = {
 				throw new Error(ERR_CODES.CORE$DRIVER$NO_STORED_CONNECTION);
 			}
 		} else {
-			throw new Error(ERR_CODES.CORE$DRIVER$NO_CACHED_CONNECTION)
+			throw new Error(ERR_CODES.CORE$DRIVER$NO_CACHED_CONNECTION);
 		}
 	},
+
 	list: async ({ _stores: stores }) => {
 		const { diskStore } = stores;
 		const connections = await diskStore.getAll();
@@ -108,11 +118,8 @@ export const Connection: Connection = {
 		}
 	},
 	connect: async ({ storedConnection, _stores: stores }, { id }) => {
-
 		if (storedConnection) {
-			const {
-				memoryStore
-			} = stores;
+			const { memoryStore } = stores;
 
 			let server: Server | void;
 
@@ -145,12 +152,8 @@ export const Connection: Connection = {
 		}
 	},
 	disconnect: async ({ memEntry, _stores: stores }, { id }) => {
-
 		if (memEntry) {
-
-			const {
-				memoryStore
-			} = stores;
+			const { memoryStore } = stores;
 
 			await memEntry.connection.close();
 
@@ -159,13 +162,11 @@ export const Connection: Connection = {
 			}
 
 			memoryStore.drop(id);
-
 		} else {
 			throw new Error(ERR_CODES.CORE$DRIVER$NO_CACHED_CONNECTION);
 		}
 	},
 	save: async ({ _stores: stores }, args) => {
-
 		const { diskStore, iconStore } = stores;
 
 		const config = await createConnectionConfigurations(args);
@@ -201,7 +202,7 @@ export const Connection: Connection = {
 				console.log(err);
 				return {
 					status: false,
-					message: "Could not connect to server"
+					message: "Could not connect to server",
 				};
 			}
 
@@ -212,7 +213,7 @@ export const Connection: Connection = {
 			} catch (err) {
 				return {
 					status: false,
-					message: "Could not list databases"
+					message: "Could not list databases",
 				};
 			}
 
@@ -227,8 +228,8 @@ export const Connection: Connection = {
 					err && err instanceof Error
 						? err.message
 						: typeof err === "string"
-							? err
-							: "",
+						? err
+						: "",
 			};
 		}
 	},
@@ -238,9 +239,7 @@ export const Connection: Connection = {
 		await iconStore.remove(id);
 	},
 	listDatabases: async function ({ memEntry: entry }, { id }) {
-
 		if (entry) {
-
 			if (entry.server && !entry.server.listening) {
 				throw new Error(ERR_CODES.CORE$DRIVER$SSH_TUNNEL_CLOSED);
 			}
@@ -251,9 +250,11 @@ export const Connection: Connection = {
 
 			// Incorrect type from mongo driver
 			return result.databases;
-
 		} else {
 			throw new Error(ERR_CODES.CORE$DRIVER$NO_CACHED_CONNECTION);
 		}
+	},
+	decryptPassword: async function (_, { pwd, encryptionKey, iv }) {
+		return Promise.resolve(decrypt(pwd, encryptionKey, iv));
 	},
 };

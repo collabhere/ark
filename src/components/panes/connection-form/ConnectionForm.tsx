@@ -22,7 +22,7 @@ export interface ConnectionFormProps {
 	mode?: "edit" | "clone";
 }
 
-const UNIX_DIR_REGEX = new RegExp("^/$|(/[a-zA-Z_0-9-]+)+$");
+const UNIX_DIR_REGEX = new RegExp("^/$|(/[a-zA-Z_0-9-.]+)+$");
 const WINDOWS_DIR_REGEX = new RegExp(
 	'^[a-zA-Z]:\\(((?![<>:"/\\|?*]).)+((?<![ .])\\)?)*$'
 );
@@ -59,6 +59,16 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 			? props.connectionParams?.hosts[0].split(":")[1]
 			: ""
 	);
+
+	const editConnection = useCallback(function <T extends Ark.StoredConnection>(
+		key: keyof T,
+		value: T[keyof T]
+	) {
+		if (key && value !== undefined) {
+			setConnectionData((conn) => ({ ...conn, [key]: value }));
+		}
+	},
+	[]);
 
 	const emptyConnection = () => ({
 		id: "",
@@ -137,6 +147,31 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 		/* We just need the icon fetched during the initial render.
 		Subsequent updates are being handled within the component */
 		/* eslint-disable-next-line */
+	}, []);
+
+	useEffect(() => {
+		if (
+			connectionData.password &&
+			(props.mode === "edit" || props.mode === "clone")
+		) {
+			window.ark.driver
+				.run<"decryptPassword">("connection", "decryptPassword", {
+					pwd: connectionData.password,
+					encryptionKey: {
+						...connectionData.encryptionKey,
+						keyFile:
+							connectionData.encryptionKey.source === "generated"
+								? `${connectionData.encryptionKey.keyFile}/encryptionKey`
+								: connectionData.encryptionKey.keyFile,
+					},
+					iv: connectionData.iv || "",
+				})
+				.then((pwd) => {
+					editConnection("password", pwd);
+				});
+		}
+		// We just need to decrypt the password on initial render
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const validateUri = useCallback((uri: string) => {
@@ -324,16 +359,6 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 			return Promise.resolve();
 		}
 	}, [connectionData, host, port, validateAdvancedConfig]);
-
-	const editConnection = useCallback(function <T extends Ark.StoredConnection>(
-		key: keyof T,
-		value: T[keyof T]
-	) {
-		if (key && value !== undefined) {
-			setConnectionData((conn) => ({ ...conn, [key]: value }));
-		}
-	},
-	[]);
 
 	const editSSHDetails = useCallback(
 		function <T extends Ark.StoredConnection["ssh"]>(

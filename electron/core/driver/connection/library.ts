@@ -289,7 +289,8 @@ export const createConnectionConfigurations = async ({
         }
 
         const encryption = config.password
-            ? !config.encryptionKey.source || config.encryptionKey.source === 'generated'
+            ? !config.encryptionKey.source ||
+              config.encryptionKey.source === 'generated'
                 ? await encrypt(config.password)
                 : await encrypt(config.password, config.encryptionKey)
             : undefined;
@@ -299,7 +300,7 @@ export const createConnectionConfigurations = async ({
             config.encryptionKey.source === "generated"
             && config.encryptionKey.keyFile
         ) {
-            filePath = resolve(config.encryptionKey.keyFile, config.name);
+            filePath = resolve(config.encryptionKey.keyFile, ENCRYPTION_KEY_FILENAME);
             if (!existsSync(dirname(filePath))) {
                 await mkdir(dirname(filePath));
             }
