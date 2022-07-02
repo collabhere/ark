@@ -15,16 +15,17 @@ import {
 	MongoClientOptions,
 } from "@mongosh/service-provider-server";
 import { EventEmitter } from "stream";
-import { exportData, MongoExportOptions } from "../../../modules/exports";
+import { exportData } from "../../../modules/exports";
 
 import { _evaluate } from "./_eval";
+import { ObjectId } from "bson";
 
 export interface Evaluator {
 	evaluate(
 		code: string,
 		database: string,
 		options: Ark.QueryOptions
-	): Promise<{ result: Ark.AnyObject; isCursor: boolean; }>;
+	): Promise<{ result: Ark.AnyObject; isCursor: boolean; isResultPrimitive: boolean; }>;
 	disconnect(): Promise<void>;
 	export(
 		code: string,
@@ -87,6 +88,7 @@ export async function createEvaluator(
 			);
 
 			let isCursor = false;
+			let isResultPrimitive = false;
 
 			if (result instanceof AggregationCursor) {
 				result = await paginateAggregationCursor(
@@ -110,9 +112,17 @@ export async function createEvaluator(
 
 			} else if (typeof result === "object" && "toArray" in result) {
 				result = await result.toArray();
+			} else if (
+				(result instanceof Date) || (ObjectId.isValid(result)) ||
+				(!Array.isArray(result) &&
+					typeof result !== "object" &&
+					typeof result !== "function" &&
+					typeof result !== "symbol")
+			) {
+				isResultPrimitive = true;
 			}
 
-			return { result, isCursor };
+			return { result, isCursor, isResultPrimitive };
 		},
 		disconnect: async () => {
 			await provider.close(true);

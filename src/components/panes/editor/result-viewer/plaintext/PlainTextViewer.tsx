@@ -1,23 +1,16 @@
 import React, { FC, useContext } from "react";
 import { SettingsContext } from "../../../../layout/BaseContextProvider";
-import { formatBsonDocument, replaceQuotes } from "../../../../../../util/misc";
+import { formatBSONToText, replaceQuotes } from "../../../../../../util/misc";
 import Monaco from "@monaco-editor/react";
 
 export interface JSONViewerProps {
-	bson: Ark.BSONArray;
+	text: Ark.BSONArray | string;
 }
 
-export const JSONViewer: FC<JSONViewerProps> = (props) => {
-	const { bson } = props;
+export const PlainTextViewer: FC<JSONViewerProps> = (props) => {
+	const { text } = props;
 
 	const { settings } = useContext(SettingsContext);
-
-	const formatBSONToText = (doc: Ark.BSONArray, timezone = "local") =>
-		Array.isArray(doc)
-			? doc.map((elem) => formatBsonDocument(elem, timezone))
-			: typeof doc === "object"
-			? formatBsonDocument(doc, timezone)
-			: doc;
 
 	return (
 		<div className={"json-viewer"}>
@@ -44,7 +37,9 @@ export const JSONViewer: FC<JSONViewerProps> = (props) => {
 				theme={"ark"}
 				height="100%"
 				defaultValue={
-					replaceQuotes(formatBSONToText(bson, settings?.timezone)) + "\n"
+					typeof text === "string"
+						? text
+						: replaceQuotes(formatBSONToText(text, settings?.timezone)) + "\n"
 				}
 				defaultLanguage="javascript"
 			/>

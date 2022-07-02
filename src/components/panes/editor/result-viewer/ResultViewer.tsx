@@ -4,20 +4,21 @@ import "../../styles.less";
 import "../../../../common/styles/layout.less";
 import "./styles.less";
 import { TreeViewer } from "./tree/TreeViewer";
-import { JSONViewer } from "./json/JSONViewer";
+import { PlainTextViewer } from "./plaintext/PlainTextViewer";
 import { InputGroup, ButtonGroup } from "@blueprintjs/core";
 
 export type ResultViewerProps = {
-	type: "json" | "tree";
-	bson: Ark.BSONArray;
+	type: "plaintext" | "tree";
+	bson: Ark.BSONArray | string;
 } & {
 	shellConfig: Ark.ShellConfig;
 	driverConnectionId: string;
 	allowDocumentEdits?: boolean;
 	hidePagination?: boolean;
+	forceView?: "tree" | "plaintext";
 	onClose: () => void;
 	onRefresh: () => void;
-	switchViews?: (type: "tree" | "json") => void;
+	switchViews?: (type: "tree" | "plaintext") => void;
 	paramsState?: {
 		queryParams: Ark.QueryOptions;
 		changeQueryParams: (
@@ -39,6 +40,7 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 		onRefresh,
 		onClose,
 		switchViews,
+		forceView,
 	} = props;
 
 	const [displayLimit] = useState(paramsState?.queryParams.limit || 50);
@@ -108,7 +110,7 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 						<Button
 							size="small"
 							icon={"diagram-tree"}
-							disabled={type === "tree"}
+							disabled={type === "tree" || forceView === "plaintext"}
 							onClick={() => switchViews && switchViews("tree")}
 							tooltipOptions={{
 								disabled: type === "tree",
@@ -119,10 +121,10 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 						<Button
 							size="small"
 							icon={"list-detail-view"}
-							disabled={type === "json"}
-							onClick={() => switchViews && switchViews("json")}
+							disabled={type === "plaintext" || forceView === "tree"}
+							onClick={() => switchViews && switchViews("plaintext")}
 							tooltipOptions={{
-								disabled: type === "json",
+								disabled: type === "plaintext",
 								position: "top-left",
 								content: "Switch to JSON View",
 							}}
@@ -142,11 +144,11 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 				</div>
 			</div>
 			<div className="result-viewer-container">
-				{type === "json" ? (
-					<JSONViewer bson={bson} />
-				) : type === "tree" ? (
+				{forceView === "plaintext" || type === "plaintext" ? (
+					<PlainTextViewer text={bson} />
+				) : forceView === "tree" || type === "tree" ? (
 					<TreeViewer
-						bson={bson}
+						bson={bson as Ark.BSONArray}
 						driverConnectionId={driverConnectionId}
 						shellConfig={shellConfig}
 						onRefresh={onRefresh}

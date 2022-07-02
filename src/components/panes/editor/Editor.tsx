@@ -99,7 +99,7 @@ export const Editor: FC<EditorProps> = (props) => {
 		setCode(_code);
 	}, []);
 
-	const switchViews = useCallback((type: "tree" | "json") => {
+	const switchViews = useCallback((type: "tree" | "plaintext") => {
 		setCurrentResult((currentResult) => ({
 			...currentResult,
 			type: type,
@@ -127,7 +127,13 @@ export const Editor: FC<EditorProps> = (props) => {
 			shellId
 				? window.ark.shell
 						.eval(shellId, _code, debouncedQueryParams)
-						.then(function ({ editable, result, isCursor, err }) {
+						.then(function ({
+							editable,
+							result,
+							isCursor,
+							isResultPrimitive,
+							err,
+						}) {
 							if (err) {
 								console.log("exec shell");
 								console.log(err);
@@ -135,18 +141,26 @@ export const Editor: FC<EditorProps> = (props) => {
 							}
 
 							if (result) {
-								const bson = deserialize(result ? result : Buffer.from([]));
+								if (isResultPrimitive) {
+									setCurrentResult({
+										type: "plaintext",
+										bson: new TextDecoder().decode(result),
+										forceView: "plaintext",
+									});
+								} else {
+									const bson = deserialize(result);
 
-								const bsonArray: Ark.BSONArray = bsonTest(bson)
-									? Object.values(bson)
-									: [bson];
+									const bsonArray: Ark.BSONArray = bsonTest(bson)
+										? Object.values(bson)
+										: [bson];
 
-								setCurrentResult({
-									type: "tree",
-									bson: bsonArray,
-									allowDocumentEdits: editable,
-									hidePagination: !isCursor,
-								});
+									setCurrentResult({
+										type: "tree",
+										bson: bsonArray,
+										allowDocumentEdits: editable,
+										hidePagination: !isCursor,
+									});
+								}
 							} else {
 								notify({
 									title: "Error",

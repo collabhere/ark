@@ -111,9 +111,11 @@ export function createShellManager(params: CreateShellParams) {
             );
 
             const result: ShellEvalResult = {
-                result: bson.serialize(evalResult.result),
-                editable: false,
-                isCursor: evalResult.isCursor
+                ...evalResult,
+                result: evalResult.isResultPrimitive
+                    ? Buffer.from(String(evalResult.result), "utf-8")
+                    : bson.serialize(evalResult.result),
+                editable: false
             };
 
             if (Array.isArray(evalResult.result)

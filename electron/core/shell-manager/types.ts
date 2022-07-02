@@ -12,6 +12,7 @@ export interface DestroyShell {
 export interface ShellEvalResult {
     editable: boolean;
     isCursor: boolean;
+    isResultPrimitive: boolean;
     result: Buffer;
     err?: Error;
 }
