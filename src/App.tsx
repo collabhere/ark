@@ -9,7 +9,6 @@ import { Sidebar } from "./components/sidebar/Sidebar";
 import { dispatch } from "./common/utils/events";
 
 const App: FC = () => {
-	useEffect(() => {}, []);
 	return (
 		<div className="App">
 			<BaseContextProvider>

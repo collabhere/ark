@@ -11,8 +11,7 @@ interface HotkeysProps {}
 
 export const Hotkeys: FC<HotkeysProps> = () => {
 	useHotkeys(HOT_KEYS.CONNECTION_TOGGLE, () => {
-		dispatch("explorer:hide");
-		dispatch("connection_manager:toggle");
+		dispatch("OPEN_CONNECTION_CONTROLLER");
 	});
 
 	return <></>;

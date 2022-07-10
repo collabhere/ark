@@ -166,7 +166,7 @@
 		"dayjs": "^1.11.2",
 		"defaults": "^1.0.3",
 		"electron-json-storage": "^4.5.0",
-		"monaco-editor": "0.31.1",
+		"monaco-editor": "0.31",
 		"mongodb": "^4.6.0",
 		"mongodb-uri": "^0.9.7",
 		"nanoid": "^3.3.4",
