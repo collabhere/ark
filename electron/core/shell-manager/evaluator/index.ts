@@ -25,7 +25,7 @@ export interface Evaluator {
 		code: string,
 		database: string,
 		options: Ark.QueryOptions
-	): Promise<{ result: Ark.AnyObject; isCursor: boolean; isResultPrimitive: boolean; }>;
+	): Promise<{ result: Ark.AnyObject; isCursor: boolean; isNotDocumentArray: boolean; }>;
 	disconnect(): Promise<void>;
 	export(
 		code: string,
@@ -88,7 +88,7 @@ export async function createEvaluator(
 			);
 
 			let isCursor = false;
-			let isResultPrimitive = false;
+			let boolIsNotDocumentArray = false;
 
 			if (result instanceof AggregationCursor) {
 				result = await paginateAggregationCursor(
@@ -112,17 +112,13 @@ export async function createEvaluator(
 
 			} else if (typeof result === "object" && "toArray" in result) {
 				result = await result.toArray();
-			} else if (
-				(result instanceof Date) || (ObjectId.isValid(result)) ||
-				(!Array.isArray(result) &&
-					typeof result !== "object" &&
-					typeof result !== "function" &&
-					typeof result !== "symbol")
-			) {
-				isResultPrimitive = true;
+			} else if (isNotDocumentArray(result)) {
+				boolIsNotDocumentArray = true;
+			} else if (Array.isArray(result) && isNotDocumentArray(result[0])) {
+				boolIsNotDocumentArray = true;
 			}
 
-			return { result, isCursor, isResultPrimitive };
+			return { result, isCursor, isNotDocumentArray: boolIsNotDocumentArray };
 		},
 		disconnect: async () => {
 			await provider.close(true);
@@ -131,6 +127,12 @@ export async function createEvaluator(
 
 	return evaluator;
 }
+
+const isNotDocumentArray = (val: any) => (val instanceof Date) || (ObjectId.isValid(val)) ||
+	(!Array.isArray(val) &&
+		typeof val !== "object" &&
+		typeof val !== "function" &&
+		typeof val !== "symbol")
 
 async function createServiceProvider(
 	uri: string,

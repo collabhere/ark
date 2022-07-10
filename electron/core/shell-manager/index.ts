@@ -112,7 +112,7 @@ export function createShellManager(params: CreateShellParams) {
 
             const result: ShellEvalResult = {
                 ...evalResult,
-                result: evalResult.isResultPrimitive
+                result: evalResult.isNotDocumentArray
                     ? Buffer.from(String(evalResult.result), "utf-8")
                     : bson.serialize(evalResult.result),
                 editable: false

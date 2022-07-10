@@ -14,20 +14,19 @@ import { bsonTest } from "../../../../util/misc";
 import { useContext } from "react";
 import { SettingsContext } from "../../layout/BaseContextProvider";
 import { Menu, MenuItem, Tag } from "@blueprintjs/core";
-import { Popover2 } from "@blueprintjs/popover2";
 import { ExportQueryResult } from "../../dialogs/ExportQueryResult";
 import { useDebounce } from "../../../hooks/useDebounce";
 
+const EDITOR_HELP_COMMENT = `/**
+* Ark Editor
+* 
+* Welcome to Ark's script editor.
+* 
+*/
+`;
+
 const createDefaultCodeSnippet = (collection: string, helpText = true) => `${
-	helpText
-		? `/**
- * Ark Editor
- * 
- * Welcome to Ark's script editor.
- * 
- */
-`
-		: ""
+	helpText ? EDITOR_HELP_COMMENT : ""
 }db.getCollection('${collection}').find({ });
 `;
 
@@ -131,7 +130,7 @@ export const Editor: FC<EditorProps> = (props) => {
 							editable,
 							result,
 							isCursor,
-							isResultPrimitive,
+							isNotDocumentArray,
 							err,
 						}) {
 							if (err) {
@@ -141,11 +140,12 @@ export const Editor: FC<EditorProps> = (props) => {
 							}
 
 							if (result) {
-								if (isResultPrimitive) {
+								if (isNotDocumentArray) {
 									setCurrentResult({
 										type: "plaintext",
 										bson: new TextDecoder().decode(result),
 										forceView: "plaintext",
+										hidePagination: !isCursor,
 									});
 								} else {
 									const bson = deserialize(result);

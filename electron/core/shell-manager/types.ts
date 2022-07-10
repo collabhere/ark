@@ -13,7 +13,7 @@ export interface DestroyShell {
 export interface ShellEvalResult {
     editable: boolean;
     isCursor: boolean;
-    isResultPrimitive: boolean;
+    isNotDocumentArray: boolean;
     result: Buffer;
     err?: Error;
 }
