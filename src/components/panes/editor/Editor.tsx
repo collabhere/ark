@@ -597,23 +597,39 @@ const HostList = (props: HostListProps) => {
 	const { currentHost, hosts, onHostChange } = props;
 
 	return (
-		<Popover2
-			position="bottom-right"
-			content={createMenu(
-				hosts.map((host) => ({
-					item: `${host.name} (${host.stateStr.substring(0, 1)})`,
-					cb: () => onHostChange(host),
-					active: currentHost.name === host.name,
-				}))
-			)}
-		>
-			<Tag icon={"globe-network"} interactive round>
-				{currentHost.name +
-					" " +
-					"(" +
-					currentHost.stateStr.substring(0, 1) +
-					")"}
-			</Tag>
-		</Popover2>
+		<Tag icon={"globe-network"} /* interactive */ round>
+			{currentHost.name +
+				" " +
+				"(" +
+				currentHost.stateStr.substring(0, 1) +
+				")"}
+		</Tag>
 	);
+
+	// @todo: Build a system where switching
+	// replica set nodes makes a direct connection
+	// to the node via a connection string. This
+	// may require a util to build a connection string
+	// for any chosen node of a replica set stored
+	// connection.
+	// return (
+	// 	<Popover2
+	// 		position="bottom-right"
+	// 		content={createMenu(
+	// 			hosts.map((host) => ({
+	// 				item: `${host.name} (${host.stateStr.substring(0, 1)})`,
+	// 				cb: () => onHostChange(host),
+	// 				active: currentHost.name === host.name,
+	// 			}))
+	// 		)}
+	// 	>
+	// 		<Tag icon={"globe-network"} /* interactive */ round>
+	// 			{currentHost.name +
+	// 				" " +
+	// 				"(" +
+	// 				currentHost.stateStr.substring(0, 1) +
+	// 				")"}
+	// 		</Tag>
+	// 	</Popover2>
+	// );
 };
