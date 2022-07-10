@@ -54,9 +54,7 @@ export const BaseContextProvider = (props: PageBodyProps): JSX.Element => {
 	const load = useCallback(() => {
 		return window.ark.driver
 			.run("connection", "list", undefined)
-			.then((connections) => {
-				setConnections(Object.values(connections));
-			});
+			.then(setConnections);
 	}, []);
 
 	const connect = useCallback((id: string) => {

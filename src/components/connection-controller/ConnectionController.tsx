@@ -1,6 +1,6 @@
 import "./styles.less";
 import React, { FC, useCallback, useContext, useEffect, useState } from "react";
-import { Icon, Card, Elevation } from "@blueprintjs/core";
+import { Icon, Card, IconSize } from "@blueprintjs/core";
 import { dispatch, listenEffect } from "../../common/utils/events";
 import { Resizable } from "re-resizable";
 import { Button } from "../../common/components/Button";
@@ -24,7 +24,6 @@ export const ConnectionController: FC<ConnectionManagerProps> = () => {
 	} = useContext(ConnectionsContext);
 	const { currentSidebarOpened } = useContext(SettingsContext);
 
-	const [isOpen, setIsOpen] = useState(false);
 	const [listViewMode, setListViewMode] = useState<"detailed" | "compact">(
 		"detailed"
 	);
@@ -87,22 +86,34 @@ export const ConnectionController: FC<ConnectionManagerProps> = () => {
 	return currentSidebarOpened === "manager" ? (
 		<Resizable
 			defaultSize={{
-				width: "400px",
+				width: "600px",
 				height: "100%",
 			}}
 			enable={{
 				right: true,
 			}}
 			maxWidth="50%"
-			minWidth="20%"
+			minWidth="30%"
 		>
-			<div className="ConnectionManager">
-				<div className="Container">
-					<div className="FlexboxWithMargin">
-						<div className="FlexFill">
-							<span className="Header">Connection Manager</span>
-						</div>
-						<div>
+			<div className="connection-manager">
+				<div className="container">
+					<div className="header">
+						<div className="title">Connections</div>
+						<div className="buttons">
+							<Button
+								shape="round"
+								icon="list"
+								variant="primary"
+								tooltipOptions={{
+									content: "Switch view",
+									position: "left-top",
+								}}
+								onClick={() =>
+									setListViewMode((mode) =>
+										mode === "compact" ? "detailed" : "compact"
+									)
+								}
+							/>
 							<Button
 								shape="round"
 								icon="add"
@@ -112,17 +123,17 @@ export const ConnectionController: FC<ConnectionManagerProps> = () => {
 							/>
 						</div>
 					</div>
+					<ConnectionsList
+						listViewMode={listViewMode}
+						connections={connections}
+						error={listLoadError}
+						onConnect={(conn) => connect(conn.id)}
+						onDisconnect={(conn) => disconnect(conn.id)}
+						onEdit={(conn) => openEditOrCloneConnection(conn, "edit")}
+						onClone={(conn) => openEditOrCloneConnection(conn, "clone")}
+						onDelete={(conn) => deleteConnectionOnDisk(conn.id)}
+					/>
 				</div>
-				<ConnectionsList
-					listViewMode={listViewMode}
-					connections={connections}
-					error={listLoadError}
-					onConnect={(conn) => connect(conn.id)}
-					onDisconnect={(conn) => disconnect(conn.id)}
-					onEdit={(conn) => openEditOrCloneConnection(conn, "edit")}
-					onClone={(conn) => openEditOrCloneConnection(conn, "clone")}
-					onDelete={(conn) => deleteConnectionOnDisk(conn.id)}
-				/>
 			</div>
 		</Resizable>
 	) : (
@@ -148,11 +159,11 @@ export const ConnectionsList: FC<ConnectionsListProps> = (props) => {
 		onClone,
 	} = props;
 	return (
-		<div className="Container">
+		<div className="list">
 			{!error ? (
 				connections && connections.length ? (
 					connections.map((conn) => (
-						<div key={conn.id} className="ConnectionDetails">
+						<div key={conn.id}>
 							{listViewMode === "detailed"
 								? React.createElement(DetailedConnectionCard, {
 										conn,
@@ -176,7 +187,7 @@ export const ConnectionsList: FC<ConnectionsListProps> = (props) => {
 					<></>
 				)
 			) : (
-				<p className="FlexAbsoluteCenter">{error}</p>
+				<p className="error">{error}</p>
 			)}
 		</div>
 	);
@@ -197,28 +208,40 @@ export const DetailedConnectionCard = (
 	props: DetailedConnectionCardProps
 ): JSX.Element => {
 	const { conn, onConnect, onDisconnect, onEdit, onClone, onDelete } = props;
+
 	return (
-		<Card interactive={false}>
-			<CardTitle
+		<Card className="card-detailed" interactive={false}>
+			<DetailedCardTitle
 				title={conn.name}
 				inactiveClick={() => onConnect && onConnect(conn)}
 				activeClick={() => onDisconnect && onDisconnect(conn)}
 				active={conn.active}
 			/>
-			<div className="FlexboxWithGap">
-				<div className="CellInfo FlexFill TrimText">
-					<div className="CellInfoTitle">Host</div>
-					<div className="CellInfoTitleContent">{conn.hosts[0]}</div>
+			<div className="card-info">
+				<div className="cell">
+					<div className="cell-title">Host</div>
+
+					{conn.hosts.length > 1 ? (
+						<div className="cell-content">
+							{conn.hosts.map(
+								(host) =>
+									// <div key={host}>{host}</div>
+									host + "\n"
+							)}
+						</div>
+					) : (
+						<div className="cell-content">{conn.hosts[0]}</div>
+					)}
 				</div>
-				<div className="CellInfo FlexFill TrimText">
-					<div className="CellInfoTitle">
+				<div className="cell">
+					<div className="cell-title">
 						{conn.username && conn.database
-							? "User/AuthDB"
+							? "User / AuthDB"
 							: conn.username
 							? "User"
 							: ""}
 					</div>
-					<div className="CellInfoTitleContent">
+					<div className="cell-content">
 						{conn.username && conn.database
 							? `${conn.username} / ${conn.database}`
 							: conn.username
@@ -227,31 +250,51 @@ export const DetailedConnectionCard = (
 					</div>
 				</div>
 			</div>
-			<div className="FlexboxWithMargin">
+			<div className="card-buttons">
+				<Button
+					shape="round"
+					icon="clipboard"
+					size="small"
+					onClick={() => window.ark.copyText(conn.uri || "")}
+					tooltipOptions={{
+						content: "Copy URI",
+						position: "bottom",
+					}}
+				/>
 				{onEdit && (
 					<Button
 						shape="round"
 						icon="edit"
 						size="small"
 						onClick={() => onEdit(conn)}
+						tooltipOptions={{
+							content: "Edit",
+							position: "bottom",
+						}}
 					/>
 				)}
-
 				{onClone && (
 					<Button
 						shape="round"
 						icon={"add-row-bottom"}
 						size="small"
 						onClick={() => onClone(conn)}
+						tooltipOptions={{
+							content: "Clone",
+							position: "bottom",
+						}}
 					/>
 				)}
-
 				{onDelete && (
 					<Button
 						shape="round"
 						icon="trash"
 						size="small"
 						onClick={() => onDelete(conn)}
+						tooltipOptions={{
+							content: "Delete",
+							position: "bottom",
+						}}
 					/>
 				)}
 			</div>
@@ -273,57 +316,61 @@ export const CompactConnectionCard = (
 ): JSX.Element => {
 	const { conn, onClone, onConnect, onDelete, onDisconnect, onEdit } = props;
 	return (
-		<div className="CompactCard">
-			<div className="CellInfo FlexFill TrimText">
-				<div className="CellInfoTitle">Name</div>
-				<div className="CellInfoTitleContent">{conn.name}</div>
+		<div className="card-compact">
+			<div className="cell">
+				<div className="cell-title">Name</div>
+				<div className="cell-content">{conn.name}</div>
 			</div>
-			<div className="CellInfo FlexFill TrimText">
-				<div className="CellInfoTitle">Host</div>
-				<div className="CellInfoTitleContent">{conn.hosts[0]}</div>
+			<div className="cell">
+				<div className="cell-title">Host</div>
+				<div className="cell-content">{conn.hosts[0]}</div>
 			</div>
-			<div className="CellInfo FlexFill TrimText">
-				<div className="CellInfoTitle">
-					{conn.username && conn.database
-						? "User/AuthDB"
-						: conn.username
-						? "User"
-						: ""}
-				</div>
-				<div className="CellInfoTitleContent">
-					{conn.username && conn.database
-						? `${conn.username} / ${conn.database}`
-						: conn.username
-						? `${conn.username}`
-						: ""}
+			<div className="cell">
+				<div className="cell-title">{"User / AuthDB"}</div>
+				<div className="cell-content">
+					{`${conn.username || "-"} / ${conn.database || "-"}`}
 				</div>
 			</div>
-			{!conn.active && onConnect && (
-				<Button shape="round" icon="globe" size="small" onClick={onConnect} />
-			)}
-			{conn.active && onDisconnect && (
-				<Button
-					shape="round"
-					icon="th-disconnect"
-					size="small"
-					variant="danger"
-					onClick={onDisconnect}
-				/>
-			)}
-			{onEdit && (
-				<Button shape="round" icon="edit" size="small" onClick={onEdit} />
-			)}
-			{onClone && (
-				<Button
-					shape="round"
-					icon="add-row-bottom"
-					size="small"
-					onClick={onClone}
-				/>
-			)}
-			{onDelete && (
-				<Button shape="round" icon="trash" size="small" onClick={onDelete} />
-			)}
+			<div className="cell">
+				<div className="cell-buttons">
+					{!conn.active && onConnect && (
+						<Button
+							shape="round"
+							icon="globe"
+							size="small"
+							onClick={onConnect}
+						/>
+					)}
+					{conn.active && onDisconnect && (
+						<Button
+							shape="round"
+							icon="th-disconnect"
+							size="small"
+							variant="danger"
+							onClick={onDisconnect}
+						/>
+					)}
+					{onEdit && (
+						<Button shape="round" icon="edit" size="small" onClick={onEdit} />
+					)}
+					{onClone && (
+						<Button
+							shape="round"
+							icon="add-row-bottom"
+							size="small"
+							onClick={onClone}
+						/>
+					)}
+					{onDelete && (
+						<Button
+							shape="round"
+							icon="trash"
+							size="small"
+							onClick={onDelete}
+						/>
+					)}
+				</div>
+			</div>
 		</div>
 	);
 };
@@ -335,16 +382,16 @@ interface CardTitleProps {
 	active?: boolean;
 }
 
-const CardTitle: FC<CardTitleProps> = ({
+const DetailedCardTitle: FC<CardTitleProps> = ({
 	activeClick,
 	inactiveClick,
 	title,
 	active,
 }) => (
-	<div className="CardTitle">
-		<div className="CardTitleSection">
-			<Icon icon="database" />
-			<span className="FlexFill TrimText">{title}</span>
+	<div className="card-title">
+		<div className="title">
+			<Icon size={IconSize.LARGE} icon="database" />
+			<span>{title}</span>
 		</div>
 		{!active && (
 			<Button

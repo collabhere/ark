@@ -116,9 +116,16 @@ export const Connection: Connection = {
 	},
 
 	list: async ({ _stores: stores }) => {
-		const { diskStore } = stores;
+		const { diskStore, settingsStore } = stores;
+		const settings = await settingsStore.get("general");
 		const connections = await diskStore.getAll();
-		return connections;
+		const populated = await Promise.all(Object.values(connections).map(async connection => ({
+			...connection, uri: await getConnectionUri(
+				connection,
+				settings?.encryptionKey
+			)
+		})));
+		return populated;
 	},
 	load: async ({ storedConnection, _stores }) => {
 		if (storedConnection) {
@@ -252,8 +259,8 @@ export const Connection: Connection = {
 					err && err instanceof Error
 						? err.message
 						: typeof err === "string"
-						? err
-						: "",
+							? err
+							: "",
 			};
 		}
 	},
