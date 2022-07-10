@@ -29,7 +29,7 @@ import MONGO_SHELL_API_SESSION from "@mongosh/shell-api/lib/session.d.ts?raw";
 import MONGO_SHELL_API_SHARD from "@mongosh/shell-api/lib/shard.d.ts?raw";
 import MONGO_SHELL_API_SHELL_API from "@mongosh/shell-api/lib/shell-api.d.ts?raw";
 import MONGO_SHELL_API_SHELL_BSON from "@mongosh/shell-api/lib/shell-bson.d.ts?raw";
-import MONGO_SHELL_API_SHELL_INSTANCE_STATE from "@mongosh/shell-api/lib/shell-instance-state?raw";
+import MONGO_SHELL_API_SHELL_INSTANCE_STATE from "@mongosh/shell-api/lib/shell-instance-state.d.ts?raw";
 import { Monaco } from "@monaco-editor/react";
 
 const MONGO_SHELL_TYPE_DEFINITIONS = [
@@ -61,7 +61,7 @@ const MONGO_SHELL_TYPE_DEFINITIONS = [
     { name: "shard.d.ts", code: MONGO_SHELL_API_SHARD, },
     { name: "shell-api.d.ts", code: MONGO_SHELL_API_SHELL_API, },
     { name: "shell-bson.d.ts", code: MONGO_SHELL_API_SHELL_BSON, },
-    { name: "shell-internal-state.d.ts?raw", code: MONGO_SHELL_API_SHELL_INSTANCE_STATE },
+    { name: "shell-internal-state.d.ts", code: MONGO_SHELL_API_SHELL_INSTANCE_STATE },
 ];
 
 // Should match:
