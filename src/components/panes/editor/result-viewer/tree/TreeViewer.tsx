@@ -1,32 +1,37 @@
-import "./styles.less";
-import "../../../../common/styles/layout.less";
+import "../styles.less";
+import "../../../../../common/styles/layout.less";
 
-import React, { FC, useState, useEffect } from "react";
+import React, { FC, useState, useEffect, PropsWithChildren } from "react";
 import { ObjectId, serialize } from "bson";
 import { useCallback } from "react";
 import Bluebird from "bluebird";
 import {
-	CollapseContent,
-	CollapseList,
-} from "../../../../common/components/CollapseList";
+	DocumentField,
+	ContentRowActions,
+	DocumentConfig,
+	DocumentList,
+} from "./DocumentList";
 import {
 	Icon,
-	IconName,
-	MenuDivider,
 	MenuItem,
-	Menu,
-	Intent,
 	InputGroup,
 	NumericInput,
 	IconSize,
+	Code,
+	Collapse,
 } from "@blueprintjs/core";
 import { Select } from "@blueprintjs/select";
-import { ContextMenu2 } from "@blueprintjs/popover2";
 import { DateInput } from "@blueprintjs/datetime";
-import { Button } from "../../../../common/components/Button";
-import { DangerousActionPrompt } from "../../../dialogs/DangerousActionPrompt";
-import { handleErrors, notify } from "../../../../common/utils/misc";
-import { isObjectId } from "../../../../../util/misc";
+import { Button } from "../../../../../common/components/Button";
+import { DangerousActionPrompt } from "../../../../dialogs/DangerousActionPrompt";
+import { handleErrors, notify } from "../../../../../common/utils/misc";
+import {
+	formatBsonDocument,
+	formatBSONToText,
+	isObjectId,
+	replaceQuotes,
+} from "../../../../../../util/misc";
+import { createContextMenuItems, CreateMenuItem } from "./ContextMenu";
 
 interface BSONTest {
 	type:
@@ -79,7 +84,7 @@ const testBsonValue = (value: Ark.BSONTypes): BSONTest => ({
 
 interface SwitchableInputProps {
 	onCommit: (key: string, value: Ark.BSONTypes) => void;
-	onChange?: (key: string, value: Ark.BSONTypes) => void;
+	onReset?: (key: string) => void;
 	onAction?: (action: ContentRowActions) => void;
 	onKeyRemove?: (key: string) => void;
 	initialType: "text" | "date" | "number" | "boolean" | "oid";
@@ -87,18 +92,20 @@ interface SwitchableInputProps {
 	value: string | Date | number | boolean | ObjectId | null;
 	editable?: boolean;
 	editableKey?: boolean;
+	hideReset?: boolean;
 }
 
 const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 	const {
 		onCommit,
 		onKeyRemove,
-		onChange,
+		onReset,
 		initialType,
 		field,
 		value,
 		editable,
 		editableKey,
+		hideReset = false,
 	} = props;
 
 	const [type, setType] = useState(initialType);
@@ -113,21 +120,23 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 		if (isModified) {
 			typeof value !== "undefined" && setEditedValue(value);
 			onCommit(editedKey, value || editedValue);
+			setDeleted(false);
 			setCommited(true);
 		}
 	};
 
 	const onValueChange = (value: SwitchableInputProps["value"]) => {
 		setEditedValue(value);
-		onChange && onChange(editedKey, value);
 	};
 
-	const onUndoAction = () => {
+	const resetKey = () => {
+		setCommited(false);
 		setDeleted(false);
-		onChange && onChange(editedKey, editedValue);
+		setEditedValue(value);
+		onReset && onReset(editedKey);
 	};
 
-	const onDeleteAction = (key: string) => {
+	const deleteKey = (key: string) => {
 		setDeleted(true);
 		onKeyRemove && onKeyRemove(key);
 	};
@@ -149,36 +158,56 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 							position: "left",
 						}}
 					>
-						<Icon icon="refresh" size={IconSize.STANDARD} />
+						<Button icon={"exchange"} size="small" variant="link" />
 					</Select>
 				)}
 				<div className="switchable-input-child">{input}</div>
-				{!commited && editable && (
-					<div className="button-container">
-						{isModified && (
-							<div className="button">
-								<Button
-									onClick={() => {
-										commitRow();
-									}}
-									size={"small"}
-									icon="small-tick"
-									variant={"link"}
-								/>
-							</div>
-						)}
+				<div className="button-container">
+					{isModified && !commited && editable && (
 						<div className="button">
 							<Button
-								onClick={() =>
-									deleted ? onUndoAction() : onDeleteAction(field)
-								}
+								onClick={() => {
+									commitRow();
+								}}
 								size={"small"}
-								icon={deleted ? "undo" : "delete"}
-								variant="link"
+								icon="small-tick"
+								variant={"link"}
+								tooltipOptions={{
+									content: "Modify",
+									position: "auto-start",
+								}}
 							/>
 						</div>
-					</div>
-				)}
+					)}
+					{!hideReset && isModified && !deleted && (
+						<div className="button">
+							<Button
+								onClick={() => resetKey()}
+								size={"small"}
+								icon={"reset"}
+								variant="link"
+								tooltipOptions={{
+									content: "Reset",
+									position: "auto-start",
+								}}
+							/>
+						</div>
+					)}
+					{editable && (
+						<div className="button">
+							<Button
+								onClick={() => (deleted ? resetKey() : deleteKey(field))}
+								size={"small"}
+								icon={deleted ? "reset" : "trash"}
+								variant="link"
+								tooltipOptions={{
+									content: deleted ? "Reset" : "Delete",
+									position: "auto-start",
+								}}
+							/>
+						</div>
+					)}
+				</div>
 			</div>
 		);
 	};
@@ -188,7 +217,7 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 	switch (type) {
 		case "text": {
 			const input = (editedValue || "") as string;
-			jsx = wrap(
+			jsx =
 				!commited && editable ? (
 					<InputGroup
 						small
@@ -198,13 +227,12 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 					/>
 				) : (
 					String(input)
-				)
-			);
+				);
 			break;
 		}
 		case "oid": {
 			const input = (editedValue || new ObjectId()) as string;
-			jsx = wrap(
+			jsx =
 				!commited && editable ? (
 					<div className="object-id">
 						<span>{'ObjectId("'}</span>
@@ -220,13 +248,12 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 					</div>
 				) : (
 					`ObjectId("` + input.toString() + `")`
-				)
-			);
+				);
 			break;
 		}
 		case "date": {
 			const date = (editedValue || new Date()) as Date;
-			jsx = wrap(
+			jsx =
 				!commited && editable ? (
 					<DateInput
 						shortcuts
@@ -239,29 +266,33 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 						timePrecision="millisecond"
 					/>
 				) : (
-					<div className="right">{`ISODate("` + date.toISOString() + `")`}</div>
-				)
-			);
+					`ISODate("` + date.toISOString() + `")`
+				);
 			break;
 		}
 		case "number": {
 			const num = (editedValue || 0) as number;
-			jsx = wrap(
+			jsx =
 				!commited && editable ? (
 					<NumericInput
+						buttonPosition="none"
 						onValueChange={(value) => onValueChange(value)}
 						onKeyPress={(e) => (e.key === "Enter" ? commitRow() : undefined)}
 						defaultValue={typeof num === "number" ? num : 0}
+						onPaste={(e) => {
+							if (!/^\d+$/.test(e.clipboardData.getData("text"))) {
+								e.preventDefault();
+							}
+						}}
 					/>
 				) : (
 					String(num)
-				)
-			);
+				);
 			break;
 		}
 		case "boolean": {
 			const bool = !!editedValue as boolean;
-			jsx = wrap(
+			jsx =
 				!commited && editable ? (
 					<Select<boolean>
 						items={[true, false]}
@@ -282,8 +313,7 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 					</Select>
 				) : (
 					String(bool)
-				)
-			);
+				);
 			break;
 		}
 		default: {
@@ -314,98 +344,8 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 					<Icon icon="symbol-circle" size={IconSize.STANDARD} />
 				)}
 			</div>
-			<div className="right">{jsx}</div>
+			<div className="right">{wrap(jsx)}</div>
 		</>
-	);
-};
-
-enum ContentRowActions {
-	copy_json = "copy_json",
-	copy_key = "copy_key",
-	copy_value = "copy_value",
-	edit_document = "edit_document",
-	discard_edit = "discard_edit",
-	delete_document = "delete_document",
-}
-
-interface ContentRowProps {
-	onContextMenuAction?: (action: ContentRowActions) => void;
-	enableInlineEdits: boolean;
-	allowModifyActions: boolean;
-}
-
-const ContentRow: FC<ContentRowProps> = (props) => {
-	const {
-		children,
-		onContextMenuAction = () => {},
-		enableInlineEdits,
-		allowModifyActions,
-	} = props;
-
-	const items: CreateMenuItem[] = [
-		{
-			item: "Copy",
-			key: "copy",
-			intent: "primary",
-			icon: "comparison",
-			submenu: [
-				{
-					key: ContentRowActions.copy_key,
-					item: "Key",
-					cb: () => onContextMenuAction(ContentRowActions.copy_key),
-				},
-				{
-					key: ContentRowActions.copy_value,
-					item: "Value",
-					cb: () => onContextMenuAction(ContentRowActions.copy_value),
-				},
-			],
-		},
-	];
-
-	if (allowModifyActions) {
-		items.push(
-			{
-				divider: true,
-				key: "div_1",
-			},
-			{
-				item: "Delete Document",
-				key: ContentRowActions.delete_document,
-				cb: () => onContextMenuAction(ContentRowActions.delete_document),
-				icon: "trash",
-				intent: "danger",
-			}
-		);
-
-		items.splice(
-			1,
-			0,
-			enableInlineEdits
-				? {
-						item: "Discard Edits",
-						cb: () => onContextMenuAction(ContentRowActions.discard_edit),
-						intent: "primary",
-						icon: "cross",
-						key: ContentRowActions.discard_edit,
-				  }
-				: {
-						item: "Edit Document",
-						cb: () => onContextMenuAction(ContentRowActions.edit_document),
-						intent: "primary",
-						icon: "edit",
-						key: ContentRowActions.edit_document,
-				  }
-		);
-	}
-
-	return (
-		<ContextMenu2
-			className="context-menu"
-			content={createContextMenuItems(items)}
-		>
-			<div className={"content-row"}>{children}</div>
-		</ContextMenu2>
 	);
 };
 
@@ -414,7 +354,7 @@ interface ContentBuilderOptions {
 	enableInlineEdits: boolean;
 	allowModifyActions: boolean;
 	onChange(
-		changed: "update_value" | "delete_key",
+		changed: "update_value" | "delete_key" | "reset_key",
 		key: string,
 		value?: Ark.BSONTypes
 	): void;
@@ -423,6 +363,7 @@ interface ContentBuilderOptions {
 		key: string | number,
 		value: Ark.BSONTypes
 	) => void;
+	renderSubdocRightElement: (key: string) => React.ReactNode;
 }
 
 interface ContentBuilder {
@@ -438,12 +379,15 @@ const contentBuilder: ContentBuilder = (
 		onChange,
 		onRowAction,
 		allowModifyActions,
+		renderSubdocRightElement,
 	} = contentBuilderOptions;
 
 	const onValueChange = (key: string, newValue: Ark.BSONTypes) =>
 		onChange && onChange("update_value", key, newValue);
 
 	const onKeyRemove = (key: string) => onChange && onChange("delete_key", key);
+
+	const onKeyReset = (key: string) => onChange && onChange("reset_key", key);
 
 	const rows = Object.entries(document).reduce<React.ReactNode[]>(
 		(rows, [key, value], rowIdx) => {
@@ -452,6 +396,7 @@ const contentBuilder: ContentBuilder = (
 			let inputJSX;
 
 			// console.log("KEY", key, "TYPE", type, "VALUE", value);
+
 			switch (type) {
 				case "oid": {
 					inputJSX = (
@@ -464,6 +409,7 @@ const contentBuilder: ContentBuilder = (
 							onAction={(action) => onRowAction(action, key, value)}
 							onCommit={onValueChange}
 							onKeyRemove={onKeyRemove}
+							onReset={onKeyReset}
 						/>
 					);
 					break;
@@ -479,6 +425,7 @@ const contentBuilder: ContentBuilder = (
 							onAction={(action) => onRowAction(action, key, value)}
 							onCommit={onValueChange}
 							onKeyRemove={onKeyRemove}
+							onReset={onKeyReset}
 						/>
 					);
 					break;
@@ -494,6 +441,7 @@ const contentBuilder: ContentBuilder = (
 							onAction={(action) => onRowAction(action, key, value)}
 							onCommit={onValueChange}
 							onKeyRemove={onKeyRemove}
+							onReset={onKeyReset}
 						/>
 					);
 					break;
@@ -509,6 +457,7 @@ const contentBuilder: ContentBuilder = (
 							onAction={(action) => onRowAction(action, key, value)}
 							onCommit={onValueChange}
 							onKeyRemove={onKeyRemove}
+							onReset={onKeyReset}
 						/>
 					);
 					break;
@@ -525,6 +474,7 @@ const contentBuilder: ContentBuilder = (
 							onAction={(action) => onRowAction(action, key, value)}
 							onCommit={onValueChange}
 							onKeyRemove={onKeyRemove}
+							onReset={onKeyReset}
 						/>
 					);
 					break;
@@ -532,7 +482,7 @@ const contentBuilder: ContentBuilder = (
 				case "primitive[]": {
 					const bsonTypes = value as Ark.BSONTypes[];
 					inputJSX = (
-						<CollapseList
+						<DocumentList
 							key={key}
 							content={[
 								{
@@ -541,15 +491,20 @@ const contentBuilder: ContentBuilder = (
 											{contentBuilder({
 												...contentBuilderOptions,
 												document: bsonTypes,
-												onRowAction: (action, key) =>
-													onRowAction(action, key, bsonTypes),
+												onChange: (changed, k, value) => {
+													onChange(changed, key + "." + k, value);
+												},
+												onRowAction: (action, k) =>
+													onRowAction(action, key + "." + k, bsonTypes),
+												renderSubdocRightElement,
 											})}
 										</div>
 									),
 									header: {
-										primary: true,
 										key: String(key),
 										title: String(key),
+										rightElement:
+											enableInlineEdits && renderSubdocRightElement(key),
 									},
 								},
 							]}
@@ -560,35 +515,50 @@ const contentBuilder: ContentBuilder = (
 				case "subdocument[]": {
 					const subdocumentArray = value as Ark.BSONArray;
 					inputJSX = (
-						<CollapseList
+						<DocumentList
 							key={key}
 							content={[
 								{
 									jsx: (
-										<CollapseList
+										<DocumentList
+											allowAddDocument={enableInlineEdits}
 											content={subdocumentArray.map((document, index) => ({
 												jsx: (
 													<div>
 														{contentBuilder({
 															...contentBuilderOptions,
 															document: document,
-															onRowAction: (action, key) =>
-																onRowAction(action, key, subdocumentArray),
+															onChange: (changed, k, value) => {
+																onChange(
+																	changed,
+																	key + "." + index + "." + k,
+																	value
+																);
+															},
+															onRowAction: (action, k) =>
+																onRowAction(
+																	action,
+																	key + "." + index + "." + k,
+																	subdocumentArray
+																),
 														})}
 													</div>
 												),
 												header: {
-													primary: true,
 													key: String(index),
 													title: "(" + String(index + 1) + ")",
+													rightElement:
+														enableInlineEdits &&
+														renderSubdocRightElement(key + "." + index),
 												},
 											}))}
 										/>
 									),
 									header: {
-										primary: true,
 										key: String(key),
 										title: String(key),
+										rightElement:
+											enableInlineEdits && renderSubdocRightElement(key),
 									},
 								},
 							]}
@@ -599,7 +569,7 @@ const contentBuilder: ContentBuilder = (
 				case "subdocument": {
 					const document = value as Ark.BSONDocument;
 					inputJSX = (
-						<CollapseList
+						<DocumentList
 							key={key + "_idx_" + rowIdx}
 							content={[
 								{
@@ -608,15 +578,19 @@ const contentBuilder: ContentBuilder = (
 											{contentBuilder({
 												...contentBuilderOptions,
 												document,
-												onRowAction: (action, key) =>
-													onRowAction(action, key, document),
+												onChange: (changed, k, value) => {
+													onChange(changed, key + "." + k, value);
+												},
+												onRowAction: (action, k) =>
+													onRowAction(action, key + "." + k, document),
 											})}
 										</div>
 									),
 									header: {
-										primary: true,
 										key: String(key),
 										title: String(key),
+										rightElement:
+											enableInlineEdits && renderSubdocRightElement(key),
 									},
 								},
 							]}
@@ -635,14 +609,14 @@ const contentBuilder: ContentBuilder = (
 			}
 
 			rows.push(
-				<ContentRow
+				<DocumentField
 					onContextMenuAction={(action) => onRowAction(action, key, value)}
 					key={key}
 					enableInlineEdits={!!enableInlineEdits}
 					allowModifyActions={allowModifyActions}
 				>
 					{inputJSX}
-				</ContentRow>
+				</DocumentField>
 			);
 
 			return rows;
@@ -651,54 +625,24 @@ const contentBuilder: ContentBuilder = (
 	);
 
 	if (enableInlineEdits) {
-		rows.push(<NewFieldRows key={rows.length} onChange={onValueChange} />);
+		rows.push(
+			<NewFieldRows
+				key={rows.length}
+				onChange={onValueChange}
+				onRemove={onKeyReset}
+			/>
+		);
 	}
 
 	return rows;
 };
 
-interface CreateMenuItem {
-	item?: string;
-	key?: string;
-	cb?: (key?: string) => void;
-	icon?: IconName;
-	intent?: Intent;
-	divider?: boolean;
-	submenu?: CreateMenuItem[];
-}
-const createContextMenuItems = (items: CreateMenuItem[]) => (
-	<Menu>
-		{items.map((menuItem, idx) =>
-			menuItem.divider ? (
-				<MenuDivider key={menuItem.key + "_idx_" + idx} />
-			) : menuItem.submenu ? (
-				<MenuItem
-					intent={menuItem.intent}
-					icon={menuItem.icon}
-					key={menuItem.key + "_idx_" + idx}
-					text={menuItem.item}
-					onClick={() => menuItem.cb && menuItem.cb(menuItem.key)}
-				>
-					{createContextMenuItems(menuItem.submenu)}
-				</MenuItem>
-			) : (
-				<MenuItem
-					intent={menuItem.intent}
-					icon={menuItem.icon}
-					key={menuItem.key + "_idx_" + idx}
-					text={menuItem.item}
-					onClick={() => menuItem.cb && menuItem.cb(menuItem.key)}
-				/>
-			)
-		)}
-	</Menu>
-);
-
 interface NewFieldRowsProps {
 	onChange?: (key: string, value: Ark.BSONTypes) => void;
+	onRemove?: (key: string) => void;
 }
 const NewFieldRows: FC<NewFieldRowsProps> = (props) => {
-	const { onChange } = props;
+	const { onChange, onRemove } = props;
 
 	const [rows, setRows] = useState<
 		{ key: string; value: Ark.BSONTypes; commited?: boolean }[]
@@ -728,6 +672,7 @@ const NewFieldRows: FC<NewFieldRowsProps> = (props) => {
 	};
 
 	const removeKeyValue = (idx) => {
+		onRemove && onRemove(rows[idx].key);
 		setRows((fields) => {
 			fields.splice(idx, 1);
 			return [...fields];
@@ -735,21 +680,23 @@ const NewFieldRows: FC<NewFieldRowsProps> = (props) => {
 	};
 
 	const commitRow = (idx: number) => {
+		onChange && onChange(rows[idx].key, rows[idx].value);
 		setRows((fields) => {
 			fields[idx].commited = true;
 			return [...fields];
 		});
-		onChange && onChange(rows[idx].key, rows[idx].value);
 	};
 
 	return (
 		<>
 			{addingKeys && rows.length ? (
 				rows.map((field, idx) => (
-					<>
-						<div className="new-field-row" key={idx}>
+					<div key={field.key + "." + idx}>
+						<div className="content-row">
 							<SwitchableInput
 								key={idx}
+								hideReset
+								editable
 								onCommit={(key, value) => {
 									setKeyValue(idx, key, value);
 									commitRow(idx);
@@ -760,32 +707,37 @@ const NewFieldRows: FC<NewFieldRowsProps> = (props) => {
 								initialType="text"
 								field={field.key}
 								value={field.value as string}
-								editable={!field.commited}
 								editableKey={!field.commited}
 							/>
 						</div>
 						{rows.length - 1 === idx && (
-							<Button
-								onClick={() => {
-									addField();
-								}}
-								size={"small"}
-								icon="small-plus"
-								text="Add more"
-								variant={"primary"}
-							/>
+							<div className="content-row">
+								<Button
+									fill
+									outlined
+									onClick={() => {
+										addField();
+									}}
+									size={"small"}
+									icon="small-plus"
+									text="Add more"
+									variant={"link"}
+								/>
+							</div>
 						)}
-					</>
+					</div>
 				))
 			) : (
-				<div>
+				<div className="content-row">
 					<Button
+						fill
+						outlined
 						onClick={() => {
 							addField();
 						}}
 						size={"small"}
 						icon="small-plus"
-						variant={"primary"}
+						variant={"link"}
 						text={"Add new fields"}
 					/>
 				</div>
@@ -814,6 +766,8 @@ const DocumentPanel: FC<DocumentPanelProps> = (props) => {
 		onDocumentChangeDiscard,
 	} = props;
 
+	const [deleted, setDeleted] = useState<Record<string, boolean>>({});
+
 	const onRowAction = useCallback(
 		(action: ContentRowActions, key: string, value: Ark.BSONTypes) => {
 			// console.log(`[onRowAction] action=${action} key=${key} value=${value}`);
@@ -823,7 +777,7 @@ const DocumentPanel: FC<DocumentPanelProps> = (props) => {
 					break;
 				}
 				case ContentRowActions.copy_value: {
-					window.ark.copyText(value?.toString() || "");
+					window.ark.copyText(replaceQuotes(formatBsonDocument(value)));
 					break;
 				}
 				case ContentRowActions.edit_document: {
@@ -843,6 +797,30 @@ const DocumentPanel: FC<DocumentPanelProps> = (props) => {
 		[onDocumentEdit, onDocumentChangeDiscard, onDocumentDelete]
 	);
 
+	const renderSubdocRightElement = (key: string) => (
+		<div className="key-delete">
+			<Button
+				onClick={(e) => {
+					e.stopPropagation();
+					if (deleted[key]) {
+						setDeleted((deleted) => ({ ...deleted, [key]: false }));
+						onDocumentModified("reset_key", key);
+					} else {
+						setDeleted((deleted) => ({ ...deleted, [key]: true }));
+						onDocumentModified("delete_key", key);
+					}
+				}}
+				size={"small"}
+				icon={deleted[key] ? "reset" : "trash"}
+				variant="link"
+				tooltipOptions={{
+					content: deleted[key] ? "Revert deletion" : "Delete document",
+					position: "auto-start",
+				}}
+			/>
+		</div>
+	);
+
 	return (
 		<>
 			{contentBuilder({
@@ -852,6 +830,7 @@ const DocumentPanel: FC<DocumentPanelProps> = (props) => {
 				onChange: onDocumentModified,
 				onRowAction: (action, key, value) =>
 					onRowAction(action, String(key), value),
+				renderSubdocRightElement,
 			})}
 		</>
 	);
@@ -923,13 +902,34 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 
 	const refreshDocument = useCallback((document: Ark.BSONDocument) => {
 		setRefreshCounts((counts) => {
-			counts[document._id.toString()] =
-				(counts[document._id.toString()] || 0) + 1;
-			return { ...counts };
+			if (document._id) {
+				counts[document._id.toString()] =
+					(counts[document._id.toString()] || 0) + 1;
+				return { ...counts };
+			}
+			return counts;
 		});
 	}, []);
 
 	const clearUpdates = () => setUpdates([]);
+
+	const deleteSetAndUnsetIfEmpty = (updates, idx) => {
+		const info = updates[idx];
+		const update = info.update;
+		let noSet = !update.$set;
+		let noUnset = !update.$unset;
+		if (update.$set && Object.keys(update.$set).length === 0) {
+			delete update.$set;
+			noSet = true;
+		}
+		if (update.$unset && Object.keys(update.$unset).length === 0) {
+			delete update.$unset;
+			noUnset = true;
+		}
+		if (noSet && noUnset) {
+			updates.splice(idx, 1);
+		}
+	};
 
 	const unsetKey = (id: string, key: string) =>
 		setUpdates((updates) => {
@@ -940,6 +940,10 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 				} else {
 					(updates[idx].update.$unset as any) = { [key]: "" };
 				}
+				if (updates[idx].update.$set) {
+					delete (updates[idx].update.$set as any)[key];
+				}
+				deleteSetAndUnsetIfEmpty(updates, idx);
 			} else {
 				updates.push({
 					_id: id,
@@ -961,6 +965,10 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 				} else {
 					(updates[idx].update.$set as any) = { [key]: value };
 				}
+				if (updates[idx].update.$unset) {
+					delete (updates[idx].update.$unset as any)[key];
+				}
+				deleteSetAndUnsetIfEmpty(updates, idx);
 			} else {
 				updates.push({
 					_id: id,
@@ -969,6 +977,21 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 						$unset: undefined,
 					},
 				});
+			}
+			return Array.from(updates);
+		});
+
+	const resetKey = (id: string, key: string) =>
+		setUpdates((updates) => {
+			const idx = updates.findIndex((u) => u._id === id);
+			if (idx > -1) {
+				if (updates[idx].update.$set) {
+					delete (updates[idx].update.$set as any)[key];
+				}
+				if (updates[idx].update.$unset) {
+					delete (updates[idx].update.$unset as any)[key];
+				}
+				deleteSetAndUnsetIfEmpty(updates, idx);
 			}
 			return Array.from(updates);
 		});
@@ -1046,9 +1069,11 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 
 	const discardChanges = useCallback(
 		(document: Ark.BSONDocument) => {
-			refreshDocument(document);
-			removeDocumentUpdates(document._id.toString());
-			stopEditingDocument(document);
+			if (document._id) {
+				refreshDocument(document);
+				removeDocumentUpdates(document._id.toString());
+				stopEditingDocument(document);
+			}
 		},
 		[refreshDocument, removeDocumentUpdates, stopEditingDocument]
 	);
@@ -1058,7 +1083,8 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 			const items: CreateMenuItem[] = [
 				{
 					item: "Copy JSON",
-					cb: () => window.ark.copyText(JSON.stringify(document, null, 4)),
+					cb: () =>
+						window.ark.copyText(replaceQuotes(formatBSONToText(document))),
 					intent: "primary",
 					icon: "comparison",
 					key: ContentRowActions.copy_json,
@@ -1094,7 +1120,7 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 								key: ContentRowActions.discard_edit,
 						  }
 						: {
-								item: "Edit Document",
+								item: "Inline Edit Document",
 								cb: () => {
 									startEditingDocument(document);
 								},
@@ -1111,7 +1137,7 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 	);
 
 	const createDocumentPanelListContent = useCallback(
-		(document, index): CollapseContent => {
+		(document, index): DocumentConfig => {
 			return {
 				jsx: (
 					<DocumentPanel
@@ -1124,6 +1150,8 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 								setKeyValue(document._id.toString(), key, value);
 							} else if (change === "delete_key") {
 								unsetKey(document._id.toString(), key);
+							} else if (change === "reset_key") {
+								resetKey(document._id.toString(), key);
 							}
 						}}
 						onDocumentEdit={() => startEditingDocument(document)}
@@ -1186,14 +1214,24 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 	return (
 		<div className="tree-viewer">
 			<div className="header">
+				{docsBeingEdited.size === 0 && (
+					<Button
+						disabled={!allowDocumentEdits}
+						onClick={() => bson.map((doc) => startEditingDocument(doc))}
+						size={"small"}
+						icon="edit"
+						variant={"link"}
+						text="Edit All"
+					/>
+				)}
 				{docsBeingEdited.size > 0 && (
 					<>
 						<Button
 							onClick={() => setShowSaveAllDialog(true)}
 							size={"small"}
 							icon="small-tick"
-							variant={"primary"}
-							text="Save all"
+							variant={"link"}
+							text="Save All"
 						/>
 						<Button
 							onClick={() => {
@@ -1201,32 +1239,36 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 								onRefresh();
 							}}
 							size={"small"}
-							icon="small-tick"
-							variant={"danger"}
-							text="Discard all"
+							icon="small-cross"
+							variant={"link-danger"}
+							text="Discard All"
 						/>
 					</>
 				)}
 			</div>
 			<div className="content">
-				{bson && bson.length && (
-					<CollapseList content={bson.map(createDocumentPanelListContent)} />
+				{bson && bson.length ? (
+					<DocumentList content={bson.map(createDocumentPanelListContent)} />
+				) : (
+					<span>No results to show.</span>
 				)}
 			</div>
 			{/* Dialogs */}
 			<>
-				{docBeingDeleted && (
+				{docBeingDeleted && docBeingDeleted._id && (
 					<DangerousActionPrompt
 						dangerousAction={() => {
-							return window.ark.driver.run(
-								"query",
-								"deleteOne",
-								driverArgs({
-									query: serialize({
-										_id: new ObjectId(docBeingDeleted._id),
-									}),
-								})
-							);
+							if (docBeingDeleted._id)
+								return window.ark.driver.run(
+									"query",
+									"deleteOne",
+									driverArgs({
+										query: serialize({
+											_id: new ObjectId(docBeingDeleted._id),
+										}),
+									})
+								);
+							return Promise.reject(new Error("Document does not have an _id"));
 						}}
 						dangerousActionCallback={() => {
 							setDocBeingDeleted(undefined);
@@ -1236,21 +1278,23 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 							setDocBeingDeleted(undefined);
 						}}
 						prompt={
-							<>
+							<div className="delete-list">
 								<p>{"Are you sure you would like to delete this document?"}</p>
-								<p>{"Object ID - " + docBeingDeleted._id.toString()}</p>
+								<p>
+									<Code>{`_id => ObjectId("${docBeingDeleted._id.toString()}")`}</Code>
+								</p>
 								<br />
 								<p>
 									{`This deletion will be run on the collection - ${shellConfig.collection}. `}
-									<a>Change</a>
 								</p>
-							</>
+							</div>
 						}
 						title={"Deleting Document"}
 					/>
 				)}
 				{showSaveAllDialog && (
 					<DangerousActionPrompt
+						size="large"
 						dangerousAction={() => updateAllDocuments()}
 						dangerousActionCallback={(err) => {
 							if (err) {
@@ -1281,9 +1325,14 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 						title={"Saving Changes"}
 					/>
 				)}
-				{showSaveDialog && docBeingSaved && (
+				{showSaveDialog && docBeingSaved && docBeingSaved._id && (
 					<DangerousActionPrompt
-						dangerousAction={() => updateDocument(docBeingSaved._id.toString())}
+						size="large"
+						dangerousAction={() =>
+							docBeingSaved._id
+								? updateDocument(docBeingSaved._id.toString())
+								: Promise.reject(new Error("Document does not have an _id"))
+						}
 						dangerousActionCallback={(err, result) => {
 							if (err || !result.ack) {
 								notify({
@@ -1308,11 +1357,11 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 							<UpdatesList
 								collection={shellConfig.collection}
 								updates={updates.filter(
-									(update) => update._id === docBeingSaved._id.toString()
+									(update) => update._id === docBeingSaved._id?.toString()
 								)}
 							/>
 						}
-						title={"Saving Changes"}
+						title={"Review Changes"}
 					/>
 				)}
 			</>
@@ -1327,15 +1376,49 @@ interface UpdateListProps {
 
 const UpdatesList: FC<UpdateListProps> = (props) => {
 	const { updates } = props;
+
+	const [opened, setOpened] = useState<Record<string, boolean>>({});
+
+	const toggle = (key) =>
+		setOpened((x) => {
+			x[key] = !x[key];
+			return { ...x };
+		});
+
+	useEffect(() => {
+		if (updates.length > 0) {
+			const update = updates[0];
+			toggle(update._id.toString());
+		}
+	}, []);
+
 	return (
 		<div className="updates-list">
+			<p className="help-text">
+				Review update documents that will be applied to each document before
+				confirming the update.
+			</p>
+			<br />
 			{updates.length
 				? updates.map((update) => (
-						<div className="item" key={update._id.toString()}>
-							<p>{`ID - ${update._id.toString()}`}</p>
-
-							<code>{JSON.stringify(update.update)}</code>
-						</div>
+						<>
+							<div className="item" key={update._id.toString()}>
+								<p>
+									<Code>{`_id => ObjectId(${update._id.toString()})`}</Code>
+									<a onClick={() => toggle(update._id.toString())}>
+										{opened[update._id.toString()]
+											? "Hide update"
+											: "See update"}
+									</a>
+								</p>
+								<Collapse isOpen={opened[update._id.toString()]}>
+									<Code className="multi-line">
+										{replaceQuotes(formatBSONToText([update.update as any]))}
+									</Code>
+								</Collapse>
+							</div>
+							<br />
+						</>
 				  ))
 				: `No changes were made.`}
 		</div>

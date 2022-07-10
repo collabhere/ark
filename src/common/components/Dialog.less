@@ -1,23 +1,40 @@
 @import "../styles/variables.less";
 
 .modal {
+	a {
+		gap: 4px;
+		color: @link-color !important;
+		&:hover {
+			color: @text-color !important;
+		}
+	}
+
 	padding-bottom: 8px;
+	background-color: @container-bg-color;
+	color: @text-color;
+	height: 100%;
+
+	box-shadow: @box-shadow;
+
+	.bp4-dialog-header {
+		background-color: @container-fg-color;
+	}
 
 	.title {
-		// color: @primary-tint-1;
-		font-size: large;
+		font-size: @medium-font-size;
+		color: @text-color;
 	}
 
 	.content {
 		padding: 8px 8px;
+		overflow-y: auto;
+		height: 100%;
 	}
 
 	.footer {
 		display: flex;
 		justify-content: flex-end;
-		* {
-			padding: 4px;
-		}
+		padding: 8px;
 	}
 }
 
@@ -27,4 +44,5 @@
 
 .large {
 	width: 1000px;
+	height: 500px;
 }

@@ -481,7 +481,7 @@ export const TitleBar = (): JSX.Element => {
 					</Popover2>
 				</div>
 			</div>
-
+			<div className="header-draggable-area"></div>
 			<div className="header-container">
 				<Button
 					variant="link"

@@ -2,120 +2,99 @@ import { ObjectId } from "mongodb";
 import { Transform } from "stream";
 
 interface ImportOptions {
-	destructureData?: boolean;
 	fields?: Array<string>;
 }
 
-const convertToCsv = ({ destructureData, fields }: ImportOptions) => {
-	let rowsProcessed = false;
+interface CsvCell { header: string, value: string };
 
-	const isPrimitive = (val: any) =>
-		typeof val !== "object" || val instanceof Date || ObjectId.isValid(val);
+type Chunk = Record<string, any> | number | string | boolean | Date | ObjectId;
 
-	const getPostfix = (val: any, prop: string | number) =>
-		isPrimitive(val) ? `.${prop}` : "";
+const formatHeaders = (headers: Set<string>, delim = ",") => [...headers].join(delim) + "\n";
 
-	const getPrefix = (val: string, delimiter: "," | ".") =>
-		!!val ? `${val}${delimiter}` : "";
+const formatRow = (headers: Set<string>, cells: CsvCell[], delim = ",") =>
+	[...headers]
+		.map((head) => (cells.find((cell) => cell.header === head)?.value || ""))
+		.join(delim) + "\n";
 
-	const destructureKeys = (
-		doc: Record<string, any>,
-		key: string | number,
-		join: string
-	): string | number => {
-		if (isPrimitive(doc[key])) {
-			return join ? join : key;
+const addCells = (
+	document: Chunk,
+	cells: CsvCell[] = [],
+	headers = new Set(),
+	path: string[] = [],
+	onlyHeaders = false
+) => {
+	const add = (header: string, value: Chunk) => {
+		if (onlyHeaders) {
+			if (headers.has(header))
+				cells.push({
+					header,
+					value: String(value),
+				});
 		} else {
-			if (Array.isArray(doc[key])) {
-				return doc[key]
-					.map((val: any, index: number) =>
-						destructureKeys(
-							doc[key],
-							index,
-							`${getPrefix(join, ".")}${key}${getPostfix(val, index)}`
-						)
-					)
-					.join(",");
-			} else {
-				return Object.keys(doc[key])
-					.map((prop) =>
-						destructureKeys(
-							doc[key],
-							prop,
-							`${getPrefix(join, ".")}${key}${getPostfix(doc[key][prop], prop)}`
-						)
-					)
-					.join(",");
-			}
+			headers.add(header);
+			cells.push({
+				header,
+				value: String(value),
+			});
 		}
 	};
 
-	const destructureValues = (doc: any): string => {
-		if (isPrimitive(doc)) {
-			return doc.toString();
-		} else if (doc && typeof doc === "object" && Array.isArray(doc)) {
-			return doc.map((val) => destructureValues(val)).join(",");
-		} else if (doc && typeof doc === "object" && !Array.isArray(doc)) {
-			return Object.values(doc)
-				.map((val) => destructureValues(val))
-				.join(",");
-		} else {
-			return doc;
+	if (
+		typeof document === "number" ||
+		typeof document === "string" ||
+		typeof document === "boolean" ||
+		document instanceof Date ||
+		(typeof document !== "object" && ObjectId.isValid(document)) ||
+		document == null
+	) {
+		return add(path.join("."), document);
+	}
+	for (const [key, value] of Object.entries(document)) {
+		if (Array.isArray(value)) {
+			value.forEach((x, idx) =>
+				addCells(x, cells, headers, [...path, String(key), String(idx)], onlyHeaders)
+			);
+		} else if (typeof value === "object" && !(value instanceof Date)) {
+			addCells(value, cells, headers, [...path, String(key)], onlyHeaders);
+		} else if (
+			typeof value === "number" ||
+			typeof value === "string" ||
+			typeof value === "boolean" ||
+			value instanceof Date ||
+			(typeof document !== "object" && ObjectId.isValid(document)) ||
+			document == null
+		) {
+			const header = [...path, String(key)].join(".");
+			add(header, value);
 		}
-	};
-
-	const processFields = (chunk: Record<string, any>) => {
-		rowsProcessed = true;
-		return fields && fields.length > 0
-			? fields.join(",")
-			: destructureData
-			? Object.keys(chunk).reduce(
-					(acc, key) => (
-						(acc = `${getPrefix(acc, ",")}${destructureKeys(chunk, key, "")}`),
-						acc
-					),
-					""
-			  )
-			: Object.keys(chunk).join(",");
-	};
-
-	const processData = (chunk: Record<string, any>): string =>
-		Object.values(chunk).reduce((acc, val) => {
-			acc = destructureData
-				? `${getPrefix(acc, ",")}${destructureValues(val)}`
-				: `${getPrefix(acc, ",")}${
-						!isPrimitive(val) ? JSON.stringify(val) : val
-				  }`;
-
-			return acc;
-		}, "");
-
-	return (chunk: Record<string, any>) => {
-		const rows = !rowsProcessed ? `${processFields(chunk)}\n` : "";
-		const values = `${processData(chunk)}\n`;
-
-		return Promise.resolve(`${rows}${values}`);
-	};
+	}
 };
 
+
 export const CSVTransform = (options: ImportOptions) => {
-	const csvFormatter = convertToCsv(options);
+
+	const headers = new Set<string>(!!options.fields?.length ? options.fields : []);
 
 	return new Transform({
 		objectMode: true,
-
+		flush(callback) {
+			callback(undefined, { header: formatHeaders(headers) });
+		},
 		transform(
 			chunk: Record<string, any>,
 			encoding: string,
-			callback: (err?: Error, value?: string) => void
+			callback: (err?: Error, value?: { row: string }) => void
 		) {
-			csvFormatter(chunk)
-				.then((res) => {
-					callback(undefined, res);
-				})
-				.catch((err) => {
-					callback(err);
-				});
+			try {
+				const cells: CsvCell[] = [];
+
+				addCells(chunk, cells, headers, [], !!options.fields?.length);
+
+				callback(undefined, { row: formatRow(headers, cells) });
+
+			} catch (err: any) {
+				callback(err);
+			}
 		},
 	});
 };

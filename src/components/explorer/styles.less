@@ -3,7 +3,6 @@
 .Explorer {
 	min-width: 160px;
 	height: 100%;
-	// background-color: @primary;
 	display: flex;
 	flex-direction: column;
 	padding-top: 10px;
@@ -18,7 +17,6 @@
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	overflow: hidden;
-	font-size: 18px;
 	font-weight: 500;
 	line-height: 17px;
 	letter-spacing: 0em;
@@ -28,7 +26,7 @@
 .ContextMenu {
 	background-clip: padding-box;
 	background-color: #fff;
-	border-radius: 4px;
+	border-radius: @border-radius;
 	box-shadow: @box-shadow;
 	left: 0px;
 	list-style-type: none;
@@ -46,7 +44,6 @@
 	clear: both;
 	color: rgba(0, 0, 0, 0.65);
 	cursor: pointer;
-	font-size: 14px;
 	font-weight: normal;
 	line-height: 22px;
 	margin: 0;

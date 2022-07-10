@@ -1,6 +1,6 @@
 import "./styles.less";
-import React, { FC, useCallback, useContext } from "react";
-import { dispatch } from "../../common/utils/events";
+import React, { FC, useCallback, useContext, useEffect } from "react";
+import { dispatch, listenEffect } from "../../common/utils/events";
 import {
 	ConnectionsContext,
 	SettingsContext,
@@ -35,13 +35,24 @@ export const Sidebar: FC = () => {
 			: `${splitName[0]}${splitName[1]}`.toUpperCase();
 	};
 
+	useEffect(
+		() =>
+			listenEffect([
+				{
+					event: "OPEN_CONNECTION_CONTROLLER",
+					cb: () => listConnections(),
+				},
+			]),
+		[listConnections]
+	);
+
 	return (
 		<div className="sidebar">
 			<div key="manager" className="item home" onClick={listConnections}>
 				<Button
 					active={currentSidebarOpened === "manager"}
 					variant="link"
-					icon="database"
+					icon="data-connection"
 					size="large"
 					tooltipOptions={{
 						content: "Manage Connections",

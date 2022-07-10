@@ -1,5 +1,49 @@
 @import "antd/dist/antd.less";
 
+@import "./common/styles/variables.less";
+
+:root {
+	font-weight: 500;
+	font-size: max(14px, 0.8vw);
+}
+
+* {
+	code {
+		font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+			monospace !important;
+
+		border-radius: @border-radius !important;
+		background-color: @container-fg-color-bright !important;
+		color: @text-color !important;
+
+		padding: 4px !important;
+
+		&.multi-line {
+			display: block;
+			white-space: pre-wrap;
+		}
+	}
+}
+
+*::-webkit-scrollbar {
+	background-color: @scrollbar-bg-color;
+	// border-radius: @border-radius;
+	width: 10px;
+	height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+	opacity: 0%;
+}
+
+*:hover::-webkit-scrollbar-thumb {
+	background-color: @scrollbar-thumb-color;
+	border-radius: @border-radius;
+	border: 3px solid @scrollbar-bg-color;
+	opacity: 100%;
+	transition: opacity 3s;
+}
+
 html {
 	overflow: hidden;
 	display: flex;
@@ -20,18 +64,21 @@ body {
 	width: 100%;
 }
 
-code {
-	font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
-		monospace;
-}
-
 pre {
 	width: 100%;
 	margin: revert;
 	overflow: auto;
 	overflow-y: hidden;
-	font-size: 12px;
+	font-size: @medium-font-size;
 	line-height: 20px;
 	border: 1px solid #777;
 	background: transparent repeat 0 0;
+}
+
+.resize-handle {
+	&:hover,
+	&:active {
+		background-color: @container-fg-color-bright !important;
+	}
+	height: 4px !important;
 }

@@ -2,8 +2,9 @@ import "./styles.less";
 
 import React, { FC, useCallback, useEffect, useMemo, useState } from "react";
 import Monaco from "@monaco-editor/react";
-import { KeyMod, KeyCode, editor } from "monaco-editor";
 import { mountMonaco } from "./monaco";
+import { editor, KeyCode, KeyMod } from "monaco-editor";
+// import { useHotkeys } from "react-hotkeys-hook";
 
 export enum MONACO_COMMANDS {
 	CLONE_SHELL,
@@ -18,7 +19,7 @@ export interface ShellProps {
 	onMonacoCommand?: (command: MONACO_COMMANDS) => void;
 }
 export const Shell: FC<ShellProps> = (props) => {
-	const { allCollections, onMonacoCommand, code, onCodeChange, settings } =
+	const { allCollections, code, onCodeChange, onMonacoCommand, settings } =
 		props;
 
 	const [monacoEditor, setMonacoEditor] =
@@ -28,40 +29,15 @@ export const Shell: FC<ShellProps> = (props) => {
 		onMonacoCommand && onMonacoCommand(MONACO_COMMANDS.EXEC_CODE);
 	}, [onMonacoCommand]);
 
-	const cloneCurrentTab = useCallback(() => {
-		onMonacoCommand && onMonacoCommand(MONACO_COMMANDS.CLONE_SHELL);
-	}, [onMonacoCommand]);
-
-	const keyBindings = useMemo(
-		() => [
-			{
-				key: KeyMod.CtrlCmd | KeyCode.Enter,
-				command: exec,
-			},
-			{
-				key: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyN,
-				command: cloneCurrentTab,
-			},
-		],
-		[cloneCurrentTab, exec]
-	);
-
-	useEffect(() => {
-		if (monacoEditor) {
-			if (settings?.hotKeys === "off") {
-				keyBindings.forEach((binding) =>
-					monacoEditor.addCommand(binding.key, () => {})
-				);
-			} else {
-				keyBindings.forEach((binding) =>
-					monacoEditor.addCommand(binding.key, binding.command)
-				);
-			}
-		}
-	}, [cloneCurrentTab, exec, keyBindings, monacoEditor, settings?.hotKeys]);
+	// @todo: When multiple editors are opened, the most recently opened
+	// one only triggers the command callback. Track this issue - https://github.com/microsoft/monaco-editor/issues/2947
+	// Reducing to version 0.31.0 also does not work, not sure why.
+	// useEffect(() => {
+	// 	monacoEditor?.addCommand(KeyMod.CtrlCmd | KeyCode.Enter, () => exec());
+	// }, [monacoEditor]);
 
 	return (
-		<div className={"Shell"}>
+		<div className={"shell"}>
 			<Monaco
 				options={{
 					lineNumbers: settings?.lineNumbers === "off" ? "off" : "on",
@@ -69,24 +45,20 @@ export const Shell: FC<ShellProps> = (props) => {
 						enabled: settings?.miniMap === "on" ? true : false,
 					},
 				}}
-				// theme={"ark"}
+				theme={"ark"}
 				beforeMount={(monaco) => {
 					mountMonaco(monaco, { collections: allCollections });
-					// monaco.editor.defineTheme("ark", {
-					// 	base: "vs-dark",
-					// 	inherit: true,
-					// 	rules: [],
-					// 	colors: {
-					// 		"editor.foreground": "#000000",
-					// 		"editor.background": "#060a21",
-					// 		"editorCursor.foreground": "#8B0000",
-					// 		"editor.lineHighlightBackground": "#0000FF20",
-					// 		"editor.selectionBackground": "#8B0000",
-					// 		"editor.inactiveSelectionBackground": "#88000015",
-					// 	},
-					// });
+					monaco.editor.defineTheme("ark", {
+						base: "vs-dark",
+						inherit: true,
+						rules: [],
+						colors: {
+							"editor.background": "#111731",
+							foreground: "#e2e6f8",
+						},
+					});
 				}}
-				onMount={(editor: editor.IStandaloneCodeEditor) => {
+				onMount={(editor) => {
 					setMonacoEditor(editor);
 				}}
 				onChange={(value, ev) => {

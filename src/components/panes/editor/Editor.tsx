@@ -3,22 +3,31 @@ import { deserialize } from "bson";
 import "../styles.less";
 import { MONACO_COMMANDS, Shell } from "../../shell/Shell";
 import { Resizable } from "re-resizable";
-import { Menu, Dropdown } from "antd";
-import { DownOutlined } from "@ant-design/icons";
-import { VscGlobe, VscDatabase, VscAccount } from "react-icons/vsc";
 
 import { dispatch, listenEffect } from "../../../common/utils/events";
 import { handleErrors, notify } from "../../../common/utils/misc";
-import { ResultViewer, ResultViewerProps } from "./ResultViewer/ResultViewer";
+import { ResultViewer, ResultViewerProps } from "./result-viewer/ResultViewer";
 import { Button } from "../../../common/components/Button";
 import { CircularLoading } from "../../../common/components/Loading";
 import { useRefresh } from "../../../hooks/useRefresh";
 import { bsonTest } from "../../../../util/misc";
 import { useContext } from "react";
 import { SettingsContext } from "../../layout/BaseContextProvider";
+import { Menu, MenuItem, Tag } from "@blueprintjs/core";
+import { ExportQueryResult } from "../../dialogs/ExportQueryResult";
+import { useDebounce } from "../../../hooks/useDebounce";
 
-const createDefaultCodeSnippet = (collection: string) => `// Mongo shell
-db.getCollection('${collection}').find({});
+const EDITOR_HELP_COMMENT = `/**
+* Ark Editor
+* 
+* Welcome to Ark's script editor.
+* 
+*/
+`;
+
+const createDefaultCodeSnippet = (collection: string, helpText = true) => `${
+	helpText ? EDITOR_HELP_COMMENT : ""
+}db.getCollection('${collection}').find({ });
 `;
 
 interface ReplicaSetMember {
@@ -61,6 +70,8 @@ export const Editor: FC<EditorProps> = (props) => {
 		timeout: settings?.shellTimeout,
 	});
 
+	const debouncedQueryParams = useDebounce(queryParams, 600);
+
 	const [effectRefToken, refreshEffect] = useRefresh();
 	const [executing, setExecuting] = useState(false);
 	const [currentResult, setCurrentResult] =
@@ -80,13 +91,14 @@ export const Editor: FC<EditorProps> = (props) => {
 			? createDefaultCodeSnippet(collection)
 			: createDefaultCodeSnippet("test")
 	);
+	const [exportDialog, toggleExportDialog] = useState<boolean>(false);
 
 	const onCodeChange = useCallback((code: string) => {
 		const _code = code.replace(/(\/\/.*)|(\n)/g, "");
 		setCode(_code);
 	}, []);
 
-	const switchViews = useCallback((type: "tree" | "json") => {
+	const switchViews = useCallback((type: "tree" | "plaintext") => {
 		setCurrentResult((currentResult) => ({
 			...currentResult,
 			type: type,
@@ -113,27 +125,42 @@ export const Editor: FC<EditorProps> = (props) => {
 			setCurrentResult(undefined);
 			shellId
 				? window.ark.shell
-						.eval(shellId, _code, queryParams)
-						.then(function ({ editable, result, err }) {
+						.eval(shellId, _code, debouncedQueryParams)
+						.then(function ({
+							editable,
+							result,
+							isCursor,
+							isNotDocumentArray,
+							err,
+						}) {
 							if (err) {
 								console.log("exec shell");
 								console.log(err);
-								// setTextResult(msg + "<br/>" + html);
 								return;
 							}
 
 							if (result) {
-								const bson = deserialize(result ? result : Buffer.from([]));
+								if (isNotDocumentArray) {
+									setCurrentResult({
+										type: "plaintext",
+										bson: new TextDecoder().decode(result),
+										forceView: "plaintext",
+										hidePagination: !isCursor,
+									});
+								} else {
+									const bson = deserialize(result);
 
-								const bsonArray: Ark.BSONArray = bsonTest(bson)
-									? Object.values(bson)
-									: [bson];
+									const bsonArray: Ark.BSONArray = bsonTest(bson)
+										? Object.values(bson)
+										: [bson];
 
-								setCurrentResult({
-									type: "tree",
-									bson: bsonArray,
-									allowDocumentEdits: editable,
-								});
+									setCurrentResult({
+										type: "tree",
+										bson: bsonArray,
+										allowDocumentEdits: editable,
+										hidePagination: !isCursor,
+									});
+								}
 							} else {
 								notify({
 									title: "Error",
@@ -149,13 +176,16 @@ export const Editor: FC<EditorProps> = (props) => {
 						.finally(() => setExecuting(false))
 				: setExecuting(false);
 		},
-		[shellId, storedConnectionId, queryParams]
+		[shellId, storedConnectionId, debouncedQueryParams]
 	);
 
 	const destroyShell = useCallback(
 		(shellId: string) =>
-			window.ark.shell.destroy(shellId).then(() => setShellId(undefined)),
-		[]
+			Promise.all([
+				window.ark.shell.destroy(shellId).then(() => setShellId(undefined)),
+				savedScriptId && window.ark.scripts.delete(savedScriptId),
+			]),
+		[savedScriptId]
 	);
 
 	const switchReplicaShell = useCallback(
@@ -178,14 +208,15 @@ export const Editor: FC<EditorProps> = (props) => {
 	const exportData = useCallback(
 		(code, options) => {
 			const _code = code.replace(/(\/\/.*)|(\n)/g, "");
+			setExecuting(true);
 			shellId &&
 				window.ark.shell
 					.export(shellId, _code, options)
-					.then(() => {
-						console.log("Export complete");
+					.then((result) => {
+						const { exportPath } = result;
 						notify({
 							title: "Export complete!",
-							description: `Path: ~/.ark/exports/${options.fileName}`,
+							description: `File saved to path - ${exportPath}`,
 							type: "success",
 						});
 					})
@@ -196,7 +227,8 @@ export const Editor: FC<EditorProps> = (props) => {
 							type: "error",
 						});
 						console.error("exec shell error: ", err);
-					});
+					})
+					.finally(() => setExecuting(false));
 		},
 		[shellId]
 	);
@@ -206,13 +238,13 @@ export const Editor: FC<EditorProps> = (props) => {
 	}, [destroyShell, refreshEffect, shellId]);
 
 	useEffect(() => {
-		if (queryParams && !initialRender) {
+		if (debouncedQueryParams && !initialRender) {
 			exec(code);
 		}
 
 		/* Just need these dependencies for code to re-execute
 			when either the page or the limit is changed */
-	}, [queryParams, initialRender]);
+	}, [debouncedQueryParams]);
 
 	useEffect(() => {
 		if (settings?.shellTimeout) {
@@ -315,189 +347,243 @@ export const Editor: FC<EditorProps> = (props) => {
 	);
 
 	return (
-		<div className={"Editor"}>
-			<Resizable
-				defaultSize={{ height: "300px", width: "100%" }}
-				enable={{ bottom: true }}
-			>
-				<div className={"EditorHeader"}>
-					<div className={"EditorHeaderItem"}>
-						<span>
-							<VscGlobe />
-						</span>
-						{replicaHosts && currentReplicaHost ? (
-							<HostList
-								currentHost={currentReplicaHost}
-								hosts={replicaHosts}
-								onHostChange={(host) => {
-									if (host.name !== currentReplicaHost.name) {
-										(shellId ? destroyShell(shellId) : Promise.resolve()).then(
-											() => switchReplicaShell(host)
-										);
-									}
-								}}
-							/>
-						) : (
-							<span>{hosts[0]}</span>
+		<>
+			<div className={"editor"}>
+				<Resizable
+					handleClasses={{
+						bottom: "resize-handle",
+					}}
+					minHeight={
+						currentResult && currentResult.bson && currentResult.type
+							? "250px"
+							: "100%"
+					}
+					defaultSize={{
+						height: "250px",
+						width: "100%",
+					}}
+					enable={{ bottom: true }}
+				>
+					<div className={"editor-header"}>
+						<div className={"editor-header-item"}>
+							{!!replicaHosts && !!currentReplicaHost ? (
+								<HostList
+									currentHost={currentReplicaHost}
+									hosts={replicaHosts}
+									onHostChange={(host) => {
+										if (host.name !== currentReplicaHost.name) {
+											(shellId
+												? destroyShell(shellId)
+												: Promise.resolve()
+											).then(() => switchReplicaShell(host));
+										}
+									}}
+								/>
+							) : (
+								<Tag icon={"globe-network"} round>
+									{hosts[0]}
+								</Tag>
+							)}
+						</div>
+						<div className={"editor-header-item"}>
+							<Tag icon={"database"} round>
+								{contextDB}
+							</Tag>
+						</div>
+						<div className={"editor-header-item"}>
+							<Tag icon={"person"} round>
+								{user || "(no auth)"}
+							</Tag>
+						</div>
+						{shellId && !shellLoadError && (
+							<>
+								<div className={"editor-header-item"}>
+									<Button
+										size="small"
+										icon={"floppy-disk"}
+										onClick={{
+											callback: (err, script) => {
+												if (err) {
+													notify({
+														description: err.message
+															? err.message
+															: "Could not save script.",
+														type: "error",
+													});
+												} else if (script) {
+													setSavedScriptId(script.id);
+												}
+											},
+											promise: () =>
+												window.ark.scripts.saveAs({
+													code,
+													storedConnectionId,
+												}),
+										}}
+										tooltipOptions={{
+											position: "bottom",
+											content: "Save as",
+										}}
+									/>
+								</div>
+								{savedScriptId && (
+									<div className={"editor-header-item"}>
+										<Button
+											size="small"
+											icon={"saved"}
+											onClick={{
+												callback: (err, script) => {
+													if (err) {
+														notify({
+															description: err.message
+																? err.message
+																: "Could not save script.",
+															type: "error",
+														});
+													} else if (script) {
+														setSavedScriptId(script.id);
+													}
+												},
+												promise: () => {
+													return window.ark.scripts.save({
+														code,
+														id: savedScriptId,
+													});
+												},
+											}}
+											tooltipOptions={{
+												position: "bottom",
+												content: "Save",
+											}}
+										/>
+									</div>
+								)}
+								{!executing && (
+									<div className={"editor-header-item"}>
+										<Button
+											size="small"
+											icon={"play"}
+											onClick={() => exec(code)}
+											tooltipOptions={{
+												position: "bottom",
+												content: "Run",
+											}}
+										/>
+									</div>
+								)}
+								{executing && (
+									<Button
+										size="small"
+										icon={"stop"}
+										variant="danger"
+										onClick={() => terminateExecution()}
+										tooltipOptions={{
+											position: "bottom",
+											content: "Stop",
+										}}
+									/>
+								)}
+								<div className="editor-header-item">
+									<Button
+										size="small"
+										icon={"export"}
+										onClick={() => toggleExportDialog(true)}
+										tooltipOptions={{
+											position: "bottom",
+											content: "Export Script Result",
+										}}
+									/>
+								</div>
+							</>
 						)}
 					</div>
-					<div className={"EditorHeaderItem"}>
-						<span>
-							<VscDatabase />
-						</span>
-						<span>{contextDB}</span>
-					</div>
-					<div className={"EditorHeaderItem"}>
-						<span>
-							<VscAccount />
-						</span>
-						<span>{user || "no user"}</span>
-					</div>
-					{shellId && !shellLoadError && (
-						<>
-							<Button
-								size="small"
-								icon={"floppy-disk"}
-								onClick={() => {
-									window.ark
-										.browseForDirs("Select A Save Location", "Set")
-										.then((result) => {
-											const { dirs } = result;
-											const saveLocation = dirs[dirs.length - 1];
-											return window.ark.scripts
-												.saveAs({
-													code,
-													saveLocation,
-													storedConnectionId: storedConnectionId,
-													fileName: "saved-script-1.js",
-												})
-												.then((script) => {
-													setSavedScriptId(script.id);
-												});
+					{shellId ? (
+						<Shell
+							code={code}
+							onCodeChange={onCodeChange}
+							allCollections={COLLECTIONS} // @todo: Fetch these collection names
+							settings={settings}
+							onMonacoCommand={(command) => {
+								switch (command) {
+									case MONACO_COMMANDS.CLONE_SHELL: {
+										dispatch("browser:create_tab:editor", {
+											shellConfig,
+											contextDB,
+											collections: COLLECTIONS,
+											storedConnectionId,
 										});
-								}}
-								tooltipOptions={{
-									hover: {
-										content: "Save as",
-									},
-								}}
-							/>
-							{savedScriptId && (
-								<Button
-									size="small"
-									icon={"saved"}
-									onClick={() => {
-										return window.ark.scripts
-											.save({
-												code,
-												id: savedScriptId,
-											})
-											.then((script) => {
-												setSavedScriptId(script.id);
-											});
-									}}
-									tooltipOptions={{
-										hover: {
-											content: "Save",
-										},
-									}}
-								/>
-							)}
-							{!executing && (
-								<Button
-									size="small"
-									icon={"play"}
-									variant="success"
-									onClick={() => exec(code)}
-									tooltipOptions={{
-										hover: {
-											content: "Run",
-										},
-									}}
-								/>
-							)}
-							{executing && (
-								<Button
-									size="small"
-									icon={"stop"}
-									variant="danger"
-									onClick={() => terminateExecution()}
-									tooltipOptions={{
-										hover: {
-											content: "Stop",
-										},
-									}}
-								/>
-							)}
-						</>
+										return;
+									}
+									case MONACO_COMMANDS.EXEC_CODE: {
+										exec(code);
+									}
+								}
+							}}
+						/>
+					) : (
+						<div
+							style={{
+								display: "flex",
+								justifyContent: "center",
+								alignItems: "center",
+								height: "100%",
+							}}
+						>
+							{shellLoadError ? shellLoadError : <CircularLoading />}
+						</div>
 					)}
-				</div>
-				{shellId ? (
-					<Shell
-						code={code}
-						onCodeChange={onCodeChange}
-						allCollections={COLLECTIONS} // @todo: Fetch these collection names
-						settings={settings}
-						onMonacoCommand={(command) => {
-							switch (command) {
-								case MONACO_COMMANDS.CLONE_SHELL: {
-									dispatch("browser:create_tab:editor", {
-										shellConfig,
-										contextDB,
-										collections: COLLECTIONS,
-										storedConnectionId,
-									});
-									return;
-								}
-								case MONACO_COMMANDS.EXEC_CODE: {
-									exec(code);
-								}
-							}
+				</Resizable>
+				{currentResult && currentResult.bson && currentResult.type && (
+					<ResultViewer
+						{...currentResult}
+						bson={currentResult.bson}
+						type={currentResult.type}
+						shellConfig={{ ...shellConfig, database: contextDB }}
+						driverConnectionId={storedConnectionId}
+						switchViews={switchViews}
+						paramsState={{
+							queryParams,
+							changeQueryParams,
+						}}
+						onRefresh={() => {
+							exec(code);
+						}}
+						onClose={() => {
+							setCurrentResult(undefined);
 						}}
 					/>
-				) : (
-					<div
-						style={{
-							display: "flex",
-							justifyContent: "center",
-							alignItems: "center",
-							height: "100%",
-						}}
-					>
-						{shellLoadError ? shellLoadError : <CircularLoading />}
-					</div>
 				)}
-			</Resizable>
-			{currentResult && currentResult.bson && currentResult.type && (
-				<ResultViewer
-					bson={currentResult.bson}
-					type={currentResult.type}
-					allowDocumentEdits={currentResult.allowDocumentEdits}
-					shellConfig={{ ...shellConfig, database: contextDB }}
-					driverConnectionId={storedConnectionId}
-					code={code}
-					switchViews={switchViews}
-					paramsState={{ queryParams, changeQueryParams }}
-					onExport={(params) => exportData(params.code, params.options)}
-					onRefresh={() => {
-						exec(code);
-					}}
-				/>
-			)}
-		</div>
+			</div>
+			{/* Dialogs */}
+			<>
+				{exportDialog && (
+					<ExportQueryResult
+						onCancel={() => toggleExportDialog(false)}
+						onExport={(exportOptions) => {
+							exportData(code, exportOptions);
+							toggleExportDialog(false);
+						}}
+					/>
+				)}
+			</>
+		</>
 	);
 };
 
 interface CreateMenuItem {
 	item: string;
 	cb: () => void;
+	active: boolean;
 }
 const createMenu = (items: CreateMenuItem[]) => (
 	<Menu>
 		{items.map((menuItem, i) => (
-			<Menu.Item key={i} onClick={() => menuItem.cb()}>
-				<a>{menuItem.item}</a>
-			</Menu.Item>
+			<MenuItem
+				disabled={menuItem.active}
+				text={menuItem.item}
+				key={i}
+				onClick={() => menuItem.cb()}
+			/>
 		))}
 	</Menu>
 );
@@ -511,19 +597,39 @@ const HostList = (props: HostListProps) => {
 	const { currentHost, hosts, onHostChange } = props;
 
 	return (
-		<Dropdown
-			overlay={createMenu(
-				hosts.map((host) => ({
-					item: `${host.name} (${host.stateStr.substr(0, 1)})`,
-					cb: () => onHostChange(host),
-				}))
-			)}
-			trigger={["click"]}
-		>
-			<a style={{ display: "flex" }} onClick={(e) => e.preventDefault()}>
-				{currentHost.name} ({currentHost.stateStr.substr(0, 1)})
-				<DownOutlined />
-			</a>
-		</Dropdown>
+		<Tag icon={"globe-network"} /* interactive */ round>
+			{currentHost.name +
+				" " +
+				"(" +
+				currentHost.stateStr.substring(0, 1) +
+				")"}
+		</Tag>
 	);
+
+	// @todo: Build a system where switching
+	// replica set nodes makes a direct connection
+	// to the node via a connection string. This
+	// may require a util to build a connection string
+	// for any chosen node of a replica set stored
+	// connection.
+	// return (
+	// 	<Popover2
+	// 		position="bottom-right"
+	// 		content={createMenu(
+	// 			hosts.map((host) => ({
+	// 				item: `${host.name} (${host.stateStr.substring(0, 1)})`,
+	// 				cb: () => onHostChange(host),
+	// 				active: currentHost.name === host.name,
+	// 			}))
+	// 		)}
+	// 	>
+	// 		<Tag icon={"globe-network"} /* interactive */ round>
+	// 			{currentHost.name +
+	// 				" " +
+	// 				"(" +
+	// 				currentHost.stateStr.substring(0, 1) +
+	// 				")"}
+	// 		</Tag>
+	// 	</Popover2>
+	// );
 };

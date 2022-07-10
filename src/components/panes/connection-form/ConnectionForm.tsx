@@ -149,34 +149,35 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 			const parsedUri = parse(uri);
 			if (
 				parsedUri &&
-				parsedUri.scheme.includes("mongodb") &&
+				parsedUri.scheme === "mongodb" &&
 				parsedUri.hosts.every((elem) => !!elem.host && !!elem.port)
 			) {
-				return true;
+				return { ok: true };
 			}
 
-			notify({
-				type: "error",
-				description: "Invalid URI format",
-			});
+			if (
+				parsedUri &&
+				parsedUri.scheme === "mongodb+srv" &&
+				parsedUri.hosts.every((elem) => !!elem.host)
+			) {
+				return { ok: true };
+			}
 
-			return false;
+			return { ok: false, err: "Invalid URI format" };
 		} catch (err) {
-			console.log(err);
-			notify({
-				type: "error",
-				description:
+			return {
+				ok: true,
+				err:
 					err && (err as Error).message
 						? (err as Error).message
 						: "Invalid URI",
-			});
-
-			return false;
+			};
 		}
 	}, []);
 
 	const saveMongoURI = useCallback(() => {
-		if (validateUri(mongoURI)) {
+		const { ok, err } = validateUri(mongoURI);
+		if (ok) {
 			window.ark.driver
 				.run("connection", "save", {
 					type: "uri",
@@ -190,11 +191,24 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 					dispatch("connection_manager:add_connection", { connectionId });
 					resetForm();
 				});
+		} else {
+			if (err) {
+				notify({
+					type: "error",
+					description: err,
+				});
+			} else {
+				notify({
+					type: "error",
+					description: "Validation of inputs failed",
+				});
+			}
 		}
-	}, [mongoURI, validateUri, connectionData.name]);
+	}, [validateUri, mongoURI, connectionData.name, resetForm]);
 
 	const testURIConnection = useCallback(() => {
-		if (validateUri(mongoURI)) {
+		const { ok, err } = validateUri(mongoURI);
+		if (ok) {
 			window.ark.driver
 				.run("connection", "test", {
 					type: "uri",
@@ -212,6 +226,18 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 
 					notify(notification);
 				});
+		} else {
+			if (err) {
+				notify({
+					type: "error",
+					description: err,
+				});
+			} else {
+				notify({
+					type: "error",
+					description: "Validation of inputs failed",
+				});
+			}
 		}
 	}, [mongoURI, validateUri]);
 

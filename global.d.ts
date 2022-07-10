@@ -130,13 +130,14 @@ declare global {
 
 		interface ExportNdjsonOptions {
 			type: "NDJSON";
+			saveLocation: string;
 			fileName: string;
 		}
 
 		interface ExportCsvOptions {
 			type: "CSV";
-			destructureData: boolean;
 			fields?: Array<string>;
+			saveLocation: string;
 			fileName: string;
 		}
 
@@ -162,7 +163,7 @@ declare global {
 				shellId: string,
 				code: string,
 				options: ExportCsvOptions | ExportNdjsonOptions
-			) => Promise<void>;
+			) => Promise<{ exportPath: string }>;
 		}
 		interface Titlebar {
 			close: () => void;
