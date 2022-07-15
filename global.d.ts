@@ -77,6 +77,7 @@ declare global {
 				mongodHost?: string;
 				mongodPort?: string;
 			};
+			uri?: string;
 		}
 
 		type AnyObject = BSONDocument | BSONArray;

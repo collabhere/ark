@@ -351,7 +351,7 @@ export const Editor: FC<EditorProps> = (props) => {
 			<div className={"editor"}>
 				<Resizable
 					handleClasses={{
-						bottom: "resize-handle",
+						bottom: "resize-handle horizontal",
 					}}
 					minHeight={
 						currentResult && currentResult.bson && currentResult.type
