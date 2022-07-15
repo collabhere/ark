@@ -75,13 +75,23 @@ export const Button: FC<ButtonProps> = (props) => {
 	);
 
 	const buttonWithTooltips = tooltipOptions ? (
-		<Tooltip2 {...tooltipOptions}>{baseButton}</Tooltip2>
+		<Tooltip2
+			{...tooltipOptions}
+			minimal
+			modifiers={{
+				offset: { enabled: true, options: { offset: [0, 4] } },
+			}}
+		>
+			{baseButton}
+		</Tooltip2>
 	) : (
 		baseButton
 	);
 
 	const buttonWithPopoversAndDropdown = dropdownOptions ? (
-		<Popover2 {...dropdownOptions}>{buttonWithTooltips}</Popover2>
+		<Popover2 {...dropdownOptions} minimal>
+			{buttonWithTooltips}
+		</Popover2>
 	) : (
 		buttonWithTooltips
 	);
