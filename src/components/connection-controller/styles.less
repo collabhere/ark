@@ -7,7 +7,7 @@
 	flex-direction: column;
 
 	color: @text-color;
-	background-color: @container-bg-color;
+	background-color: @container-fg-color;
 
 	.container {
 		display: flex;
@@ -55,9 +55,11 @@
 	.card-compact {
 		display: flex;
 		align-items: center;
-		background-color: @container-fg-color;
-		padding: 0.8rem;
+		background-color: @container-bg-color;
+		padding: 1rem;
 		gap: 1rem;
+		border-radius: @border-radius;
+		transition: all 0.3s;
 
 		.cell {
 			flex-grow: 1;
@@ -100,9 +102,10 @@
 	.card-detailed {
 		display: flex;
 		flex-direction: column;
-		padding: 0.8rem;
+		padding: 1rem;
 		gap: 1rem;
-		background-color: @container-fg-color;
+		background-color: @container-bg-color;
+		border-radius: @border-radius;
 		transition: all 0.3s;
 
 		.card-title {

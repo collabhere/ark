@@ -76,9 +76,20 @@ pre {
 }
 
 .resize-handle {
+	@handle-size: 6px;
+
+	border-radius: @border-radius;
+
+	&.horizontal {
+		height: @handle-size !important;
+	}
+
+	&.vertical {
+		width: @handle-size !important;
+	}
+
 	&:hover,
 	&:active {
 		background-color: @container-fg-color-bright !important;
 	}
-	height: 4px !important;
 }

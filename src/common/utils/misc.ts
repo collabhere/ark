@@ -1,21 +1,25 @@
 import { dispatch } from "./events";
 import { Toaster, Intent } from "@blueprintjs/core";
-import { ERR_CODES, getErrorMessageForCode, isValidErrorCode } from "../../../util/errors";
+import {
+	ERR_CODES,
+	getErrorMessageForCode,
+	isValidErrorCode,
+} from "../../../util/errors";
 
 export type PromiseCompleteCallback = (err?: Error, data?: any) => void;
 
 export type OneKey<K extends string, V = any> = {
 	[P in K]: Record<P, V> & Partial<Record<Exclude<K, P>, never>> extends infer O
-	? { [Q in keyof O]: O[Q] }
-	: never;
+		? { [Q in keyof O]: O[Q] }
+		: never;
 }[K];
 
 export type EventOverloadMethod =
 	| ((...args) => void)
 	| {
-		promise: (...args) => Promise<any>;
-		callback: PromiseCompleteCallback;
-	};
+			promise: (...args) => Promise<any>;
+			callback: PromiseCompleteCallback;
+	  };
 
 export const asyncEventOverload = (
 	loadingFn: (val: boolean) => void,
@@ -29,9 +33,14 @@ export const asyncEventOverload = (
 		return fn
 			.promise(...args)
 			.then((result) => (loadingFn(false), fn.callback(undefined, result)))
-			.catch((err) => fn.callback(err));
+			.catch((err) => {
+				loadingFn(false);
+				fn.callback(err);
+			});
 	} else {
-		return Promise.reject(new Error(ERR_CODES.UTILS$ASYNC_OVERLOAD$INVALID_HANDLER_TYPE));
+		return Promise.reject(
+			new Error(ERR_CODES.UTILS$ASYNC_OVERLOAD$INVALID_HANDLER_TYPE)
+		);
 	}
 };
 
@@ -75,8 +84,8 @@ export const handleErrors = (
 		err instanceof Error
 			? err.message
 			: typeof err === "string"
-				? err
-				: undefined;
+			? err
+			: undefined;
 
 	switch (error) {
 		case ERR_CODES.CORE$DRIVER$NO_CACHED_CONNECTION:
@@ -95,7 +104,9 @@ export const handleErrors = (
 
 	if (error) {
 		notify({
-			description: isValidErrorCode(error) ? getErrorMessageForCode(error) : error,
+			description: isValidErrorCode(error)
+				? getErrorMessageForCode(error)
+				: error,
 			type: "error",
 		});
 	}

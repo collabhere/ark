@@ -20,6 +20,8 @@ import {
 	ENCRYPTION_KEY_FILENAME,
 } from "../../../utils/constants";
 
+const CONNECTION_TIMEOUT_MS = 3000;
+
 export interface Connection {
 	info(
 		dep: Ark.DriverDependency,
@@ -119,12 +121,12 @@ export const Connection: Connection = {
 		const { diskStore, settingsStore } = stores;
 		const settings = await settingsStore.get("general");
 		const connections = await diskStore.getAll();
-		const populated = await Promise.all(Object.values(connections).map(async connection => ({
-			...connection, uri: await getConnectionUri(
-				connection,
-				settings?.encryptionKey
-			)
-		})));
+		const populated = await Promise.all(
+			Object.values(connections).map(async (connection) => ({
+				...connection,
+				uri: await getConnectionUri(connection, settings?.encryptionKey),
+			}))
+		);
 		return populated;
 	},
 	load: async ({ storedConnection, _stores }) => {
@@ -160,7 +162,10 @@ export const Connection: Connection = {
 				storedConnection,
 				settings?.encryptionKey
 			);
-			const client = new MongoClient(connectionUri);
+			const client = new MongoClient(connectionUri, {
+				connectTimeoutMS: CONNECTION_TIMEOUT_MS,
+				serverSelectionTimeoutMS: CONNECTION_TIMEOUT_MS,
+			});
 			const connection = await client.connect();
 			const listDatabaseResult = await connection.db().admin().listDatabases();
 			const connectionDetails: MemEntry = {
@@ -196,7 +201,10 @@ export const Connection: Connection = {
 		const { diskStore, iconStore } = stores;
 
 		const settings = await stores.settingsStore.get("general");
-		const config = await createConnectionConfigurations(args, settings?.encryptionKey);
+		const config = await createConnectionConfigurations(
+			args,
+			settings?.encryptionKey
+		);
 
 		if (config.id && args.icon) {
 			config.icon = true;
@@ -215,7 +223,10 @@ export const Connection: Connection = {
 	test: async ({ _stores: store }, args) => {
 		try {
 			const settings = await store.settingsStore.get("general");
-			const config = await createConnectionConfigurations(args, settings?.encryptionKey);
+			const config = await createConnectionConfigurations(
+				args,
+				settings?.encryptionKey
+			);
 			if (config.ssh && config.ssh.useSSH) {
 				await sshTunnel(config.ssh, config.hosts);
 			}
@@ -225,7 +236,10 @@ export const Connection: Connection = {
 				settings?.encryptionKey
 			);
 
-			const client = new MongoClient(connectionUri);
+			const client = new MongoClient(connectionUri, {
+				connectTimeoutMS: CONNECTION_TIMEOUT_MS,
+				serverSelectionTimeoutMS: CONNECTION_TIMEOUT_MS,
+			});
 
 			try {
 				await client.connect();
@@ -259,8 +273,8 @@ export const Connection: Connection = {
 					err && err instanceof Error
 						? err.message
 						: typeof err === "string"
-							? err
-							: "",
+						? err
+						: "Something unexpected happened.",
 			};
 		}
 	},

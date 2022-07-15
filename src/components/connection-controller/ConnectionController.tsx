@@ -9,6 +9,7 @@ import {
 	ManagedConnection,
 	SettingsContext,
 } from "../layout/BaseContextProvider";
+import { notify } from "../../common/utils/misc";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface ConnectionManagerProps {}
@@ -94,13 +95,17 @@ export const ConnectionController: FC<ConnectionManagerProps> = () => {
 			}}
 			maxWidth="50%"
 			minWidth="30%"
+			handleClasses={{
+				right: "resize-handle vertical",
+			}}
 		>
 			<div className="connection-manager">
 				<div className="container">
 					<div className="header">
 						<div className="title">Connections</div>
 						<div className="buttons">
-							<Button
+							{/* @todo: Save to disk to retain view mode */}
+							{/* <Button
 								shape="round"
 								icon="list"
 								variant="primary"
@@ -113,7 +118,7 @@ export const ConnectionController: FC<ConnectionManagerProps> = () => {
 										mode === "compact" ? "detailed" : "compact"
 									)
 								}
-							/>
+							/> */}
 							<Button
 								shape="round"
 								icon="add"
@@ -128,7 +133,29 @@ export const ConnectionController: FC<ConnectionManagerProps> = () => {
 						connections={connections}
 						error={listLoadError}
 						onConnect={(conn) => connect(conn.id)}
+						onConnectCallback={(err) => {
+							if (err) {
+								notify({
+									type: "error",
+									title: "Error",
+									description: err.message
+										? "Error - " + err.message
+										: "Could not connect. Something unexpected happened.",
+								});
+							}
+						}}
 						onDisconnect={(conn) => disconnect(conn.id)}
+						onDisconnectCallback={(err) => {
+							if (err) {
+								notify({
+									type: "error",
+									title: "Error",
+									description: err.message
+										? "Error - " + err.message
+										: "Could not disconnnect. Something unexpected happened.",
+								});
+							}
+						}}
 						onEdit={(conn) => openEditOrCloneConnection(conn, "edit")}
 						onClone={(conn) => openEditOrCloneConnection(conn, "clone")}
 						onDelete={(conn) => deleteConnectionOnDisk(conn.id)}
@@ -154,8 +181,10 @@ export const ConnectionsList: FC<ConnectionsListProps> = (props) => {
 		error,
 		onEdit,
 		onDisconnect,
+		onDisconnectCallback,
 		onDelete,
 		onConnect,
+		onConnectCallback,
 		onClone,
 	} = props;
 	return (
@@ -164,23 +193,29 @@ export const ConnectionsList: FC<ConnectionsListProps> = (props) => {
 				connections && connections.length ? (
 					connections.map((conn) => (
 						<div key={conn.id}>
-							{listViewMode === "detailed"
-								? React.createElement(DetailedConnectionCard, {
-										conn,
-										onConnect: onConnect && (() => onConnect(conn)),
-										onDisconnect: onDisconnect && (() => onDisconnect(conn)),
-										onEdit: onEdit && (() => onEdit(conn)),
-										onClone: onClone && (() => onClone(conn)),
-										onDelete: onDelete && (() => onDelete(conn)),
-								  })
-								: React.createElement(CompactConnectionCard, {
-										conn,
-										onConnect: onConnect && (() => onConnect(conn)),
-										onDisconnect: onDisconnect && (() => onDisconnect(conn)),
-										onEdit: onEdit && (() => onEdit(conn)),
-										onClone: onClone && (() => onClone(conn)),
-										onDelete: onDelete && (() => onDelete(conn)),
-								  })}
+							{listViewMode === "detailed" ? (
+								<DetailedConnectionCard
+									conn={conn}
+									onConnect={onConnect}
+									onConnectCallback={onConnectCallback}
+									onDisconnect={onDisconnect}
+									onDisconnectCallback={onDisconnectCallback}
+									onEdit={onEdit}
+									onClone={onClone}
+									onDelete={onDelete}
+								/>
+							) : (
+								<CompactConnectionCard
+									conn={conn}
+									onConnect={onConnect}
+									onConnectCallback={onConnectCallback}
+									onDisconnect={onDisconnect}
+									onDisconnectCallback={onDisconnectCallback}
+									onEdit={onEdit}
+									onClone={onClone}
+									onDelete={onDelete}
+								/>
+							)}
 						</div>
 					))
 				) : (
@@ -194,11 +229,13 @@ export const ConnectionsList: FC<ConnectionsListProps> = (props) => {
 };
 
 interface ConnectionCardFunctions {
-	onConnect?: (conn: Ark.StoredConnection) => void;
-	onDisconnect?: (conn: Ark.StoredConnection) => void;
-	onEdit?: (conn: Ark.StoredConnection) => void;
-	onClone?: (conn: Ark.StoredConnection) => void;
-	onDelete?: (conn: Ark.StoredConnection) => void;
+	onConnect: (conn: Ark.StoredConnection) => Promise<ManagedConnection | void>;
+	onConnectCallback: (err?: any) => void;
+	onDisconnect: (conn: Ark.StoredConnection) => Promise<void>;
+	onDisconnectCallback: (err?: any) => void;
+	onEdit: (conn: Ark.StoredConnection) => void;
+	onClone: (conn: Ark.StoredConnection) => void;
+	onDelete: (conn: Ark.StoredConnection) => void;
 }
 interface DetailedConnectionCardProps extends ConnectionCardFunctions {
 	conn: ManagedConnection;
@@ -207,14 +244,25 @@ interface DetailedConnectionCardProps extends ConnectionCardFunctions {
 export const DetailedConnectionCard = (
 	props: DetailedConnectionCardProps
 ): JSX.Element => {
-	const { conn, onConnect, onDisconnect, onEdit, onClone, onDelete } = props;
+	const {
+		conn,
+		onConnect,
+		onConnectCallback,
+		onDisconnect,
+		onDisconnectCallback,
+		onEdit,
+		onClone,
+		onDelete,
+	} = props;
 
 	return (
 		<Card className="card-detailed" interactive={false}>
 			<DetailedCardTitle
 				title={conn.name}
-				inactiveClick={() => onConnect && onConnect(conn)}
-				activeClick={() => onDisconnect && onDisconnect(conn)}
+				onDisconnect={() => onDisconnect(conn)}
+				onDisconnectCallback={onDisconnectCallback}
+				onConnect={() => onConnect(conn).then(() => {})}
+				onConnectCallback={onConnectCallback}
 				active={conn.active}
 			/>
 			<div className="card-info">
@@ -223,11 +271,9 @@ export const DetailedConnectionCard = (
 
 					{conn.hosts.length > 1 ? (
 						<div className="cell-content">
-							{conn.hosts.map(
-								(host) =>
-									// <div key={host}>{host}</div>
-									host + "\n"
-							)}
+							{conn.hosts.map((host) => (
+								<div key={host}>{host}</div>
+							))}
 						</div>
 					) : (
 						<div className="cell-content">{conn.hosts[0]}</div>
@@ -302,19 +348,23 @@ export const DetailedConnectionCard = (
 	);
 };
 
-interface CompactConnectionCardProps {
+interface CompactConnectionCardProps extends ConnectionCardFunctions {
 	conn: ManagedConnection;
-	onConnect?: () => void;
-	onDisconnect?: () => void;
-	onEdit?: () => void;
-	onClone?: () => void;
-	onDelete?: () => void;
 }
 
 export const CompactConnectionCard = (
 	props: CompactConnectionCardProps
 ): JSX.Element => {
-	const { conn, onClone, onConnect, onDelete, onDisconnect, onEdit } = props;
+	const {
+		conn,
+		onConnect,
+		onConnectCallback,
+		onDisconnect,
+		onDisconnectCallback,
+		onDelete,
+		onEdit,
+		onClone,
+	} = props;
 	return (
 		<div className="card-compact">
 			<div className="cell">
@@ -338,7 +388,10 @@ export const CompactConnectionCard = (
 							shape="round"
 							icon="globe"
 							size="small"
-							onClick={onConnect}
+							onClick={{
+								promise: () => onConnect(conn),
+								callback: onConnectCallback,
+							}}
 						/>
 					)}
 					{conn.active && onDisconnect && (
@@ -347,18 +400,26 @@ export const CompactConnectionCard = (
 							icon="th-disconnect"
 							size="small"
 							variant="danger"
-							onClick={onDisconnect}
+							onClick={{
+								promise: () => onDisconnect(conn),
+								callback: onDisconnectCallback,
+							}}
 						/>
 					)}
 					{onEdit && (
-						<Button shape="round" icon="edit" size="small" onClick={onEdit} />
+						<Button
+							shape="round"
+							icon="edit"
+							size="small"
+							onClick={() => onEdit(conn)}
+						/>
 					)}
 					{onClone && (
 						<Button
 							shape="round"
 							icon="add-row-bottom"
 							size="small"
-							onClick={onClone}
+							onClick={() => onClone(conn)}
 						/>
 					)}
 					{onDelete && (
@@ -366,7 +427,7 @@ export const CompactConnectionCard = (
 							shape="round"
 							icon="trash"
 							size="small"
-							onClick={onDelete}
+							onClick={() => onDelete(conn)}
 						/>
 					)}
 				</div>
@@ -377,14 +438,18 @@ export const CompactConnectionCard = (
 
 interface CardTitleProps {
 	title: string;
-	inactiveClick: () => void;
-	activeClick: () => void;
+	onDisconnect: () => Promise<void>;
+	onDisconnectCallback: () => void;
+	onConnect: () => Promise<void>;
+	onConnectCallback: () => void;
 	active?: boolean;
 }
 
 const DetailedCardTitle: FC<CardTitleProps> = ({
-	activeClick,
-	inactiveClick,
+	onConnect,
+	onConnectCallback,
+	onDisconnect,
+	onDisconnectCallback,
 	title,
 	active,
 }) => (
@@ -399,7 +464,7 @@ const DetailedCardTitle: FC<CardTitleProps> = ({
 				icon="globe"
 				size="small"
 				text="Connect"
-				onClick={inactiveClick}
+				onClick={{ promise: onConnect, callback: onConnectCallback }}
 			/>
 		)}
 
@@ -410,7 +475,7 @@ const DetailedCardTitle: FC<CardTitleProps> = ({
 				size="small"
 				variant="danger"
 				text="Disconnect"
-				onClick={activeClick}
+				onClick={{ promise: onDisconnect, callback: onDisconnectCallback }}
 			/>
 		)}
 	</div>
