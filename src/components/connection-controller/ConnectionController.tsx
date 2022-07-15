@@ -86,10 +86,6 @@ export const ConnectionController: FC<ConnectionManagerProps> = () => {
 
 	return currentSidebarOpened === "manager" ? (
 		<Resizable
-			defaultSize={{
-				width: "600px",
-				height: "100%",
-			}}
 			enable={{
 				right: true,
 			}}
