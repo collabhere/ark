@@ -336,134 +336,130 @@ export const TitleBar = (): JSX.Element => {
 			)}
 			<div className="header-container">
 				<div className="logo">Ark</div>
-				<div>
-					<DropdownMenu
-						position="bottom-right"
-						items={[
-							{
-								text: "Open Script",
-								onClick: () => {
-									window.ark
-										.browseForFile("Select A File", "Select")
-										.then((result) => {
-											const { path } = result;
-											setOpenScriptPath(path);
-										});
+				<DropdownMenu
+					position="bottom-right"
+					items={[
+						{
+							text: "Open Script",
+							onClick: () => {
+								window.ark
+									.browseForFile("Select A File", "Select")
+									.then((result) => {
+										const { path } = result;
+										setOpenScriptPath(path);
+									});
+							},
+							icon: "document-open",
+							key: "open_script",
+						},
+						{
+							title: "Connection Settings",
+							divider: true,
+							key: "divider_two",
+						},
+						{
+							text: "Encryption Key",
+							icon: "key",
+							key: "encryption",
+							onClick: () => showSecretKeyDialog(true),
+						},
+						{ title: "Editor Settings", divider: true, key: "divider_one" },
+						{
+							key: "shell_timeout",
+							text: "Query Timeout",
+							icon: "outdated",
+							onClick: () => setTimeoutDialog(true),
+						},
+						{
+							key: "result_tz",
+							text: "Result Timezone",
+							icon: "globe",
+							submenu: [
+								{
+									key: "tz_local",
+									text: "Local",
+									onClick: () =>
+										changeSettings<"timezone">("timezone", "local"),
 								},
-								icon: "document-open",
-								key: "open_script",
-							},
-							{
-								title: "Connection Settings",
-								divider: true,
-								key: "divider_two",
-							},
-							{
-								text: "Encryption Key",
-								icon: "key",
-								key: "encryption",
-								onClick: () => showSecretKeyDialog(true),
-							},
-							{ title: "Editor Settings", divider: true, key: "divider_one" },
-							{
-								key: "shell_timeout",
-								text: "Query Timeout",
-								icon: "outdated",
-								onClick: () => setTimeoutDialog(true),
-							},
-							{
-								key: "result_tz",
-								text: "Result Timezone",
-								icon: "time",
-								submenu: [
-									{
-										key: "tz_local",
-										text: "Local",
-										onClick: () =>
-											changeSettings<"timezone">("timezone", "local"),
-									},
-									{
-										key: "tz_utc",
-										text: "UTC",
-										onClick: () =>
-											changeSettings<"timezone">("timezone", "utc"),
-									},
-								],
-							},
-							{
-								key: "line_nos",
-								text: (
-									<Checkbox
-										style={{
-											marginRight: 0,
-											marginBottom: 0,
-										}}
-										checked={localSettings.lineNumbers}
-										label={"Show Line Numbers"}
-										onChange={(e) => {
-											const showLineNumbers = (e.target as HTMLInputElement)
-												.checked
-												? "on"
-												: "off";
-											changeSettings("lineNumbers", showLineNumbers);
-										}}
-									/>
-								),
-							},
-							{
-								key: "minimap",
-								text: (
-									<Checkbox
-										style={{
-											marginRight: 0,
-											marginBottom: 0,
-										}}
-										checked={localSettings.miniMap}
-										label={"Show Mini Map"}
-										onChange={(e) => {
-											const showMiniMap = (e.target as HTMLInputElement).checked
-												? "on"
-												: "off";
-											changeSettings("miniMap", showMiniMap);
-										}}
-									/>
-								),
-							},
-							{
-								key: "hotkeys",
-								text: (
-									<Checkbox
-										style={{
-											marginRight: 0,
-											marginBottom: 0,
-										}}
-										checked={localSettings.hotKeys}
-										label={"Enable hotkeys"}
-										onChange={(e) => {
-											const enableHotkeys = (e.target as HTMLInputElement)
-												.checked
-												? "on"
-												: "off";
-											changeSettings("hotKeys", enableHotkeys);
-										}}
-									/>
-								),
-							},
-							{ divider: true, key: "divider_three" },
-							{
-								intent: "danger",
-								text: "Exit",
-								icon: "cross",
-								key: "exit",
-								onClick: () => window.ark.titlebar.close(),
-							},
-						]}
-					>
-						<div className="header-item">
-							<Button variant="link" size="small" icon="menu" />
-						</div>
-					</DropdownMenu>
-				</div>
+								{
+									key: "tz_utc",
+									text: "UTC",
+									onClick: () => changeSettings<"timezone">("timezone", "utc"),
+								},
+							],
+						},
+						{
+							key: "line_nos",
+							text: (
+								<Checkbox
+									style={{
+										marginRight: 0,
+										marginBottom: 0,
+									}}
+									checked={localSettings.lineNumbers}
+									label={"Show Line Numbers"}
+									onChange={(e) => {
+										const showLineNumbers = (e.target as HTMLInputElement)
+											.checked
+											? "on"
+											: "off";
+										changeSettings("lineNumbers", showLineNumbers);
+									}}
+								/>
+							),
+						},
+						{
+							key: "minimap",
+							text: (
+								<Checkbox
+									style={{
+										marginRight: 0,
+										marginBottom: 0,
+									}}
+									checked={localSettings.miniMap}
+									label={"Show Mini Map"}
+									onChange={(e) => {
+										const showMiniMap = (e.target as HTMLInputElement).checked
+											? "on"
+											: "off";
+										changeSettings("miniMap", showMiniMap);
+									}}
+								/>
+							),
+						},
+						{
+							key: "hotkeys",
+							text: (
+								<Checkbox
+									style={{
+										marginRight: 0,
+										marginBottom: 0,
+									}}
+									checked={localSettings.hotKeys}
+									label={"Enable Hot Keys"}
+									onChange={(e) => {
+										const enableHotkeys = (e.target as HTMLInputElement).checked
+											? "on"
+											: "off";
+										changeSettings("hotKeys", enableHotkeys);
+									}}
+								/>
+							),
+						},
+						{ divider: true, key: "divider_three" },
+						{
+							intent: "danger",
+							text: "Exit",
+							icon: "cross",
+							key: "exit",
+							onClick: () => window.ark.titlebar.close(),
+						},
+					]}
+				>
+					<div className="header-item">
+						<Button variant="link" size="small" icon="menu" />
+					</div>
+				</DropdownMenu>
 			</div>
 			<div className="header-draggable-area"></div>
 			<div className="header-container">
@@ -508,7 +504,7 @@ export const TitleBar = (): JSX.Element => {
 						changeSettings("shellTimeout", timeout);
 						setTimeoutDialog(false);
 					}}
-					title={"Change Shell Timeout"}
+					title={"Change Query Timeout"}
 				>
 					<div>
 						<InputGroup

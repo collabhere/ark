@@ -11,6 +11,26 @@ import {
 } from "../layout/BaseContextProvider";
 import { notify } from "../../common/utils/misc";
 
+export const notifyFailedConnection = (err) => {
+	notify({
+		type: "error",
+		title: "Error",
+		description: err.message
+			? "Error - " + err.message
+			: "Could not connect. Something unexpected happened.",
+	});
+};
+
+export const notifyFailedDisconnection = (err) => {
+	notify({
+		type: "error",
+		title: "Error",
+		description: err.message
+			? "Error - " + err.message
+			: "Could not disconnnect. Something unexpected happened.",
+	});
+};
+
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface ConnectionManagerProps {}
 
@@ -229,9 +249,9 @@ interface ConnectionCardFunctions {
 	onConnectCallback: (err?: any) => void;
 	onDisconnect: (conn: Ark.StoredConnection) => Promise<void>;
 	onDisconnectCallback: (err?: any) => void;
-	onEdit: (conn: Ark.StoredConnection) => void;
-	onClone: (conn: Ark.StoredConnection) => void;
-	onDelete: (conn: Ark.StoredConnection) => void;
+	onEdit?: (conn: Ark.StoredConnection) => void;
+	onClone?: (conn: Ark.StoredConnection) => void;
+	onDelete?: (conn: Ark.StoredConnection) => void;
 }
 interface DetailedConnectionCardProps extends ConnectionCardFunctions {
 	conn: ManagedConnection;

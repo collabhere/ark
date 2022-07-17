@@ -8,64 +8,144 @@
 
 	color: @text-color;
 	background-color: @container-fg-color;
+}
 
-	.container {
+// Keep the below selectors outside of connection-manager
+// so that ConnectionsList is usable outside of the
+// ConnectionController component.
+
+.container {
+	display: flex;
+	flex-direction: column;
+	flex-grow: 1;
+	min-height: 0;
+	width: 100%;
+	padding: 1rem;
+
+	.header {
 		display: flex;
-		flex-direction: column;
-		flex-grow: 1;
-		min-height: 0;
-		width: 100%;
-		padding: 1rem;
+		justify-content: space-between;
+		align-items: center;
+		height: 4rem;
 
-		.header {
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
-			height: 4rem;
-
-			.title {
-				font-size: @large-font-size;
-			}
-
-			.buttons {
-				display: flex;
-				gap: 4px;
-			}
+		.title {
+			font-size: @large-font-size;
 		}
 
-		.list {
+		.buttons {
 			display: flex;
-			flex-direction: column;
-			flex-grow: 1;
-			min-height: 0;
-			overflow-y: scroll;
-			overflow-x: hidden;
-			gap: 1rem;
-			padding-top: 0.7rem;
-			padding-right: 0.7rem;
-
-			.error {
-				display: flex;
-				justify-content: center;
-				align-items: center;
-			}
+			gap: 4px;
 		}
 	}
 
-	.card-compact {
+	.list {
 		display: flex;
-		align-items: center;
-		background-color: @container-bg-color;
-		padding: 1rem;
+		flex-direction: column;
+		flex-grow: 1;
+
+		min-height: 0;
+		min-width: 99%;
+		margin: auto;
+
+		overflow-y: scroll;
+		overflow-x: hidden;
+
 		gap: 1rem;
-		border-radius: @border-radius;
-		transition: all 0.3s;
+
+		.error {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+	}
+}
+
+.card-compact {
+	display: flex;
+	align-items: center;
+	background-color: @container-bg-color;
+	padding: 1rem;
+	gap: 1rem;
+	border-radius: @border-radius;
+	transition: all 0.3s;
+
+	.cell {
+		flex-grow: 1;
+		display: flex;
+		flex-direction: column;
+		max-width: 25%;
+
+		.cell-title {
+			color: @subtext-color;
+			font-size: @small-font-size;
+		}
+
+		.cell-content {
+			flex-grow: 1;
+			text-align: start;
+			color: @text-color;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			overflow: hidden;
+			width: 7rem;
+		}
+
+		.cell-buttons {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			gap: 4px;
+		}
+
+		&:last-child {
+			align-self: flex-end;
+		}
+	}
+	&:hover {
+		background-color: @container-fg-color-bright;
+	}
+}
+
+.card-detailed {
+	display: flex;
+	flex-direction: column;
+	padding: 1rem;
+	gap: 1rem;
+	background-color: @container-bg-color;
+	box-shadow: @box-shadow;
+	border-radius: @border-radius;
+	transition: all 0.3s;
+
+	.card-title {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		.title {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			font-size: @medium-font-size;
+		}
+
+		.content {
+			display: flex;
+			flex-wrap: wrap;
+			word-wrap: break-word;
+		}
+	}
+
+	.card-info {
+		display: flex;
+		max-height: 4rem;
+
+		transition: all 1s;
 
 		.cell {
-			flex-grow: 1;
 			display: flex;
 			flex-direction: column;
-			max-width: 25%;
+			min-width: 40%;
+			gap: 0.5rem;
+			padding: 4px;
 
 			.cell-title {
 				color: @subtext-color;
@@ -74,96 +154,23 @@
 
 			.cell-content {
 				flex-grow: 1;
-				text-align: start;
 				color: @text-color;
 				text-overflow: ellipsis;
-				white-space: nowrap;
 				overflow: hidden;
-				width: 7rem;
-			}
-
-			.cell-buttons {
-				// align-self: flex-end;
-				display: flex;
-				justify-content: center;
-				align-items: center;
-				gap: 4px;
-			}
-
-			&:last-child {
-				align-self: flex-end;
 			}
 		}
+
 		&:hover {
-			background-color: @container-fg-color-bright;
+			max-height: 50rem;
 		}
 	}
 
-	.card-detailed {
+	.card-buttons {
 		display: flex;
-		flex-direction: column;
-		padding: 1rem;
-		gap: 1rem;
-		background-color: @container-bg-color;
-		border-radius: @border-radius;
-		transition: all 0.3s;
+		gap: 4px;
+	}
 
-		.card-title {
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
-			.title {
-				display: flex;
-				align-items: center;
-				gap: 8px;
-				font-size: @medium-font-size;
-			}
-
-			.content {
-				display: flex;
-				flex-wrap: wrap;
-				word-wrap: break-word;
-			}
-		}
-
-		.card-info {
-			display: flex;
-			max-height: 4rem;
-
-			transition: all 1s;
-
-			.cell {
-				display: flex;
-				flex-direction: column;
-				min-width: 40%;
-				gap: 0.5rem;
-				padding: 4px;
-
-				.cell-title {
-					color: @subtext-color;
-					font-size: @small-font-size;
-				}
-
-				.cell-content {
-					flex-grow: 1;
-					color: @text-color;
-					text-overflow: ellipsis;
-					overflow: hidden;
-				}
-			}
-
-			&:hover {
-				max-height: 50rem;
-			}
-		}
-
-		.card-buttons {
-			display: flex;
-			gap: 4px;
-		}
-
-		&:hover {
-			background-color: @container-fg-color-bright;
-		}
+	&:hover {
+		background-color: @container-fg-color-bright;
 	}
 }

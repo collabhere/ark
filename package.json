@@ -35,7 +35,7 @@
 		]
 	},
 	"build": {
-		"productName": "Ark",
+		"productName": "ark",
 		"appId": "dev.wheredevs.Ark",
 		"extends": null,
 		"files": [
