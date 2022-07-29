@@ -20,23 +20,23 @@
 	flex-grow: 1;
 	min-height: 0;
 
-	@result-viewer-header-height: 40px;
+	@result-viewer-header-height: 3rem;
 
 	.result-viewer-header {
 		display: flex;
-		gap: 8px;
+		gap: 0.5rem;
 		align-self: end;
 		align-items: center;
 		justify-content: flex-end;
 		min-height: @result-viewer-header-height;
-		padding: 4px 14px;
+		padding: 0.25rem 0.5rem;
 		width: 100%;
 
 		.header-item {
 			display: flex;
-			gap: 4px;
+			gap: 0.25rem;
 			input {
-				width: 50px;
+				width: 2.5rem;
 				text-align: center;
 			}
 		}
@@ -46,7 +46,7 @@
 		display: flex;
 		min-height: calc(100% - @result-viewer-header-height);
 		width: 100%;
-		padding: 4px;
+		padding: 0.25rem;
 	}
 
 	.tree-viewer {
@@ -54,7 +54,7 @@
 		flex-direction: column;
 		flex-grow: 1;
 		min-height: 0;
-		gap: 8px;
+		gap: 0.5rem;
 		/* To even out the margin-right on the header (.header) */
 		padding-left: 10px;
 
