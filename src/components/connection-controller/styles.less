@@ -8,12 +8,13 @@
 
 	color: @text-color;
 	background-color: @container-fg-color;
+	border-right: 1px solid @outline-color;
+	border-top: 1px solid @outline-color;
 }
 
 // Keep the below selectors outside of connection-manager
 // so that ConnectionsList is usable outside of the
 // ConnectionController component.
-
 .container {
 	display: flex;
 	flex-direction: column;
@@ -101,9 +102,6 @@
 			align-self: flex-end;
 		}
 	}
-	&:hover {
-		background-color: @container-fg-color-bright;
-	}
 }
 
 .card-detailed {
@@ -168,9 +166,5 @@
 	.card-buttons {
 		display: flex;
 		gap: 4px;
-	}
-
-	&:hover {
-		background-color: @container-fg-color-bright;
 	}
 }
