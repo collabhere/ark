@@ -1,6 +1,6 @@
 // Size definitions
 
-@small-font-size: 0.8rem;
+@small-font-size: 0.9rem;
 @medium-font-size: 1rem;
 @large-font-size: 1.2rem;
 @massive-font-size: 2rem;
@@ -13,7 +13,7 @@
 @secondary-color: #313741;
 @highlight-color: #7f5af0;
 
-@background-color: #000814;
+@background-color: #10141a;
 @background-color-2: #1a212c;
 
 @success-color: #16825d;
@@ -22,7 +22,7 @@
 @danger-color: #b71e47;
 @danger-tint-1: #db2c4a;
 
-@text-color: #fffffe;
+@text-color: #cad0d9;
 @subtext-color: #94a1b2;
 
 @container-bg-color: @background-color;
@@ -40,8 +40,10 @@
 @shadow-color: black;
 
 @scrollbar-bg-color: transparent;
-@scrollbar-thumb-color: @highlight-color;
+@scrollbar-thumb-color: @secondary-color;
 
 // Full CSS Properties
 
 @box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+@input-box-shadow: inset 0 0 0 1px shade(@highlight-color, 50%),
+	0 0 0 1px shade(@highlight-color, 60%);

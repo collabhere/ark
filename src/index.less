@@ -1,4 +1,5 @@
 @import "./common/styles/variables.less";
+@import "./common/styles/bp4-override.less";
 
 :root {
 	font-weight: 500;
@@ -25,9 +26,9 @@
 
 *::-webkit-scrollbar {
 	background-color: @scrollbar-bg-color;
-	// border-radius: @border-radius;
-	width: 10px;
-	height: 10px;
+	border-radius: @border-radius;
+	width: 0.33rem;
+	height: 0.33rem;
 }
 
 *::-webkit-scrollbar-thumb {
@@ -47,6 +48,11 @@ html {
 	display: flex;
 	height: 100%;
 	width: 100%;
+
+	*:focus {
+		outline: 0;
+		box-shadow: @input-box-shadow !important;
+	}
 }
 
 body {
