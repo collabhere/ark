@@ -1,7 +1,12 @@
 import "./Button.less";
 
 import React, { FC, useState, useMemo } from "react";
-import { Button as BPButton, ActionProps, IconName } from "@blueprintjs/core";
+import {
+	Button as BPButton,
+	ActionProps,
+	IconName,
+	Icon,
+} from "@blueprintjs/core";
 import {
 	Popover2,
 	Popover2Props,
@@ -49,6 +54,11 @@ export const Button: FC<ButtonProps> = (props) => {
 
 	const [loading, setLoading] = useState(false);
 
+	const iconSize = useMemo(
+		() => (size === "large" ? 28 : size === "medium" ? 24 : 20),
+		[size]
+	);
+
 	const baseButton = (
 		<BPButton
 			active={active}
@@ -69,7 +79,7 @@ export const Button: FC<ButtonProps> = (props) => {
 			intent={
 				variant !== "link" && variant !== "link-danger" ? variant : undefined
 			}
-			icon={icon ? icon : undefined}
+			icon={icon ? <Icon icon={icon} size={iconSize} /> : undefined}
 			rightIcon={rightIcon ? rightIcon : undefined}
 		/>
 	);
