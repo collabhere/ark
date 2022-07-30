@@ -220,7 +220,6 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 			jsx =
 				!commited && editable ? (
 					<InputGroup
-						small
 						defaultValue={input.toString()}
 						onChange={(e) => onValueChange(e.currentTarget.value)}
 						onKeyPress={(e) => (e.key === "Enter" ? commitRow() : undefined)}
@@ -237,7 +236,6 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 					<div className="object-id">
 						<span>{'ObjectId("'}</span>
 						<InputGroup
-							small
 							defaultValue={input.toString()}
 							onChange={(e) =>
 								onValueChange(new ObjectId(e.currentTarget.value))
