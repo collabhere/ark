@@ -110,7 +110,7 @@ export const ConnectionController: FC<ConnectionManagerProps> = () => {
 				right: true,
 			}}
 			maxWidth="50%"
-			minWidth="30%"
+			minWidth="25%"
 			handleClasses={{
 				right: "resize-handle vertical",
 			}}
