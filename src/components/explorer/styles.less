@@ -1,41 +1,41 @@
 @import "../../common/styles/variables.less";
 
 .Explorer {
-	min-width: 160px;
 	height: 100%;
+	width: 100%;
+	color: @text-color;
+	background-color: @container-fg-color;
 	display: flex;
 	flex-direction: column;
-	padding-top: 10px;
-	padding-bottom: 10px;
+	padding: 1rem;
 }
 
 .ExplorerHeader {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	padding: 10px;
+	padding: 0.5rem;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	overflow: hidden;
 	font-weight: 500;
 	line-height: @line-height;
-	letter-spacing: 0em;
+	letter-spacing: 0rem;
 	text-align: left;
 }
 
 .ContextMenu {
 	background-clip: padding-box;
-	background-color: #fff;
 	border-radius: @border-radius;
 	box-shadow: @box-shadow;
-	left: 0px;
+	left: 0rem;
 	list-style-type: none;
 	margin: 0;
 	outline: none;
 	padding: 0;
 	position: absolute;
 	text-align: left;
-	top: 0px;
+	top: 0rem;
 	overflow: hidden;
 	-webkit-box-shadow: @box-shadow;
 }
@@ -47,7 +47,6 @@
 	font-weight: normal;
 	line-height: @line-height;
 	margin: 0;
-	padding: 5px 12px;
 	transition: all 0.3s;
 	white-space: nowrap;
 	-webkit-transition: all 0.3s;
@@ -56,11 +55,13 @@
 .ExplorerHeaderTitle {
 	display: flex;
 	flex-grow: 1;
+	font-size: @large-font-size;
 }
 
 .ExplorerHeaderMenu {
 	display: flex;
-	padding: 4px;
+	gap: 0.5rem;
+	padding: 0.5rem;
 }
 
 .ExplorerTree {

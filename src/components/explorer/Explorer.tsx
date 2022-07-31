@@ -8,8 +8,8 @@ import React, {
 	useRef,
 	useState,
 } from "react";
-import { Tree, Menu, MenuItem } from "@blueprintjs/core";
-import { ContextMenu2, Popover2 } from "@blueprintjs/popover2";
+import { Tree, Menu } from "@blueprintjs/core";
+import { ContextMenu2, MenuItem2, Popover2 } from "@blueprintjs/popover2";
 import { Resizable } from "re-resizable";
 import { dispatch, listenEffect } from "../../common/utils/events";
 import { CollectionInfo, ListDatabasesResult } from "mongodb";
@@ -81,7 +81,7 @@ interface CreateMenuItem {
 const createContextMenu = (items: CreateMenuItem[]) => (
 	<Menu>
 		{items.map((menuItem, i) => (
-			<MenuItem
+			<MenuItem2
 				key={i}
 				onClick={() => menuItem.cb()}
 				intent={menuItem.intent}
@@ -395,10 +395,10 @@ export const Explorer: FC<ExplorerProps> = () => {
 
 	return currentSidebarOpened === storedConnectionId ? (
 		<Resizable
-			defaultSize={{
-				width: "400px",
-				height: "100%",
-			}}
+		defaultSize={{
+			width: "400px",
+			height: "100%",
+		}}
 			enable={{
 				right: true,
 			}}
@@ -417,7 +417,8 @@ export const Explorer: FC<ExplorerProps> = () => {
 								<Button
 									icon="refresh"
 									size="small"
-									variant="primary"
+									variant="none"
+									outlined
 									tooltipOptions={{
 										content: "Refresh",
 									}}
@@ -426,19 +427,19 @@ export const Explorer: FC<ExplorerProps> = () => {
 								<Popover2
 									content={
 										<Menu>
-											<MenuItem
+											<MenuItem2
 												text={"Create database"}
 												key={1}
 												onClick={() =>
 													setCreateDatabaseDialogInfo({ visible: true })
 												}
 											/>
-											<MenuItem
+											<MenuItem2
 												key={2}
 												onClick={() => {}}
 												text={"Server Info"}
 											/>
-											<MenuItem
+											<MenuItem2
 												text={"Disconnect"}
 												intent="danger"
 												key={3}
@@ -453,7 +454,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 										</Menu>
 									}
 								>
-									<Button icon="more" size="small" variant="primary" />
+									<Button icon="more" size="small" variant="none" outlined/>
 								</Popover2>
 							</div>
 						</div>
