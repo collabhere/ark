@@ -314,6 +314,7 @@ export const DetailedConnectionCard = (
 			</div>
 			<div className="card-buttons">
 				<Button
+					variant="none"
 					shape="round"
 					icon="clipboard"
 					size="small"
@@ -325,6 +326,7 @@ export const DetailedConnectionCard = (
 				/>
 				{onEdit && (
 					<Button
+						variant="none"
 						shape="round"
 						icon="edit"
 						size="small"
@@ -337,6 +339,7 @@ export const DetailedConnectionCard = (
 				)}
 				{onClone && (
 					<Button
+						variant="none"
 						shape="round"
 						icon={"add-row-bottom"}
 						size="small"
@@ -349,6 +352,7 @@ export const DetailedConnectionCard = (
 				)}
 				{onDelete && (
 					<Button
+						variant="none"
 						shape="round"
 						icon="trash"
 						size="small"
@@ -477,9 +481,11 @@ const DetailedCardTitle: FC<CardTitleProps> = ({
 		{!active && (
 			<Button
 				shape="round"
-				icon="globe"
+				icon="globe-network"
 				size="small"
 				text="Connect"
+				variant="none"
+				outlined
 				onClick={{ promise: onConnect, callback: onConnectCallback }}
 			/>
 		)}

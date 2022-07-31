@@ -7,16 +7,22 @@
 .button-primary {
 	background: @button-color-primary !important;
 	color: @button-text-color !important;
+
 	&:hover {
 		background: @button-color-primary-hover !important;
 	}
 }
 
-.button-secondary {
-	background: @container-bg-color;
-	color: @button-text-color;
+.button-outlined {
+	border: 1px solid @highlight-color !important;
+}
+
+.button-none {
+	background: @container-bg-color !important;
+	color: @button-text-color !important;
 
 	&:hover {
+		background: @container-fg-color-bright !important;
 	}
 }
 

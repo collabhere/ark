@@ -46,7 +46,7 @@ export const Button: FC<ButtonProps> = (props) => {
 		tooltipOptions,
 		dropdownOptions,
 		size = "medium",
-		variant = "primary",
+		variant = "none",
 		outlined,
 		disabled,
 		fill,
@@ -55,7 +55,7 @@ export const Button: FC<ButtonProps> = (props) => {
 	const [loading, setLoading] = useState(false);
 
 	const iconSize = useMemo(
-		() => (size === "large" ? 28 : size === "medium" ? 24 : 20),
+		() => (size === "large" ? 26 : size === "medium" ? 22 : 18),
 		[size]
 	);
 
@@ -63,13 +63,17 @@ export const Button: FC<ButtonProps> = (props) => {
 		<BPButton
 			active={active}
 			className={
-				"button-base button-" + variant + " " + "button-text-size-" + size
+				"button-base button-" +
+				variant +
+				" " +
+				"button-text-size-" +
+				size +
+				(outlined ? " button-outlined" : "")
 			}
 			disabled={loading || disabled}
 			onClick={(e) => {
 				onClick && asyncEventOverload(setLoading, onClick, e);
 			}}
-			outlined={outlined}
 			fill={fill}
 			text={text}
 			loading={icon ? loading : undefined}
