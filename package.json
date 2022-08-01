@@ -174,5 +174,8 @@
 		"react-hotkeys-hook": "^3.4.4",
 		"react-icons": "^4.3.1",
 		"tunnel-ssh": "^4.1.6"
+	},
+	"optionalDependencies": {
+		"dmg-license": "^1.0.11"
 	}
 }
