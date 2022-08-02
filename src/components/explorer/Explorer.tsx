@@ -278,7 +278,8 @@ export const Explorer: FC<ExplorerProps> = () => {
 					setCollectionListToTree(db.name, db.collections || []),
 					{
 						icon: <VscDatabase />,
-						hasCaret: false,
+						hasCaret: !!(db.collections && db.collections.length > 0),
+						isExpanded: expandedKeys && expandedKeys.includes(db.key),
 					}
 				)
 			);
