@@ -165,7 +165,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 				icon: loading ? (
 					<CircularLoading size={SpinnerSize.SMALL} />
 				) : (
-					<VscDatabase />
+					<VscDatabase className="NodeIcon"/>
 				),
 				disabled: loading,
 			});
@@ -200,32 +200,34 @@ export const Explorer: FC<ExplorerProps> = () => {
 		(db: string, collections: CollectionInfo[]) => {
 			const children = collections.map((collection) => {
 				return createNode(
-					<ContextMenu2
-						content={createContextMenu([
-							{
-								item: "Open shell",
-								cb: () => openShell(db, collection.name),
-							},
-							{ item: "Indexes", cb: () => {} },
-							{
-								intent: "danger",
-								item: "Drop collection",
-								cb: () => {
-									setDropCollectionDialogInfo({
-										database: db,
-										collection: collection.name,
-										visible: true,
-									});
+					<div className="Node">
+						<ContextMenu2
+							content={createContextMenu([
+								{
+									item: "Open shell",
+									cb: () => openShell(db, collection.name),
 								},
-							},
-						])}
-					>
-						<span>{collection.name}</span>
-					</ContextMenu2>,
+								{ item: "Indexes", cb: () => {} },
+								{
+									intent: "danger",
+									item: "Drop collection",
+									cb: () => {
+										setDropCollectionDialogInfo({
+											database: db,
+											collection: collection.name,
+											visible: true,
+										});
+									},
+								},
+							])}
+						>
+							<span>{collection.name}</span>
+						</ContextMenu2>
+					</div>,
 					collectionTreeKey(collection.name, db),
 					[],
 					{
-						icon: <VscListTree />,
+						icon: <VscListTree className="NodeIcon"/>,
 						hasCaret: false,
 					}
 				);
@@ -271,33 +273,37 @@ export const Explorer: FC<ExplorerProps> = () => {
 
 			const systemNodes = system.map((db) =>
 				createNode(
-					<ContextMenu2 content={createOverlay(db)}>
-						<span>{db.name}</span>
-					</ContextMenu2>,
+					<div className="Node">
+						<ContextMenu2 content={createOverlay(db)}>
+							<span>{db.name}</span>
+						</ContextMenu2>
+					</div>,
 					db.key,
 					setCollectionListToTree(db.name, db.collections || []),
 					{
-						icon: <VscDatabase />,
+						icon: <VscDatabase className="NodeIcon"/>,
 						hasCaret: !!(db.collections && db.collections.length > 0),
 						isExpanded: expandedKeys && expandedKeys.includes(db.key),
 					}
 				)
 			);
 
-			addNodeAtEnd(<span>system</span>, "folder;system", systemNodes, {
-				icon: <VscFolder />,
+			addNodeAtEnd(<div className="Node"><span>system</span></div>, "folder;system", systemNodes, {
+				icon: <VscFolder className="NodeIcon"/>,
 				isExpanded: expandedKeys && expandedKeys.includes("folder;system"),
 			});
 
 			for (const db of personal) {
 				addNodeAtEnd(
-					<ContextMenu2 content={createOverlay(db)}>
-						<span>{db.name}</span>
-					</ContextMenu2>,
+					<div className="Node">
+						<ContextMenu2 content={createOverlay(db)}>
+							<span>{db.name}</span>
+						</ContextMenu2>
+					</div>,
 					db.key,
 					setCollectionListToTree(db.name, db.collections || []),
 					{
-						icon: <VscDatabase />,
+						icon: <VscDatabase className="NodeIcon"/>,
 						hasCaret: !!(db.collections && db.collections.length > 0),
 						isExpanded: expandedKeys && expandedKeys.includes(db.key),
 					}

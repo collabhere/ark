@@ -2,7 +2,6 @@
 
 .Explorer {
 	height: 100%;
-	width: 100%;
 	color: @text-color;
 	background-color: @container-fg-color;
 	display: flex;
@@ -19,7 +18,6 @@
 	white-space: nowrap;
 	overflow: hidden;
 	font-weight: 500;
-	line-height: @line-height;
 	letter-spacing: 0rem;
 	text-align: left;
 }
@@ -45,8 +43,6 @@
 	color: rgba(0, 0, 0, 0.65);
 	cursor: pointer;
 	font-weight: normal;
-	line-height: @line-height;
-	margin: 0;
 	transition: all 0.3s;
 	white-space: nowrap;
 	-webkit-transition: all 0.3s;
@@ -65,7 +61,12 @@
 }
 
 .ExplorerTree {
-	overflow-y: auto;
+	min-height: 0;
+
+	overflow-y: scroll;
+	overflow-x: hidden;
+
+	font-size: @medium-font-size;
 }
 
 .ExplorerLoading {
@@ -73,4 +74,13 @@
 	justify-content: center;
 	align-items: center;
 	height: 100%;
+}
+
+.Node {
+	padding: 0.5rem;
+	transition: all 0.3s;
+}
+
+.NodeIcon {
+	margin: -0.3rem;
 }
