@@ -20,10 +20,17 @@ export const Sidebar: FC = () => {
 
 	const switchConnections = useCallback(
 		(connectionId: string) => {
-			if (currentSidebarOpened !== "manager" && currentSidebarOpened !== "none")
-				return setCurrentSidebarOpened("none");
-			dispatch("explorer:switch_connections", { connectionId });
-			setCurrentSidebarOpened(connectionId);
+			if (
+				currentSidebarOpened !== "manager"
+				&& currentSidebarOpened !== "none"
+			) {
+				setCurrentSidebarOpened("none");
+			}
+			
+			if (currentSidebarOpened !== connectionId) {
+				dispatch("explorer:switch_connections", { connectionId });
+				setCurrentSidebarOpened(connectionId);
+			}
 		},
 		[currentSidebarOpened, setCurrentSidebarOpened]
 	);
