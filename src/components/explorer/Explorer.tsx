@@ -8,12 +8,11 @@ import React, {
 	useRef,
 	useState,
 } from "react";
-import { Tree, Intent } from "@blueprintjs/core";
+import { Tree, Intent, Icon, IconSize } from "@blueprintjs/core";
 import { Resizable } from "re-resizable";
 import { dispatch, listenEffect } from "../../common/utils/events";
 import { CollectionInfo, ListDatabasesResult } from "mongodb";
 import { useTree } from "../../hooks/useTree";
-import { VscDatabase, VscFolder, VscListTree } from "react-icons/vsc";
 import { CircularLoading } from "../../common/components/Loading";
 import { handleErrors, notify } from "../../common/utils/misc";
 import { Button } from "../../common/components/Button";
@@ -23,6 +22,7 @@ import { SpinnerSize } from "@blueprintjs/core";
 import { SettingsContext } from "../layout/BaseContextProvider";
 import { ContextMenu } from "../../common/components/ContextMenu";
 import { DropdownMenu } from "../../common/components/DropdownMenu";
+import { IconNames } from "@blueprintjs/icons";
 
 type Databases = ListDatabasesResult["databases"];
 type DatabasesWithInformation = (ListDatabasesResult["databases"][0] & {
@@ -148,7 +148,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 				icon: loading ? (
 					<CircularLoading size={SpinnerSize.SMALL} />
 				) : (
-					<VscDatabase className="node-icon"/>
+					<Icon icon={IconNames.Database} className='node-icon' />
 				),
 				disabled: loading,
 			});
@@ -210,7 +210,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 					collectionTreeKey(collection.name, db),
 					[],
 					{
-						icon: <VscListTree className="node-icon"/>,
+						icon: <Icon icon={IconNames.Th} className={'node-icon'} size={IconSize.STANDARD} />,
 						hasCaret: false,
 					}
 				);
@@ -263,7 +263,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 					db.key,
 					setCollectionListToTree(db.name, db.collections || []),
 					{
-						icon: <VscDatabase className="node-icon"/>,
+						icon: <Icon icon={IconNames.Database} className='node-icon' />,
 						hasCaret: !!(db.collections && db.collections.length > 0),
 						isExpanded: expandedKeys && expandedKeys.includes(db.key),
 					}
@@ -271,7 +271,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 			);
 
 			addNodeAtEnd(<div className="node"><span>system</span></div>, "folder;system", systemNodes, {
-				icon: <VscFolder className="node-icon"/>,
+				icon: <Icon icon={IconNames.FolderOpen} className='node-icon' />,
 				isExpanded: expandedKeys && expandedKeys.includes("folder;system"),
 			});
 
@@ -285,7 +285,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 					db.key,
 					setCollectionListToTree(db.name, db.collections || []),
 					{
-						icon: <VscDatabase className="node-icon"/>,
+						icon: <Icon icon={IconNames.Database} className='node-icon' />,
 						hasCaret: !!(db.collections && db.collections.length > 0),
 						isExpanded: expandedKeys && expandedKeys.includes(db.key),
 					}
