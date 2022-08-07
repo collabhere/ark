@@ -8,8 +8,8 @@ import React, {
 	useRef,
 	useState,
 } from "react";
-import { Tree, Menu } from "@blueprintjs/core";
-import { ContextMenu2, MenuItem2, Popover2 } from "@blueprintjs/popover2";
+import { Tree, Menu, Intent } from "@blueprintjs/core";
+import { MenuItem2, Popover2 } from "@blueprintjs/popover2";
 import { Resizable } from "re-resizable";
 import { dispatch, listenEffect } from "../../common/utils/events";
 import { CollectionInfo, ListDatabasesResult } from "mongodb";
@@ -22,6 +22,7 @@ import { DangerousActionPrompt } from "../dialogs/DangerousActionPrompt";
 import { TextInputPrompt } from "../dialogs/TextInputPrompt";
 import { SpinnerSize } from "@blueprintjs/core";
 import { SettingsContext } from "../layout/BaseContextProvider";
+import { ContextMenu } from "../../common/components/ContextMenu";
 
 type Databases = ListDatabasesResult["databases"];
 type DatabasesWithInformation = (ListDatabasesResult["databases"][0] & {
@@ -72,24 +73,6 @@ const createDatabaseList = (databases: Databases): DatabaseList => {
 		personal: personal.sort((a, b) => (a.name > b.name ? 1 : -1)),
 	};
 };
-
-interface CreateMenuItem {
-	item: string;
-	cb: () => void;
-	intent?: "danger" | "none";
-}
-const createContextMenu = (items: CreateMenuItem[]) => (
-	<Menu>
-		{items.map((menuItem, i) => (
-			<MenuItem2
-				key={i}
-				onClick={() => menuItem.cb()}
-				intent={menuItem.intent}
-				text={menuItem.item}
-			/>
-		))}
-	</Menu>
-);
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface ExplorerProps {}
@@ -201,15 +184,15 @@ export const Explorer: FC<ExplorerProps> = () => {
 			const children = collections.map((collection) => {
 				return createNode(
 					<div className="Node">
-						<ContextMenu2
-							content={createContextMenu([
+						<ContextMenu
+							items={[
 								{
 									item: "Open shell",
 									cb: () => openShell(db, collection.name),
 								},
 								{ item: "Indexes", cb: () => {} },
 								{
-									intent: "danger",
+									intent: Intent.DANGER,
 									item: "Drop collection",
 									cb: () => {
 										setDropCollectionDialogInfo({
@@ -219,10 +202,10 @@ export const Explorer: FC<ExplorerProps> = () => {
 										});
 									},
 								},
-							])}
+							]}
 						>
 							<span>{collection.name}</span>
-						</ContextMenu2>
+						</ContextMenu>
 					</div>,
 					collectionTreeKey(collection.name, db),
 					[],
@@ -245,38 +228,37 @@ export const Explorer: FC<ExplorerProps> = () => {
 		}) => {
 			const { system, personal } = databases;
 
-			const createOverlay = (db) =>
-				createContextMenu([
-					{ item: "Open shell", cb: () => openShell(db.name) },
-					{
-						item: "Create collection",
-						cb: () => {
-							setCreateCollectionDialogInfo({
-								database: db.name,
-								visible: true,
-							});
-						},
+			const createOverlayElements = (db) => [
+				{ item: "Open shell", cb: () => openShell(db.name) },
+				{
+					item: "Create collection",
+					cb: () => {
+						setCreateCollectionDialogInfo({
+							database: db.name,
+							visible: true,
+						});
 					},
-					{ item: "Current operations", cb: () => {} },
-					{ item: "Statistics", cb: () => {} },
-					{
-						intent: "danger",
-						item: "Drop database",
-						cb: () => {
-							setDropDatabaseDialogInfo({
-								database: db.name,
-								visible: true,
-							});
-						},
+				},
+				{ item: "Current operations", cb: () => {} },
+				{ item: "Statistics", cb: () => {} },
+				{
+					intent: Intent.DANGER,
+					item: "Drop database",
+					cb: () => {
+						setDropDatabaseDialogInfo({
+							database: db.name,
+							visible: true,
+						});
 					},
-				]);
+				},
+			];
 
 			const systemNodes = system.map((db) =>
 				createNode(
 					<div className="Node">
-						<ContextMenu2 content={createOverlay(db)}>
+						<ContextMenu items={createOverlayElements(db)}>
 							<span>{db.name}</span>
-						</ContextMenu2>
+						</ContextMenu>
 					</div>,
 					db.key,
 					setCollectionListToTree(db.name, db.collections || []),
@@ -296,9 +278,9 @@ export const Explorer: FC<ExplorerProps> = () => {
 			for (const db of personal) {
 				addNodeAtEnd(
 					<div className="Node">
-						<ContextMenu2 content={createOverlay(db)}>
+						<ContextMenu items={createOverlayElements(db)}>
 							<span>{db.name}</span>
-						</ContextMenu2>
+						</ContextMenu>
 					</div>,
 					db.key,
 					setCollectionListToTree(db.name, db.collections || []),
