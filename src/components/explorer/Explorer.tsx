@@ -8,8 +8,7 @@ import React, {
 	useRef,
 	useState,
 } from "react";
-import { Tree, Menu, Intent } from "@blueprintjs/core";
-import { MenuItem2, Popover2 } from "@blueprintjs/popover2";
+import { Tree, Intent } from "@blueprintjs/core";
 import { Resizable } from "re-resizable";
 import { dispatch, listenEffect } from "../../common/utils/events";
 import { CollectionInfo, ListDatabasesResult } from "mongodb";
@@ -23,6 +22,7 @@ import { TextInputPrompt } from "../dialogs/TextInputPrompt";
 import { SpinnerSize } from "@blueprintjs/core";
 import { SettingsContext } from "../layout/BaseContextProvider";
 import { ContextMenu } from "../../common/components/ContextMenu";
+import { DropdownMenu } from "../../common/components/DropdownMenu";
 
 type Databases = ListDatabasesResult["databases"];
 type DatabasesWithInformation = (ListDatabasesResult["databases"][0] & {
@@ -148,7 +148,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 				icon: loading ? (
 					<CircularLoading size={SpinnerSize.SMALL} />
 				) : (
-					<VscDatabase className="NodeIcon"/>
+					<VscDatabase className="node-icon"/>
 				),
 				disabled: loading,
 			});
@@ -183,7 +183,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 		(db: string, collections: CollectionInfo[]) => {
 			const children = collections.map((collection) => {
 				return createNode(
-					<div className="Node">
+					<div className="node">
 						<ContextMenu
 							items={[
 								{
@@ -210,7 +210,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 					collectionTreeKey(collection.name, db),
 					[],
 					{
-						icon: <VscListTree className="NodeIcon"/>,
+						icon: <VscListTree className="node-icon"/>,
 						hasCaret: false,
 					}
 				);
@@ -255,7 +255,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 
 			const systemNodes = system.map((db) =>
 				createNode(
-					<div className="Node">
+					<div className="node">
 						<ContextMenu items={createOverlayElements(db)}>
 							<span>{db.name}</span>
 						</ContextMenu>
@@ -263,21 +263,21 @@ export const Explorer: FC<ExplorerProps> = () => {
 					db.key,
 					setCollectionListToTree(db.name, db.collections || []),
 					{
-						icon: <VscDatabase className="NodeIcon"/>,
+						icon: <VscDatabase className="node-icon"/>,
 						hasCaret: !!(db.collections && db.collections.length > 0),
 						isExpanded: expandedKeys && expandedKeys.includes(db.key),
 					}
 				)
 			);
 
-			addNodeAtEnd(<div className="Node"><span>system</span></div>, "folder;system", systemNodes, {
-				icon: <VscFolder className="NodeIcon"/>,
+			addNodeAtEnd(<div className="node"><span>system</span></div>, "folder;system", systemNodes, {
+				icon: <VscFolder className="node-icon"/>,
 				isExpanded: expandedKeys && expandedKeys.includes("folder;system"),
 			});
 
 			for (const db of personal) {
 				addNodeAtEnd(
-					<div className="Node">
+					<div className="node">
 						<ContextMenu items={createOverlayElements(db)}>
 							<span>{db.name}</span>
 						</ContextMenu>
@@ -285,7 +285,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 					db.key,
 					setCollectionListToTree(db.name, db.collections || []),
 					{
-						icon: <VscDatabase className="NodeIcon"/>,
+						icon: <VscDatabase className="node-icon"/>,
 						hasCaret: !!(db.collections && db.collections.length > 0),
 						isExpanded: expandedKeys && expandedKeys.includes(db.key),
 					}
@@ -382,6 +382,31 @@ export const Explorer: FC<ExplorerProps> = () => {
 		[switchConnections]
 	);
 
+	const explorerHeaderMenu = [
+		{
+			text: "Create database",
+			key: "1",
+			onClick: () => setCreateDatabaseDialogInfo({ visible: true })
+		},
+		{
+			key: "2",
+			onClick: () => {},
+			text: "Server Info"
+		},
+		{
+			text: "Disconnect",
+			intent: "danger",
+			key: "3",
+			onClick: () => {
+				dispatch("connection_manager:disconnect", {
+					connectionId: storedConnectionId,
+				});
+				dispatch("connection_manager:toggle");
+				dispatch("explorer:hide");
+			}
+		}
+	];
+
 	return currentSidebarOpened === storedConnectionId ? (
 		<Resizable
 		defaultSize={{
@@ -394,15 +419,15 @@ export const Explorer: FC<ExplorerProps> = () => {
 			maxWidth="50%"
 			minWidth="20%"
 		>
-			<div className="Explorer">
+			<div className="explorer">
 				{storedConnectionId && cachedConnections[storedConnectionId] ? (
 					<>
-						<div className={"ExplorerHeader"}>
-							<div className={"ExplorerHeaderTitle"}>
+						<div className={"explorer-header"}>
+							<div className={"explorer-header-title"}>
 								{cachedConnections[storedConnectionId] &&
 									cachedConnections[storedConnectionId].connection.name}
 							</div>
-							<div className={"ExplorerHeaderMenu"}>
+							<div className={"explorer-header-menu"}>
 								<Button
 									icon="refresh"
 									size="small"
@@ -413,42 +438,15 @@ export const Explorer: FC<ExplorerProps> = () => {
 									}}
 									onClick={() => refresh()}
 								/>
-								<Popover2
-									content={
-										<Menu>
-											<MenuItem2
-												text={"Create database"}
-												key={1}
-												onClick={() =>
-													setCreateDatabaseDialogInfo({ visible: true })
-												}
-											/>
-											<MenuItem2
-												key={2}
-												onClick={() => {}}
-												text={"Server Info"}
-											/>
-											<MenuItem2
-												text={"Disconnect"}
-												intent="danger"
-												key={3}
-												onClick={() => {
-													dispatch("connection_manager:disconnect", {
-														connectionId: storedConnectionId,
-													});
-													dispatch("connection_manager:toggle");
-													dispatch("explorer:hide");
-												}}
-											/>
-										</Menu>
-									}
+								<DropdownMenu
+									items={explorerHeaderMenu}
 								>
 									<Button icon="more" size="small" variant="none" outlined/>
-								</Popover2>
+								</DropdownMenu>
 							</div>
 						</div>
 						<Tree
-							className={"ExplorerTree"}
+							className={"explorer-tree"}
 							onNodeExpand={(node) => {
 								setExpandedKeys((keys) => [...keys, node.id as string]);
 							}}
@@ -480,7 +478,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 						/>
 					</>
 				) : (
-					<div className="ExplorerLoading">
+					<div className="explorer-loading">
 						<CircularLoading />
 					</div>
 				)}

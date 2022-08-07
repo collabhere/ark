@@ -1,14 +1,12 @@
 import React, { FC, PropsWithChildren } from "react";
-import { Popover2, Popover2Props } from "@blueprintjs/popover2";
+import { MenuItem2, MenuItem2Props, Popover2, Popover2Props } from "@blueprintjs/popover2";
 import {
 	Menu,
 	MenuDivider,
 	MenuDividerProps,
-	MenuItem,
-	MenuItemProps,
 } from "@blueprintjs/core";
 
-interface Item extends MenuItemProps {
+interface Item extends MenuItem2Props {
 	key: string;
 	submenu?: DropdownMenuItems;
 	divider?: boolean;
@@ -35,9 +33,9 @@ export const createDropdownMenu = (items: DropdownMenuItems) => {
 				isDivider(item) ? (
 					<MenuDivider {...item} />
 				) : item.submenu ? (
-					<MenuItem {...item}>{createDropdownMenu(item.submenu)}</MenuItem>
+					<MenuItem2 {...item}>{createDropdownMenu(item.submenu)}</MenuItem2>
 				) : (
-					<MenuItem {...item} key={item.key} />
+					<MenuItem2 {...item} key={item.key} />
 				)
 			)}
 		</Menu>

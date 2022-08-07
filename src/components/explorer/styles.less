@@ -1,6 +1,6 @@
 @import "../../common/styles/variables.less";
 
-.Explorer {
+.explorer {
 	height: 100%;
 	color: @text-color;
 	background-color: @container-fg-color;
@@ -9,7 +9,7 @@
 	padding: 1rem;
 }
 
-.ExplorerHeader {
+.explorer-header {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
@@ -22,45 +22,19 @@
 	text-align: left;
 }
 
-.ContextMenu {
-	background-clip: padding-box;
-	border-radius: @border-radius;
-	box-shadow: @box-shadow;
-	left: 0rem;
-	list-style-type: none;
-	margin: 0;
-	outline: none;
-	padding: 0;
-	position: absolute;
-	text-align: left;
-	top: 0rem;
-	overflow: hidden;
-	-webkit-box-shadow: @box-shadow;
-}
-
-.ContextMenu li {
-	clear: both;
-	color: rgba(0, 0, 0, 0.65);
-	cursor: pointer;
-	font-weight: normal;
-	transition: all 0.3s;
-	white-space: nowrap;
-	-webkit-transition: all 0.3s;
-}
-
-.ExplorerHeaderTitle {
+.explorer-header-title {
 	display: flex;
 	flex-grow: 1;
 	font-size: @large-font-size;
 }
 
-.ExplorerHeaderMenu {
+.explorer-header-menu {
 	display: flex;
 	gap: 0.5rem;
 	padding: 0.5rem;
 }
 
-.ExplorerTree {
+.explorer-tree {
 	min-height: 0;
 	height: 100%;
 	width: 100%;
@@ -71,43 +45,43 @@
 	font-size: @medium-font-size;
 }
 
-.ExplorerLoading {
+.explorer-loading {
 	display: flex;
 	justify-content: center;
 	align-items: center;
 	height: 100%;
 }
 
-.Node {
+.node {
 	padding: 0.5rem;
 	transition: all 0.3s;
 }
 
-.NodeIcon {
+.node-icon {
 	margin: -0.3rem;
 }
 
-.NodeHover {
+.node-hover {
 	padding-left: 0;
 	border-radius: 0.25rem !important;
 }
 
-.bp4-tree-node-content-0:hover:extend(.NodeHover) {
+.bp4-tree-node-content-0:hover:extend(.node-hover) {
 	margin-left: 0;
 	width: 100%;
 }
 
-.bp4-tree-node-content-1:hover:extend(.NodeHover) {
+.bp4-tree-node-content-1:hover:extend(.node-hover) {
 	margin-left: 23px;
 	width: 92%;
 }
 
-.bp4-tree-node-content-2:hover:extend(.NodeHover) {
+.bp4-tree-node-content-2:hover:extend(.node-hover) {
 	margin-left: 46px;
 	width: 86%;
 }
 
-.bp4-tree-node-content-3:hover:extend(.NodeHover) {
+.bp4-tree-node-content-3:hover:extend(.node-hover) {
 	margin-left: 46px;
 	width: 80%;
 }
