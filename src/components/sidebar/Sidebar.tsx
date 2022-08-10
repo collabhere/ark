@@ -20,10 +20,17 @@ export const Sidebar: FC = () => {
 
 	const switchConnections = useCallback(
 		(connectionId: string) => {
-			if (currentSidebarOpened !== "manager" && currentSidebarOpened !== "none")
-				return setCurrentSidebarOpened("none");
-			dispatch("explorer:switch_connections", { connectionId });
-			setCurrentSidebarOpened(connectionId);
+			if (
+				currentSidebarOpened !== "manager"
+				&& currentSidebarOpened !== "none"
+			) {
+				setCurrentSidebarOpened("none");
+			}
+			
+			if (currentSidebarOpened !== connectionId) {
+				dispatch("explorer:switch_connections", { connectionId });
+				setCurrentSidebarOpened(connectionId);
+			}
 		},
 		[currentSidebarOpened, setCurrentSidebarOpened]
 	);
@@ -32,7 +39,7 @@ export const Sidebar: FC = () => {
 		const splitName = name.split(" ");
 		return splitName.length > 1
 			? `${splitName[0][0]}${splitName[1][0]}`.toUpperCase()
-			: `${splitName[0]}${splitName[1]}`.toUpperCase();
+			: `${splitName[0][0]}${splitName[0][1]}`.toUpperCase();
 	};
 
 	useEffect(

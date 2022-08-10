@@ -4,11 +4,10 @@ import React, { FC, PropsWithChildren } from "react";
 import {
 	IconName,
 	MenuDivider,
-	MenuItem,
 	Menu,
 	Intent,
 } from "@blueprintjs/core";
-import { ContextMenu2 } from "@blueprintjs/popover2";
+import { ContextMenu2, MenuItem2 } from "@blueprintjs/popover2";
 
 export interface CreateMenuItem {
 	item?: string | React.ReactNode;
@@ -26,16 +25,16 @@ export const createContextMenuItems = (items: CreateMenuItem[]) => (
 			menuItem.divider ? (
 				<MenuDivider key={menuItem.key + "_idx_" + idx} />
 			) : menuItem.submenu ? (
-				<MenuItem
+				<MenuItem2
 					{...menuItem}
 					key={menuItem.key + "_idx_" + idx}
 					text={menuItem.item}
 					onClick={() => menuItem.cb && menuItem.cb(menuItem.key)}
 				>
 					{createContextMenuItems(menuItem.submenu)}
-				</MenuItem>
+				</MenuItem2>
 			) : (
-				<MenuItem
+				<MenuItem2
 					{...menuItem}
 					key={menuItem.key + "_idx_" + idx}
 					text={menuItem.item}
