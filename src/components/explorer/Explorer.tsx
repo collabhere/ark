@@ -420,15 +420,14 @@ export const Explorer: FC<ExplorerProps> = () => {
 
 	return currentSidebarOpened === storedConnectionId ? (
 		<Resizable
-			defaultSize={{
-				width: "400px",
-				height: "100%",
-			}}
 			enable={{
 				right: true,
 			}}
 			maxWidth="50%"
-			minWidth="20%"
+			minWidth="25%"
+			handleClasses={{
+				right: "resize-handle vertical",
+			}}
 		>
 			<div className="explorer">
 				{storedConnectionId && cachedConnections[storedConnectionId] ? (
@@ -443,14 +442,14 @@ export const Explorer: FC<ExplorerProps> = () => {
 									icon="refresh"
 									size="small"
 									variant="none"
-									outlined
 									tooltipOptions={{
 										content: "Refresh",
+										position: "bottom",
 									}}
 									onClick={() => refresh()}
 								/>
 								<DropdownMenu items={explorerHeaderMenu}>
-									<Button icon="more" size="small" variant="none" outlined />
+									<Button icon="more" size="small" variant="none" />
 								</DropdownMenu>
 							</div>
 						</div>

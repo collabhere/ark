@@ -140,6 +140,7 @@ export const ConnectionController: FC<ConnectionManagerProps> = () => {
 								icon="add"
 								text="Create"
 								variant="primary"
+								size="small"
 								onClick={() => openCreateConnection()}
 							/>
 						</div>

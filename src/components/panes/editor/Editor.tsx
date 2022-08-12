@@ -16,6 +16,7 @@ import { SettingsContext } from "../../layout/BaseContextProvider";
 import { Menu, MenuItem, Tag } from "@blueprintjs/core";
 import { ExportQueryResult } from "../../dialogs/ExportQueryResult";
 import { useDebounce } from "../../../hooks/useDebounce";
+import { EditorTab } from "../../browser/Tabs";
 
 const EDITOR_HELP_COMMENT = `/**
 * Ark Editor
@@ -48,7 +49,7 @@ export interface EditorProps {
 	id: string;
 }
 
-export const Editor: FC<EditorProps> = (props) => {
+export const Editor: FC<EditorTab> = (props) => {
 	const {
 		shellConfig,
 		contextDB,
@@ -365,38 +366,47 @@ export const Editor: FC<EditorProps> = (props) => {
 					enable={{ bottom: true }}
 				>
 					<div className={"editor-header"}>
-						<div className={"editor-header-item"}>
-							{!!replicaHosts && !!currentReplicaHost ? (
-								<HostList
-									currentHost={currentReplicaHost}
-									hosts={replicaHosts}
-									onHostChange={(host) => {
-										if (host.name !== currentReplicaHost.name) {
-											(shellId
-												? destroyShell(shellId)
-												: Promise.resolve()
-											).then(() => switchReplicaShell(host));
-										}
-									}}
-								/>
-							) : (
-								<Tag icon={"globe-network"} round>
-									{hosts[0]}
-								</Tag>
-							)}
-						</div>
-						<div className={"editor-header-item"}>
-							<Tag icon={"database"} round>
-								{contextDB}
-							</Tag>
-						</div>
-						<div className={"editor-header-item"}>
-							<Tag icon={"person"} round>
-								{user || "(no auth)"}
-							</Tag>
-						</div>
 						{shellId && !shellLoadError && (
 							<>
+								<div className={"editor-header-item"}>
+									{executing ? (
+										<Button
+											size="small"
+											icon={"stop"}
+											variant="danger"
+											text="Stop"
+											onClick={() => terminateExecution()}
+											tooltipOptions={{
+												position: "bottom",
+												content: "Stop",
+											}}
+										/>
+									) : (
+										<Button
+											size="small"
+											variant="primary"
+											outlined
+											text="Run"
+											icon={"play"}
+											onClick={() => exec(code)}
+											tooltipOptions={{
+												position: "bottom",
+												content: "Run query",
+											}}
+										/>
+									)}
+								</div>
+								<div className="editor-header-item">
+									<Button
+										size="small"
+										icon={"export"}
+										onClick={() => toggleExportDialog(true)}
+										tooltipOptions={{
+											position: "bottom",
+											content: "Export script result",
+										}}
+									/>
+								</div>
 								<div className={"editor-header-item"}>
 									<Button
 										size="small"
@@ -459,44 +469,35 @@ export const Editor: FC<EditorProps> = (props) => {
 									</div>
 								)}
 
-								<div className="editor-header-item">
-									<Button
-										size="small"
-										icon={"export"}
-										onClick={() => toggleExportDialog(true)}
-										tooltipOptions={{
-											position: "bottom",
-											content: "Export script result",
-										}}
-									/>
-								</div>
 								<div className={"editor-header-item"}>
-									{executing ? (
-										<Button
-											size="small"
-											icon={"stop"}
-											variant="danger"
-											text="Stop"
-											onClick={() => terminateExecution()}
-											tooltipOptions={{
-												position: "bottom",
-												content: "Stop",
+									{!!replicaHosts && !!currentReplicaHost ? (
+										<HostList
+											currentHost={currentReplicaHost}
+											hosts={replicaHosts}
+											onHostChange={(host) => {
+												if (host.name !== currentReplicaHost.name) {
+													(shellId
+														? destroyShell(shellId)
+														: Promise.resolve()
+													).then(() => switchReplicaShell(host));
+												}
 											}}
 										/>
 									) : (
-										<Button
-											size="small"
-											variant="primary"
-											outlined
-											text="Run"
-											icon={"play"}
-											onClick={() => exec(code)}
-											tooltipOptions={{
-												position: "bottom",
-												content: "Run query",
-											}}
-										/>
+										<Tag icon={"globe-network"} round>
+											{hosts[0]}
+										</Tag>
 									)}
+								</div>
+								<div className={"editor-header-item"}>
+									<Tag icon={"database"} round>
+										{contextDB}
+									</Tag>
+								</div>
+								<div className={"editor-header-item"}>
+									<Tag icon={"person"} round>
+										{user || "(no auth)"}
+									</Tag>
 								</div>
 							</>
 						)}
