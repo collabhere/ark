@@ -1,7 +1,7 @@
 import "../styles.less";
 import "../../../../../common/styles/layout.less";
 
-import React, { FC, useState, useEffect } from "react";
+import React, { FC, useState, useEffect, useContext } from "react";
 import { ObjectId, serialize } from "bson";
 import { useCallback } from "react";
 import Bluebird from "bluebird";
@@ -13,7 +13,6 @@ import {
 } from "./DocumentList";
 import {
 	Icon,
-	MenuItem,
 	InputGroup,
 	NumericInput,
 	IconSize,
@@ -21,18 +20,20 @@ import {
 	Collapse,
 	IconName,
 } from "@blueprintjs/core";
-import { Select2 } from "@blueprintjs/select";
-import { DateInput } from "@blueprintjs/datetime";
+import { DateInput2 } from "@blueprintjs/datetime2";
 import { Button } from "../../../../../common/components/Button";
 import { DangerousActionPrompt } from "../../../../dialogs/DangerousActionPrompt";
 import { handleErrors, notify } from "../../../../../common/utils/misc";
 import {
+	applyTimezone,
 	formatBsonDocument,
 	formatBSONToText,
 	isObjectId,
 	replaceQuotes,
 } from "../../../../../../util/misc";
 import { CreateMenuItem } from "../../../../../common/components/ContextMenu";
+import { createDropdownMenu } from "../../../../../common/components/DropdownMenu";
+import { SettingsContext } from "../../../../layout/BaseContextProvider";
 
 interface BSONTest {
 	type:
@@ -116,6 +117,8 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 	const [commited, setCommited] = useState(false);
 	const [deleted, setDeleted] = useState(false);
 
+	const { settings } = useContext(SettingsContext);
+
 	const isModified = value !== editedValue;
 
 	const commitRow = useCallback(
@@ -154,25 +157,22 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 			return (
 				<div className="switchable-input">
 					{!commited && editable && (
-						<Select2<SwitchableInputProps["initialType"]>
-							items={["boolean", "date", "number", "oid", "text"]}
-							itemRenderer={(item, { handleClick }) => (
-								<MenuItem
-									key={item}
-									onClick={handleClick}
-									text={String(item)}
-								/>
-							)}
-							onItemSelect={(item) => {
-								setType(item);
+						<Button
+							icon={"exchange"}
+							size="small"
+							variant="link"
+							dropdownOptions={{
+								content: createDropdownMenu(
+									["boolean", "date", "number", "oid", "text"].map((item) => ({
+										key: item,
+										text: item,
+										onClick: () => {
+											setType(item as any);
+										},
+									}))
+								),
 							}}
-							filterable={false}
-							popoverProps={{
-								position: "left",
-							}}
-						>
-							<Button icon={"exchange"} size="small" variant="link" />
-						</Select2>
+						/>
 					)}
 					<div
 						onDoubleClick={() =>
@@ -291,18 +291,28 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 			iconName = "array-date";
 			jsx =
 				!commited && editable ? (
-					<DateInput
+					<DateInput2
 						shortcuts
 						parseDate={(str) => new Date(str)}
-						formatDate={(date) => date.toISOString()}
-						onChange={(date, isUserChange) =>
-							isUserChange && onValueChange(date)
+						formatDate={(date) =>
+							applyTimezone(date, settings?.timezone || "local")
 						}
-						defaultValue={date instanceof Date ? date : new Date()}
+						onChange={(date, isUserChange) =>
+							isUserChange && date && onValueChange(new Date(date))
+						}
+						defaultValue={
+							date instanceof Date
+								? date.toDateString()
+								: new Date().toDateString()
+						}
 						timePrecision="millisecond"
+						disableTimezoneSelect
+						showTimezoneSelect={false}
 					/>
 				) : (
-					`ISODate("` + date.toISOString() + `")`
+					`ISODate("` +
+					applyTimezone(date, settings?.timezone || "local") +
+					`")`
 				);
 			break;
 		}
@@ -332,23 +342,23 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 			iconName = "array-boolean";
 			jsx =
 				!commited && editable ? (
-					<Select2<boolean>
-						items={[true, false]}
-						itemRenderer={(item, { handleClick }) => (
-							<MenuItem
-								key={String(item)}
-								onClick={handleClick}
-								text={String(item)}
-							/>
-						)}
-						onItemSelect={(item) => {
-							onValueChange(item);
+					<Button
+						size="small"
+						rightIcon="caret-down"
+						text={String(bool)}
+						dropdownOptions={{
+							content: createDropdownMenu(
+								["true", "false"].map((item) => ({
+									key: item,
+									text: item,
+									active: bool,
+									onClick: () => {
+										onValueChange(item === "true" ? true : false);
+									},
+								}))
+							),
 						}}
-						activeItem={bool}
-						filterable={false}
-					>
-						<Button size="small" rightIcon="caret-down" text={String(bool)} />
-					</Select2>
+					/>
 				) : (
 					String(bool)
 				);
