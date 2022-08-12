@@ -55,7 +55,7 @@ export const Button: FC<ButtonProps> = (props) => {
 	const [loading, setLoading] = useState(false);
 
 	const iconSize = useMemo(
-		() => (size === "large" ? 26 : size === "medium" ? 22 : 18),
+		() => (size === "large" ? 24 : size === "medium" ? 20 : 16),
 		[size]
 	);
 
@@ -84,7 +84,9 @@ export const Button: FC<ButtonProps> = (props) => {
 				variant !== "link" && variant !== "link-danger" ? variant : undefined
 			}
 			icon={icon ? <Icon icon={icon} size={iconSize} /> : undefined}
-			rightIcon={rightIcon ? rightIcon : undefined}
+			rightIcon={
+				rightIcon ? <Icon icon={rightIcon} size={iconSize} /> : undefined
+			}
 		/>
 	);
 
