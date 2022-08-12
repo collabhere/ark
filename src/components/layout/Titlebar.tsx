@@ -1,8 +1,8 @@
 import "./styles.less";
 
-import React, { useCallback, useContext } from "react";
+import React, { useCallback, useContext, useMemo } from "react";
 import { Button } from "../../common/components/Button";
-import { Menu, MenuItem, FormGroup, FileInput } from "@blueprintjs/core";
+import { FormGroup, FileInput } from "@blueprintjs/core";
 import { useState } from "react";
 import { SelectConnectionForFilePath } from "../dialogs/SelectConnectionForScript";
 import { Dialog } from "../../common/components/Dialog";
@@ -10,7 +10,10 @@ import { Checkbox, InputGroup } from "@blueprintjs/core";
 import { notify } from "../../common/utils/misc";
 import { useEffect } from "react";
 import { SettingsContext } from "./BaseContextProvider";
-import { DropdownMenu } from "../../common/components/DropdownMenu";
+import {
+	createDropdownMenu,
+	DropdownMenu,
+} from "../../common/components/DropdownMenu";
 
 export interface EncryptionKey {
 	source: "userDefined" | "generated";
@@ -138,66 +141,81 @@ export const TitleBar = (): JSX.Element => {
 		]
 	);
 
-	const encrytionSourceTypeMenu = (
-		<Menu>
-			<MenuItem
-				onClick={() => {
-					setEncryptionKey((encryptionKey) => ({
-						...encryptionKey,
-						type: "file",
-						url: "",
-					}));
-				}}
-				key={"file"}
-				text={"File"}
-			/>
-			<MenuItem
-				onClick={() => {
-					setEncryptionKey((encryptionKey) => ({
-						...encryptionKey,
-						type: "url",
-						keyFile: "",
-					}));
-				}}
-				key={"url"}
-				text={"URL"}
-			/>
-		</Menu>
+	const encrytionSourceTypeMenu = useMemo(
+		() =>
+			createDropdownMenu([
+				{
+					key: "file",
+					text: "File",
+					onClick: () => {
+						setEncryptionKey((encryptionKey) => ({
+							...encryptionKey,
+							type: "file",
+							url: "",
+						}));
+					},
+				},
+				{
+					onClick: () => {
+						setEncryptionKey((encryptionKey) => ({
+							...encryptionKey,
+							type: "url",
+							keyFile: "",
+						}));
+					},
+					key: "url",
+					text: "URL",
+				},
+			]),
+		[]
 	);
 
-	const encryptionSourceMenu = (
-		<Menu>
-			<MenuItem
-				onClick={() => {
-					setEncryptionKey((encryptionKey) => ({
-						...encryptionKey,
-						source: "generated",
-						type: "file",
-						keyFile: "",
-						url: "",
-					}));
-				}}
-				key={"generated"}
-				text={"Generate a key"}
-			/>
-			<MenuItem
-				onClick={() => {
-					setEncryptionKey((encryptionKey) => ({
-						...encryptionKey,
-						source: "userDefined",
-						type: "file",
-						keyFile: "",
-						url: "",
-					}));
-				}}
-				key={"userDefined"}
-				text={"Use an existing key"}
-			/>
-		</Menu>
+	const encryptionSourceMenu = useMemo(
+		() =>
+			createDropdownMenu([
+				{
+					key: "generated",
+					text: "Generate a key",
+					onClick: () => {
+						setEncryptionKey((encryptionKey) => ({
+							...encryptionKey,
+							source: "generated",
+							type: "file",
+							keyFile: "",
+							url: "",
+						}));
+					},
+				},
+				{
+					onClick: () => {
+						setEncryptionKey((encryptionKey) => ({
+							...encryptionKey,
+							source: "userDefined",
+							type: "file",
+							keyFile: "",
+							url: "",
+						}));
+					},
+					key: "userDefined",
+					text: "Use an existing key",
+				},
+			]),
+		[]
 	);
 
-	const encryptionDialog = (
-		<div>
+	const encryptionDialogContent = (
+		<div className="encryption-dialog-content">
+			<p>
+				For the purpose of encrypting the credentials for your connections, we
+				require a key. You may to choose to have us generate it otherwise
+				provide your own.
+			</p>
+			<p>
+				<b>
+					Note: If you change this key, your existing connections will need to
+					be created again.
+				</b>
+			</p>
 			<FormGroup label="Encryption Key Source">
 				<div className="input-field">
 					<Button
@@ -256,7 +274,7 @@ export const TitleBar = (): JSX.Element => {
 					className="flex-fill"
 					label="Encryption Key File"
 					helperText={
-						"The encryption key must be a 256 bit hex encoded string."
+						"The encryption key must be AES-256 compatible (i.e. a 256 bit hexadecimal string)."
 					}
 				>
 					<div className="input-field">
@@ -315,6 +333,7 @@ export const TitleBar = (): JSX.Element => {
 		<div className="title-bar">
 			{secretKeyDialog && (
 				<Dialog
+					title={"Encryption Settings"}
 					size="large"
 					onCancel={() => {
 						if (
@@ -331,7 +350,7 @@ export const TitleBar = (): JSX.Element => {
 						showSecretKeyDialog(false);
 					}}
 				>
-					{encryptionDialog}
+					{encryptionDialogContent}
 				</Dialog>
 			)}
 			<div className="header-container">
@@ -475,8 +494,7 @@ export const TitleBar = (): JSX.Element => {
 				/>
 				<Button
 					icon="cross"
-					variant="link"
-					outlined
+					variant="link-danger"
 					onClick={() => window.ark.titlebar.close()}
 				/>
 			</div>

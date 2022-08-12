@@ -143,7 +143,14 @@ export const Connection: Connection = {
 	},
 	connect: async ({ storedConnection, _stores: stores }, { id }) => {
 		if (storedConnection) {
-			const { memoryStore } = stores;
+			const { memoryStore, settingsStore, diskStore } = stores;
+
+			const stored = await diskStore.get(id);
+
+			// already connected
+			if (memoryStore.has(id)) {
+				return;
+			}
 
 			let server: Server | void;
 
@@ -157,7 +164,7 @@ export const Connection: Connection = {
 				}
 			}
 
-			const settings = await stores.settingsStore.get("general");
+			const settings = await settingsStore.get("general");
 			const connectionUri = await getConnectionUri(
 				storedConnection,
 				settings?.encryptionKey
@@ -177,6 +184,8 @@ export const Connection: Connection = {
 				connectionDetails.server = server;
 			}
 
+			await diskStore.set(id, { ...stored, active: true });
+
 			memoryStore.save(id, connectionDetails);
 		} else {
 			throw new Error(ERR_CODES.CORE$DRIVER$NO_STORED_CONNECTION);
@@ -184,13 +193,17 @@ export const Connection: Connection = {
 	},
 	disconnect: async ({ memEntry, _stores: stores }, { id }) => {
 		if (memEntry) {
-			const { memoryStore } = stores;
+			const { memoryStore, diskStore } = stores;
 
 			await memEntry.connection.close();
 
 			if (memEntry.server) {
 				memEntry.server.close();
 			}
+
+			const stored = await diskStore.get(id);
+
+			await diskStore.set(id, { ...stored, active: false });
 
 			memoryStore.drop(id);
 		} else {

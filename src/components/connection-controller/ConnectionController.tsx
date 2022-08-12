@@ -485,7 +485,6 @@ const DetailedCardTitle: FC<CardTitleProps> = ({
 				size="small"
 				text="Connect"
 				variant="none"
-				outlined
 				onClick={{ promise: onConnect, callback: onConnectCallback }}
 			/>
 		)}

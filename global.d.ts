@@ -78,6 +78,7 @@ declare global {
 				mongodPort?: string;
 			};
 			uri?: string;
+			active?: boolean;
 		}
 
 		interface StoredScript {

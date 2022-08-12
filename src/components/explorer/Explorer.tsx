@@ -148,7 +148,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 				icon: loading ? (
 					<CircularLoading size={SpinnerSize.SMALL} />
 				) : (
-					<Icon icon={IconNames.Database} className='node-icon' />
+					<Icon icon={IconNames.Database} className="node-icon" />
 				),
 				disabled: loading,
 			});
@@ -210,7 +210,13 @@ export const Explorer: FC<ExplorerProps> = () => {
 					collectionTreeKey(collection.name, db),
 					[],
 					{
-						icon: <Icon icon={IconNames.Th} className={'node-icon'} size={IconSize.STANDARD} />,
+						icon: (
+							<Icon
+								icon={IconNames.Th}
+								className={"node-icon"}
+								size={IconSize.STANDARD}
+							/>
+						),
 						hasCaret: false,
 					}
 				);
@@ -239,8 +245,6 @@ export const Explorer: FC<ExplorerProps> = () => {
 						});
 					},
 				},
-				{ item: "Current operations", cb: () => {} },
-				{ item: "Statistics", cb: () => {} },
 				{
 					intent: Intent.DANGER,
 					item: "Drop database",
@@ -263,17 +267,24 @@ export const Explorer: FC<ExplorerProps> = () => {
 					db.key,
 					setCollectionListToTree(db.name, db.collections || []),
 					{
-						icon: <Icon icon={IconNames.Database} className='node-icon' />,
+						icon: <Icon icon={IconNames.Database} className="node-icon" />,
 						hasCaret: !!(db.collections && db.collections.length > 0),
 						isExpanded: expandedKeys && expandedKeys.includes(db.key),
 					}
 				)
 			);
 
-			addNodeAtEnd(<div className="node"><span>system</span></div>, "folder;system", systemNodes, {
-				icon: <Icon icon={IconNames.FolderOpen} className='node-icon' />,
-				isExpanded: expandedKeys && expandedKeys.includes("folder;system"),
-			});
+			addNodeAtEnd(
+				<div className="node">
+					<span>system</span>
+				</div>,
+				"folder;system",
+				systemNodes,
+				{
+					icon: <Icon icon={IconNames.FolderOpen} className="node-icon" />,
+					isExpanded: expandedKeys && expandedKeys.includes("folder;system"),
+				}
+			);
 
 			for (const db of personal) {
 				addNodeAtEnd(
@@ -285,7 +296,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 					db.key,
 					setCollectionListToTree(db.name, db.collections || []),
 					{
-						icon: <Icon icon={IconNames.Database} className='node-icon' />,
+						icon: <Icon icon={IconNames.Database} className="node-icon" />,
 						hasCaret: !!(db.collections && db.collections.length > 0),
 						isExpanded: expandedKeys && expandedKeys.includes(db.key),
 					}
@@ -386,12 +397,12 @@ export const Explorer: FC<ExplorerProps> = () => {
 		{
 			text: "Create database",
 			key: "1",
-			onClick: () => setCreateDatabaseDialogInfo({ visible: true })
+			onClick: () => setCreateDatabaseDialogInfo({ visible: true }),
 		},
 		{
 			key: "2",
 			onClick: () => {},
-			text: "Server Info"
+			text: "Server Info",
 		},
 		{
 			text: "Disconnect",
@@ -403,16 +414,16 @@ export const Explorer: FC<ExplorerProps> = () => {
 				});
 				dispatch("connection_manager:toggle");
 				dispatch("explorer:hide");
-			}
-		}
+			},
+		},
 	];
 
 	return currentSidebarOpened === storedConnectionId ? (
 		<Resizable
-		defaultSize={{
-			width: "400px",
-			height: "100%",
-		}}
+			defaultSize={{
+				width: "400px",
+				height: "100%",
+			}}
 			enable={{
 				right: true,
 			}}
@@ -438,10 +449,8 @@ export const Explorer: FC<ExplorerProps> = () => {
 									}}
 									onClick={() => refresh()}
 								/>
-								<DropdownMenu
-									items={explorerHeaderMenu}
-								>
-									<Button icon="more" size="small" variant="none" outlined/>
+								<DropdownMenu items={explorerHeaderMenu}>
+									<Button icon="more" size="small" variant="none" outlined />
 								</DropdownMenu>
 							</div>
 						</div>
