@@ -66,7 +66,7 @@ export const Editor: FC<EditorProps> = (props) => {
 
 	const [queryParams, setQueryParams] = useState<Ark.QueryOptions>({
 		page: 1,
-		limit: 50,
+		limit: 10,
 		timeout: settings?.shellTimeout,
 	});
 

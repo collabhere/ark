@@ -19,6 +19,7 @@ import {
 	IconSize,
 	Code,
 	Collapse,
+	IconName,
 } from "@blueprintjs/core";
 import { Select2 } from "@blueprintjs/select";
 import { DateInput } from "@blueprintjs/datetime";
@@ -100,6 +101,7 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 		onCommit,
 		onKeyRemove,
 		onReset,
+		onAction,
 		initialType,
 		field,
 		value,
@@ -116,107 +118,141 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 
 	const isModified = value !== editedValue;
 
-	const commitRow = (value?: SwitchableInputProps["value"]) => {
-		if (isModified) {
-			typeof value !== "undefined" && setEditedValue(value);
-			onCommit(editedKey, value || editedValue);
-			setDeleted(false);
-			setCommited(true);
-		}
-	};
+	const commitRow = useCallback(
+		(value?: SwitchableInputProps["value"]) => {
+			if (isModified) {
+				typeof value !== "undefined" && setEditedValue(value);
+				onCommit(editedKey, value || editedValue);
+				setDeleted(false);
+				setCommited(true);
+			}
+		},
+		[editedKey, editedValue, isModified, onCommit]
+	);
 
 	const onValueChange = (value: SwitchableInputProps["value"]) => {
 		setEditedValue(value);
 	};
 
-	const resetKey = () => {
+	const resetKey = useCallback(() => {
 		setCommited(false);
 		setDeleted(false);
 		setEditedValue(value);
 		onReset && onReset(editedKey);
-	};
+	}, [editedKey, onReset, value]);
 
-	const deleteKey = (key: string) => {
-		setDeleted(true);
-		onKeyRemove && onKeyRemove(key);
-	};
+	const deleteKey = useCallback(
+		(key: string) => {
+			setDeleted(true);
+			onKeyRemove && onKeyRemove(key);
+		},
+		[onKeyRemove]
+	);
 
-	const wrap = (input: React.ReactNode) => {
-		return (
-			<div className="switchable-input">
-				{!commited && editable && (
-					<Select2<SwitchableInputProps["initialType"]>
-						items={["boolean", "date", "number", "oid", "text"]}
-						itemRenderer={(item, { handleClick }) => (
-							<MenuItem key={item} onClick={handleClick} text={String(item)} />
-						)}
-						onItemSelect={(item) => {
-							setType(item);
-						}}
-						filterable={false}
-						popoverProps={{
-							position: "left",
-						}}
+	const wrap = useCallback(
+		(input: React.ReactNode, icon: IconName) => {
+			return (
+				<div className="switchable-input">
+					{!commited && editable && (
+						<Select2<SwitchableInputProps["initialType"]>
+							items={["boolean", "date", "number", "oid", "text"]}
+							itemRenderer={(item, { handleClick }) => (
+								<MenuItem
+									key={item}
+									onClick={handleClick}
+									text={String(item)}
+								/>
+							)}
+							onItemSelect={(item) => {
+								setType(item);
+							}}
+							filterable={false}
+							popoverProps={{
+								position: "left",
+							}}
+						>
+							<Button icon={"exchange"} size="small" variant="link" />
+						</Select2>
+					)}
+					<div
+						onDoubleClick={() =>
+							onAction && onAction(ContentRowActions.edit_document)
+						}
+						className="switchable-input-child"
 					>
-						<Button icon={"exchange"} size="small" variant="link" />
-					</Select2>
-				)}
-				<div className="switchable-input-child">{input}</div>
-				<div className="button-container">
-					{isModified && !commited && editable && (
-						<div className="button">
-							<Button
-								onClick={() => {
-									commitRow();
-								}}
-								size={"small"}
-								icon="small-tick"
-								variant={"link"}
-								tooltipOptions={{
-									content: "Modify",
-									position: "auto-start",
-								}}
-							/>
-						</div>
-					)}
-					{!hideReset && isModified && !deleted && (
-						<div className="button">
-							<Button
-								onClick={() => resetKey()}
-								size={"small"}
-								icon={"reset"}
-								variant="link"
-								tooltipOptions={{
-									content: "Reset",
-									position: "auto-start",
-								}}
-							/>
-						</div>
-					)}
-					{editable && (
-						<div className="button">
-							<Button
-								onClick={() => (deleted ? resetKey() : deleteKey(field))}
-								size={"small"}
-								icon={deleted ? "reset" : "trash"}
-								variant="link"
-								tooltipOptions={{
-									content: deleted ? "Reset" : "Delete",
-									position: "auto-start",
-								}}
-							/>
-						</div>
-					)}
+						<Icon icon={icon} />
+						{input}
+					</div>
+					<div className="button-container">
+						{isModified && !commited && editable && (
+							<div className="button">
+								<Button
+									onClick={() => {
+										commitRow();
+									}}
+									size={"small"}
+									icon="small-tick"
+									variant={"link"}
+									tooltipOptions={{
+										content: "Modify",
+										position: "auto-start",
+									}}
+								/>
+							</div>
+						)}
+						{!hideReset && isModified && !deleted && (
+							<div className="button">
+								<Button
+									onClick={() => resetKey()}
+									size={"small"}
+									icon={"reset"}
+									variant="link"
+									tooltipOptions={{
+										content: "Reset",
+										position: "auto-start",
+									}}
+								/>
+							</div>
+						)}
+						{editable && (
+							<div className="button">
+								<Button
+									onClick={() => (deleted ? resetKey() : deleteKey(field))}
+									size={"small"}
+									icon={deleted ? "reset" : "trash"}
+									variant="link"
+									tooltipOptions={{
+										content: deleted ? "Reset" : "Delete",
+										position: "auto-start",
+									}}
+								/>
+							</div>
+						)}
+					</div>
 				</div>
-			</div>
-		);
-	};
+			);
+		},
+		[
+			commitRow,
+			commited,
+			deleteKey,
+			deleted,
+			editable,
+			field,
+			hideReset,
+			isModified,
+			onAction,
+			resetKey,
+		]
+	);
 
 	let jsx;
+	let iconName: IconName;
 
 	switch (type) {
 		case "text": {
 			const input = (editedValue || "") as string;
+			iconName = "array-string";
 			jsx =
 				!commited && editable ? (
 					<InputGroup
@@ -231,6 +267,7 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 		}
 		case "oid": {
 			const input = (editedValue || new ObjectId()) as string;
+			iconName = "document";
 			jsx =
 				!commited && editable ? (
 					<div className="object-id">
@@ -251,6 +288,7 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 		}
 		case "date": {
 			const date = (editedValue || new Date()) as Date;
+			iconName = "array-date";
 			jsx =
 				!commited && editable ? (
 					<DateInput
@@ -270,6 +308,7 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 		}
 		case "number": {
 			const num = (editedValue || 0) as number;
+			iconName = "array-floating-point";
 			jsx =
 				!commited && editable ? (
 					<NumericInput
@@ -290,6 +329,7 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 		}
 		case "boolean": {
 			const bool = !!editedValue as boolean;
+			iconName = "array-boolean";
 			jsx =
 				!commited && editable ? (
 					<Select2<boolean>
@@ -307,7 +347,7 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 						activeItem={bool}
 						filterable={false}
 					>
-						<Button rightIcon="caret-down" text={String(bool)} />
+						<Button size="small" rightIcon="caret-down" text={String(bool)} />
 					</Select2>
 				) : (
 					String(bool)
@@ -315,6 +355,7 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 			break;
 		}
 		default: {
+			iconName = "help";
 			jsx = <></>;
 			break;
 		}
@@ -342,7 +383,7 @@ const SwitchableInput: FC<SwitchableInputProps> = (props) => {
 					<Icon icon="symbol-circle" size={IconSize.STANDARD} />
 				)}
 			</div>
-			<div className="right">{wrap(jsx)}</div>
+			<div className="right">{wrap(jsx, iconName)}</div>
 		</>
 	);
 };
@@ -712,7 +753,6 @@ const NewFieldRows: FC<NewFieldRowsProps> = (props) => {
 							<div className="content-row">
 								<Button
 									fill
-									outlined
 									onClick={() => {
 										addField();
 									}}
@@ -729,7 +769,6 @@ const NewFieldRows: FC<NewFieldRowsProps> = (props) => {
 				<div className="content-row">
 					<Button
 						fill
-						outlined
 						onClick={() => {
 							addField();
 						}}
@@ -929,70 +968,79 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 		}
 	};
 
-	const unsetKey = (id: string, key: string) =>
-		setUpdates((updates) => {
-			const idx = updates.findIndex((u) => u._id === id);
-			if (idx > -1) {
-				if (updates[idx].update.$unset) {
-					(updates[idx].update.$unset as any)[key] = "";
+	const unsetKey = useCallback(
+		(id: string, key: string) =>
+			setUpdates((updates) => {
+				const idx = updates.findIndex((u) => u._id === id);
+				if (idx > -1) {
+					if (updates[idx].update.$unset) {
+						(updates[idx].update.$unset as any)[key] = "";
+					} else {
+						(updates[idx].update.$unset as any) = { [key]: "" };
+					}
+					if (updates[idx].update.$set) {
+						delete (updates[idx].update.$set as any)[key];
+					}
+					deleteSetAndUnsetIfEmpty(updates, idx);
 				} else {
-					(updates[idx].update.$unset as any) = { [key]: "" };
+					updates.push({
+						_id: id,
+						update: {
+							$unset: { [key]: "" },
+							$set: undefined,
+						},
+					});
 				}
-				if (updates[idx].update.$set) {
-					delete (updates[idx].update.$set as any)[key];
-				}
-				deleteSetAndUnsetIfEmpty(updates, idx);
-			} else {
-				updates.push({
-					_id: id,
-					update: {
-						$unset: { [key]: "" },
-						$set: undefined,
-					},
-				});
-			}
-			return Array.from(updates);
-		});
+				return Array.from(updates);
+			}),
+		[]
+	);
 
-	const setKeyValue = (id: string, key: string, value: Ark.BSONTypes) =>
-		setUpdates((updates) => {
-			const idx = updates.findIndex((u) => u._id === id);
-			if (idx > -1) {
-				if (updates[idx].update.$set) {
-					(updates[idx].update.$set as any)[key] = value;
+	const setKeyValue = useCallback(
+		(id: string, key: string, value: Ark.BSONTypes) =>
+			setUpdates((updates) => {
+				const idx = updates.findIndex((u) => u._id === id);
+				if (idx > -1) {
+					if (updates[idx].update.$set) {
+						(updates[idx].update.$set as any)[key] = value;
+					} else {
+						(updates[idx].update.$set as any) = { [key]: value };
+					}
+					if (updates[idx].update.$unset) {
+						delete (updates[idx].update.$unset as any)[key];
+					}
+					deleteSetAndUnsetIfEmpty(updates, idx);
 				} else {
-					(updates[idx].update.$set as any) = { [key]: value };
+					updates.push({
+						_id: id,
+						update: {
+							$set: { [key]: value },
+							$unset: undefined,
+						},
+					});
 				}
-				if (updates[idx].update.$unset) {
-					delete (updates[idx].update.$unset as any)[key];
-				}
-				deleteSetAndUnsetIfEmpty(updates, idx);
-			} else {
-				updates.push({
-					_id: id,
-					update: {
-						$set: { [key]: value },
-						$unset: undefined,
-					},
-				});
-			}
-			return Array.from(updates);
-		});
+				return Array.from(updates);
+			}),
+		[]
+	);
 
-	const resetKey = (id: string, key: string) =>
-		setUpdates((updates) => {
-			const idx = updates.findIndex((u) => u._id === id);
-			if (idx > -1) {
-				if (updates[idx].update.$set) {
-					delete (updates[idx].update.$set as any)[key];
+	const resetKey = useCallback(
+		(id: string, key: string) =>
+			setUpdates((updates) => {
+				const idx = updates.findIndex((u) => u._id === id);
+				if (idx > -1) {
+					if (updates[idx].update.$set) {
+						delete (updates[idx].update.$set as any)[key];
+					}
+					if (updates[idx].update.$unset) {
+						delete (updates[idx].update.$unset as any)[key];
+					}
+					deleteSetAndUnsetIfEmpty(updates, idx);
 				}
-				if (updates[idx].update.$unset) {
-					delete (updates[idx].update.$unset as any)[key];
-				}
-				deleteSetAndUnsetIfEmpty(updates, idx);
-			}
-			return Array.from(updates);
-		});
+				return Array.from(updates);
+			}),
+		[]
+	);
 
 	const removeDocumentUpdates = useCallback(
 		(id: string) =>
@@ -1170,6 +1218,11 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 							<Button
 								size="small"
 								text={"Save"}
+								disabled={
+									!updates.find(
+										(update) => update._id === document._id.toString()
+									)
+								}
 								variant={"link"}
 								onClick={(e) => {
 									e.stopPropagation();
@@ -1179,7 +1232,7 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 							/>
 							<Button
 								size="small"
-								text={"Discard"}
+								text={"Cancel"}
 								variant={"link"}
 								onClick={(e) => {
 									e.stopPropagation();
@@ -1194,10 +1247,14 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 			};
 		},
 		[
+			allowDocumentEdits,
 			docsBeingEdited,
 			refreshCounts,
-			allowDocumentEdits,
 			documentContextMenu,
+			updates,
+			setKeyValue,
+			unsetKey,
+			resetKey,
 			startEditingDocument,
 			discardChanges,
 		]
@@ -1222,6 +1279,15 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 				{docsBeingEdited.size > 0 && (
 					<>
 						<Button
+							disabled={!updates.length}
+							tooltipOptions={
+								!updates.length
+									? {
+											content: "No changes made",
+											position: "top",
+									  }
+									: undefined
+							}
 							onClick={() => setShowSaveAllDialog(true)}
 							size={"small"}
 							icon="small-tick"
@@ -1235,8 +1301,8 @@ export const TreeViewer: FC<JSONViewerProps> = (props) => {
 							}}
 							size={"small"}
 							icon="small-cross"
-							variant={"link-danger"}
-							text="Discard All"
+							variant={!updates.length ? "link" : "link-danger"}
+							text={!updates.length ? "Cancel Edits" : "Discard Edits"}
 						/>
 					</>
 				)}

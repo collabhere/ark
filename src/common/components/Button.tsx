@@ -63,12 +63,14 @@ export const Button: FC<ButtonProps> = (props) => {
 		<BPButton
 			active={active}
 			className={
-				"button-base button-" +
-				variant +
-				" " +
-				"button-text-size-" +
-				size +
-				(outlined ? " button-outlined" : "")
+				disabled
+					? "button-base button-disabled" + " " + "button-text-size-" + size
+					: "button-base button-" +
+					  variant +
+					  " " +
+					  "button-text-size-" +
+					  size +
+					  (outlined ? " button-outlined" : "")
 			}
 			disabled={loading || disabled}
 			onClick={(e) => {
