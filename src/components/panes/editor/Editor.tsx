@@ -23,11 +23,18 @@ const EDITOR_HELP_COMMENT = `/**
 * 
 * Welcome to Ark's script editor.
 * 
+* You can start off with writing code the same way you would in mongosh shell.
+* 
+* For a full guide on what's possible in this editor, check out the link below.
+* https://makeark.notion.site/Ark-Editor-Guide-c15a4d8326a24466bbd05ed0707d48fc
+* 
+* To stop showing this comment, open the hamburger menu on the top-left corner of
+* the app and toggle off the "Help Comment" option under "Editor Settings".
 */
 `;
 
 const createDefaultCodeSnippet = (collection: string, helpText = true) => `${
-	helpText ? EDITOR_HELP_COMMENT : ""
+	helpText ? EDITOR_HELP_COMMENT : "\n"
 }db.getCollection('${collection}').find({ });
 `;
 
@@ -89,8 +96,8 @@ export const Editor: FC<EditorTab> = (props) => {
 		initialCode
 			? initialCode
 			: collection
-			? createDefaultCodeSnippet(collection)
-			: createDefaultCodeSnippet("test")
+			? createDefaultCodeSnippet(collection, settings?.showEditorHelpText)
+			: createDefaultCodeSnippet("test", settings?.showEditorHelpText)
 	);
 	const [exportDialog, toggleExportDialog] = useState<boolean>(false);
 

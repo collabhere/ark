@@ -41,9 +41,9 @@ export const Shell: FC<ShellProps> = (props) => {
 			<React.Suspense>
 				<Monaco
 					options={{
-						lineNumbers: settings?.lineNumbers === "off" ? "off" : "on",
+						lineNumbers: settings?.lineNumbers ? "on" : "off",
 						minimap: {
-							enabled: settings?.miniMap === "on" ? true : false,
+							enabled: settings?.miniMap ? true : false,
 						},
 						contextmenu: false,
 						lightbulb: {

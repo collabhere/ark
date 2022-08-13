@@ -222,10 +222,11 @@ declare global {
 		interface Settings {
 			timezone?: "local" | "utc";
 			shellTimeout?: number;
-			lineNumbers?: "on" | "off";
-			miniMap?: "on" | "off";
-			autoUpdates?: "on" | "off";
-			hotKeys?: "on" | "off";
+			lineNumbers?: boolean;
+			miniMap?: boolean;
+			autoUpdates?: boolean;
+			hotKeys?: boolean;
+			showEditorHelpText?: boolean;
 			encryptionKey?: {
 				type: "file" | "url";
 				source: "generated" | "userDefined";
