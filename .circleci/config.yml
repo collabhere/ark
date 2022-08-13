@@ -13,9 +13,6 @@ jobs:
           name: "Build electron & react"
           command: "npm run build"
       - run:
-          name: "Cleanup"
-          command: "npm prune --production && npm i -g electron-builder"
-      - run:
           name: "Build AppImage"
           command: "npm run dist:app_image"
       - run:
