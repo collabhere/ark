@@ -53,12 +53,10 @@ export const Shell: FC<ShellProps> = (props) => {
 					theme={"ark"}
 					beforeMount={(monaco) => {
 						mountMonaco(monaco, { collections: allCollections });
-						monaco.editor.defineTheme("ark", {
-							base: "vs-dark",
-							inherit: true,
-							rules: [],
-							colors: MONACO_THEME,
-						});
+						monaco.editor.defineTheme(
+							"ark",
+							MONACO_THEME as editor.IStandaloneThemeData
+						);
 					}}
 					onMount={(editor) => {
 						setMonacoEditor(editor);

@@ -3,6 +3,7 @@ import { SettingsContext } from "../../../../layout/BaseContextProvider";
 import { formatBSONToText, replaceQuotes } from "../../../../../../util/misc";
 const Monaco = React.lazy(() => import("@monaco-editor/react"));
 import MONACO_THEME from "../../../../../common/styles/monaco-theme.json";
+import { editor } from "monaco-editor";
 
 export interface JSONViewerProps {
 	text: Ark.BSONArray | string;
@@ -18,12 +19,10 @@ export const PlainTextViewer: FC<JSONViewerProps> = (props) => {
 			<React.Suspense>
 				<Monaco
 					beforeMount={(monaco) => {
-						monaco.editor.defineTheme("ark", {
-							base: "vs-dark",
-							inherit: true,
-							rules: [],
-							colors: MONACO_THEME,
-						});
+						monaco.editor.defineTheme(
+							"ark",
+							MONACO_THEME as editor.IStandaloneThemeData
+						);
 					}}
 					options={{
 						readOnly: true,
