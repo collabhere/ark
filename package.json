@@ -156,10 +156,10 @@
 		"re-resizable": "^6.9.9",
 		"react": "^18.1.0",
 		"react-dom": "^18.1.0",
-		"react-hotkeys-hook": "^3.4.4"
+		"react-hotkeys-hook": "^3.4.4",
+		"electron": "^18.2.3"
 	},
 	"dependencies": {
-		"electron": "^18.2.3",
 		"@mongosh/async-rewriter2": "~1.5.4",
 		"@mongosh/service-provider-core": "~1.5.4",
 		"@mongosh/service-provider-server": "~1.5.4",
