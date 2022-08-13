@@ -42,7 +42,7 @@ export function ConnectionForm(props: ConnectionFormTab): JSX.Element {
 	const [host, setHost] = useState<string>(
 		props.connectionParams?.hosts
 			? props.connectionParams?.hosts[0].split(":")[0]
-			: ""
+			: "localhost"
 	);
 
 	const [icon, setIcon] = useState<Ark.StoredIcon>();
@@ -50,7 +50,7 @@ export function ConnectionForm(props: ConnectionFormTab): JSX.Element {
 	const [port, setPort] = useState<string>(
 		props.connectionParams?.hosts
 			? props.connectionParams?.hosts[0].split(":")[1]
-			: ""
+			: "27017"
 	);
 
 	const editConnection = useCallback(function <T extends Ark.StoredConnection>(
@@ -145,15 +145,8 @@ export function ConnectionForm(props: ConnectionFormTab): JSX.Element {
 			const parsedUri = parse(uri);
 			if (
 				parsedUri &&
-				parsedUri.scheme === "mongodb" &&
-				parsedUri.hosts.every((elem) => !!elem.host && !!elem.port)
-			) {
-				return { ok: true };
-			}
-
-			if (
-				parsedUri &&
-				parsedUri.scheme === "mongodb+srv" &&
+				(parsedUri.scheme === "mongodb" ||
+					parsedUri.scheme === "mongodb+srv") &&
 				parsedUri.hosts.every((elem) => !!elem.host)
 			) {
 				return { ok: true };
