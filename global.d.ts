@@ -1,9 +1,8 @@
 import type { Connection, Database } from "./electron/core/driver";
-import type { MongoClientOptions } from "@mongosh/service-provider-server";
+import type { MongoClientOptions } from "@mongosh/service-provider-core";
 import type { MemoryStore } from "./electron/core/stores/memory";
 import type {
 	MemEntry,
-	StoredScript,
 	ScriptSaveActionData,
 	ScriptSaveAsActionData,
 	ScriptOpenActionData,
