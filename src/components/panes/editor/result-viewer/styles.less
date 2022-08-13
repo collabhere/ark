@@ -53,6 +53,8 @@
 	}
 
 	.tree-viewer {
+		user-select: none;
+
 		display: flex;
 		flex-direction: column;
 		flex-grow: 1;
@@ -60,7 +62,6 @@
 		gap: 0.5rem;
 		/* To even out the margin-right on the header (.header) */
 		padding-left: 1rem;
-
 		@tree-view-header-height: 2rem;
 
 		.header {

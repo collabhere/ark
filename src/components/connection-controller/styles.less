@@ -48,10 +48,19 @@
 
 		gap: 1rem;
 
-		.error {
+		.center-text {
 			display: flex;
 			justify-content: center;
 			align-items: center;
+			flex-direction: column;
+			height: 100%;
+
+			font-size: @large-font-size;
+
+			.help {
+				font-size: @medium-font-size;
+				font-style: italic;
+			}
 		}
 	}
 }

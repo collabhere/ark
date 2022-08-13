@@ -236,10 +236,15 @@ export const ConnectionsList: FC<ConnectionsListProps> = (props) => {
 						</div>
 					))
 				) : (
-					<></>
+					<div className="center-text">
+						<p>No connections</p>
+						<p className="help">
+							{'You can save a connection using the "Create" button.'}
+						</p>
+					</div>
 				)
 			) : (
-				<p className="error">{error}</p>
+				<p className="center-text">{error}</p>
 			)}
 		</div>
 	);
