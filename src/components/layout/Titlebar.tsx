@@ -15,6 +15,8 @@ import {
 	DropdownMenu,
 } from "../../common/components/DropdownMenu";
 
+import { ReactComponent as Logo } from "../../assets/logo_outline.svg";
+
 export interface EncryptionKey {
 	source: "userDefined" | "generated";
 	type: "file" | "url";
@@ -331,7 +333,10 @@ export const TitleBar = (): JSX.Element => {
 				</Dialog>
 			)}
 			<div className="header-container">
-				<div className="logo">Ark</div>
+				<div className="logo">
+					<Logo width={"2.5rem"} height={"2.5rem"} opacity="80%" />
+					{/* Ark */}
+				</div>
 				<DropdownMenu
 					position="bottom-right"
 					items={[

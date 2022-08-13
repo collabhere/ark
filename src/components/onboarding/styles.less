@@ -4,8 +4,30 @@
 	display: flex;
 	justify-content: center;
 	align-items: center;
+	flex-direction: column;
 	height: 100%;
-	width: 100%;
+	width: 35rem;
 	color: @text-color;
 	background-color: @container-bg-color;
+
+	.text-row {
+		color: @subtext-color;
+
+		opacity: 75%;
+
+		display: flex;
+		justify-content: center;
+		align-items: center;
+
+		width: 75%;
+		gap: 3rem;
+
+		.text-row-key {
+			font-size: @large-font-size;
+		}
+
+		.text-row-value {
+			font-size: @medium-font-size;
+		}
+	}
 }
