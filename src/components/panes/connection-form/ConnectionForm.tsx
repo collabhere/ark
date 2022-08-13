@@ -10,19 +10,19 @@ import {
 	ButtonGroup,
 	InputGroup,
 	TextArea,
-	Menu,
-	MenuItem,
 	Code,
 	FileInput,
 } from "@blueprintjs/core";
 import { Button } from "../../../common/components/Button";
+import { createDropdownMenu } from "../../../common/components/DropdownMenu";
+import { ConnectionFormTab } from "../../browser/Tabs";
 
 export interface ConnectionFormProps {
 	connectionParams?: Ark.StoredConnection;
 	mode?: "edit" | "clone";
 }
 
-export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
+export function ConnectionForm(props: ConnectionFormTab): JSX.Element {
 	const [type, setType] = useState<"basic" | "advanced">(
 		props.mode === "edit" || props.mode === "clone" ? "advanced" : "basic"
 	);
@@ -105,14 +105,6 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 	const [connectionData, setConnectionData] =
 		useState<Ark.StoredConnection>(connectionDetails);
 
-	const resetForm = useCallback(() => {
-		setMongoURI("");
-		setIcon(undefined);
-		setHost("");
-		setPort("");
-		setConnectionData(emptyConnection());
-	}, []);
-
 	useEffect(() => {
 		if (connectionData.id && connectionData.icon) {
 			window.ark.getIcon(connectionData.id).then((icon) => {
@@ -143,6 +135,10 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 		// We just need to decrypt the password on initial render
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
+
+	const closeForm = useCallback(() => {
+		dispatch("browser:delete_tab:connection_form", { id: props.id });
+	}, [props.id]);
 
 	const validateUri = useCallback((uri: string) => {
 		try {
@@ -189,7 +185,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 				})
 				.then((connectionId) => {
 					dispatch("connection_manager:add_connection", { connectionId });
-					resetForm();
+					closeForm();
 				});
 		} else {
 			if (err) {
@@ -204,7 +200,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 				});
 			}
 		}
-	}, [validateUri, mongoURI, connectionData.name, resetForm]);
+	}, [validateUri, mongoURI, connectionData.name, closeForm]);
 
 	const testURIConnection = useCallback(() => {
 		const { ok, err } = validateUri(mongoURI);
@@ -347,81 +343,104 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 		[connectionData.ssh, editConnection]
 	);
 
-	const sshAuthMenu = (
-		<Menu>
-			<MenuItem
-				onClick={() => toggleAuthMethod("password")}
-				key="password"
-				text="Password"
-			/>
-			<MenuItem
-				onClick={() => toggleAuthMethod("privateKey")}
-				key="privateKey"
-				text="Private Key"
-			/>
-		</Menu>
-	);
+	const sshAuthMenu = createDropdownMenu([
+		{
+			onClick: () => toggleAuthMethod("password"),
+			key: "password",
+			text: "Password",
+		},
+		{
+			onClick: () => toggleAuthMethod("privateKey"),
+			key: "privateKey",
+			text: "Private Key",
+		},
+	]);
 
-	const tlsAuthMenu = (
-		<Menu>
-			<MenuItem
-				onClick={() => toggleTlsAuthMethod("self-signed")}
-				key="self-signed"
-				text="Self-signed certificate"
-			/>
-			<MenuItem
-				onClick={() => toggleTlsAuthMethod("CACertificate")}
-				key="CACertificate"
-				text="Provide Root CA"
-			/>
-		</Menu>
-	);
+	const tlsAuthMenu = createDropdownMenu([
+		{
+			onClick: () => toggleTlsAuthMethod("self-signed"),
+			key: "self-signed",
+			text: "Self-signed certificate",
+		},
+		{
+			onClick: () => toggleTlsAuthMethod("CACertificate"),
+			key: "CACertificate",
+			text: "Provide Root CA",
+		},
+	]);
 
-	const authMechanismMenu = (
-		<Menu>
-			<MenuItem
-				onClick={() =>
-					editConnection("options", {
-						...connectionData.options,
-						authMechanism: "SCRAM-SHA-1",
-					})
-				}
-				key={"SCRAM-SHA-1"}
-				text={"SCRAM-SHA-1"}
-			/>
-			<MenuItem
-				onClick={() =>
-					editConnection("options", {
-						...connectionData.options,
-						authMechanism: "SCRAM-SHA-256",
-					})
-				}
-				key={"SCRAM-SHA-256"}
-				text={"SCRAM-SHA-256"}
-			/>
-		</Menu>
-	);
+	const authMechanismMenu = createDropdownMenu([
+		{
+			onClick: () =>
+				editConnection("options", {
+					...connectionData.options,
+					authMechanism: "SCRAM-SHA-1",
+				}),
 
-	const connectionTypeMenu = (
-		<Menu>
-			<MenuItem
-				onClick={() => editConnection("type", "directConnection")}
-				key="directConnection"
-				text="Direct Connection"
+			key: "SCRAM-SHA-1",
+			text: "SCRAM-SHA-1",
+		},
+		{
+			onClick: () =>
+				editConnection("options", {
+					...connectionData.options,
+					authMechanism: "SCRAM-SHA-256",
+				}),
+			key: "SCRAM-SHA-256",
+			text: "SCRAM-SHA-256",
+		},
+	]);
+
+	const connectionTypeMenu = createDropdownMenu([
+		{
+			onClick: () => editConnection("type", "directConnection"),
+			key: "directConnection",
+			text: "Direct Connection",
+		},
+		{
+			onClick: () => editConnection("type", "replicaSet"),
+			key: "replicaSet",
+			text: "Replica Set",
+		},
+	]);
+
+	const dropdownButton = (
+		menu: JSX.Element,
+		text?: string,
+		disabled?: boolean
+	) => (
+		<div className="input-field">
+			<Button
+				size="small"
+				rightIcon="caret-down"
+				disabled={disabled}
+				dropdownOptions={{
+					content: menu,
+					interactionKind: "click-target",
+					position: "bottom",
+					disabled: disabled,
+				}}
+				text={text}
 			/>
-			<MenuItem
-				onClick={() => editConnection("type", "replicaSet")}
-				key="replicaSet"
-				text="Replica Set"
-			/>
-		</Menu>
+		</div>
 	);
 
 	const TestAndSaveButtons = (
-		<ButtonGroup className="button-group">
-			<Button text="Test" variant="link" onClick={() => testURIConnection()} />
-			<Button text="Save" variant="primary" onClick={() => saveMongoURI()} />
-		</ButtonGroup>
+		<div className="button-row">
+			<Button
+				text="Advanced Settings"
+				variant="link"
+				onClick={() => setType("advanced")}
+			/>
+			<ButtonGroup className="button-group">
+				<Button
+					text="Test"
+					variant="link"
+					onClick={() => testURIConnection()}
+				/>
+				<Button text="Save" variant="primary" onClick={() => saveMongoURI()} />
+			</ButtonGroup>
+		</div>
 	);
 
 	const TestAndSaveAdvanced = (
@@ -467,7 +486,7 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 						} else {
 							const connectionId = res;
 							dispatch("connection_manager:add_connection", { connectionId });
-							resetForm();
+							closeForm();
 						}
 					},
 				}}
@@ -507,20 +526,6 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 								/>
 							</FormGroup>
 							{TestAndSaveButtons}
-						</div>
-						<div className="separator">
-							<div className="horizontal-line"></div>
-							<div>
-								<span>OR</span>
-							</div>
-							<div className="horizontal-line"></div>
-						</div>
-						<div className="button-advanced">
-							<Button
-								text="Advanced Settings"
-								variant="link"
-								onClick={() => setType("advanced")}
-							/>
 						</div>
 					</div>
 				)}
@@ -575,21 +580,12 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 									label="Type"
 									labelFor="connection-type"
 								>
-									<div className="input-field">
-										<Button
-											fill
-											dropdownOptions={{
-												content: connectionTypeMenu,
-												interactionKind: "click-target",
-												fill: true,
-											}}
-											text={
-												connectionData?.type === "replicaSet"
-													? "Replica Set"
-													: "Direct connection"
-											}
-										/>
-									</div>
+									{dropdownButton(
+										connectionTypeMenu,
+										connectionData?.type === "replicaSet"
+											? "Replica Set"
+											: "Direct connection"
+									)}
 								</FormGroup>
 								<div>
 									<FormGroup label="Name">
@@ -683,17 +679,10 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 									</div>
 								</FormGroup>
 								<FormGroup label="Authentication Mechanism">
-									<div className="input-field">
-										<Button
-											fill
-											dropdownOptions={{
-												content: authMechanismMenu,
-												interactionKind: "click-target",
-												fill: true,
-											}}
-											text={connectionData.options.authMechanism}
-										/>
-									</div>
+									{dropdownButton(
+										authMechanismMenu,
+										connectionData.options.authMechanism
+									)}
 								</FormGroup>
 							</div>
 						)}
@@ -768,22 +757,10 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 									</div>
 								</FormGroup>
 								<FormGroup label="Authentication Method">
-									<div className="input-field">
-										<Button
-											fill
-											disabled={!connectionData.ssh.useSSH}
-											dropdownOptions={{
-												content: sshAuthMenu,
-												interactionKind: "click-target",
-												fill: true,
-											}}
-											text={
-												sshAuthMethod === "password"
-													? "Password"
-													: "Private key"
-											}
-										/>
-									</div>
+									{dropdownButton(
+										sshAuthMenu,
+										sshAuthMethod === "password" ? "Password" : "Private key"
+									)}
 								</FormGroup>
 								{sshAuthMethod === "password" && (
 									<FormGroup label="Password">
@@ -851,22 +828,13 @@ export function ConnectionForm(props: ConnectionFormProps): JSX.Element {
 									</FormGroup>
 								</div>
 								<FormGroup label="Authentication Method">
-									<div className="input-field">
-										<Button
-											fill
-											disabled={!connectionData.options.tls}
-											dropdownOptions={{
-												content: tlsAuthMenu,
-												interactionKind: "click-target",
-												fill: true,
-											}}
-											text={
-												tlsAuthMethod === "self-signed"
-													? "Self-signed certificate"
-													: "Provide root CA"
-											}
-										/>
-									</div>
+									{dropdownButton(
+										tlsAuthMenu,
+										tlsAuthMethod === "self-signed"
+											? "Self-signed certificate"
+											: "Provide root CA",
+										!connectionData.options.tls
+									)}
 								</FormGroup>
 								{tlsAuthMethod === "CACertificate" && (
 									<div className="flex-inline">

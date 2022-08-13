@@ -1,22 +1,8 @@
 import "./styles.less";
 
-import React, { useCallback, useContext } from "react";
+import React, { useCallback, useContext, useMemo } from "react";
 import { Button } from "../../common/components/Button";
-import {
-	Menu,
-	MenuItem,
-	MenuDivider,
-	FormGroup,
-	FileInput,
-} from "@blueprintjs/core";
-import { Popover2 } from "@blueprintjs/popover2";
-import {
-	VscFileCode,
-	VscClose,
-	VscWatch,
-	VscTerminal,
-	VscKey,
-} from "react-icons/vsc";
+import { FormGroup, FileInput } from "@blueprintjs/core";
 import { useState } from "react";
 import { SelectConnectionForFilePath } from "../dialogs/SelectConnectionForScript";
 import { Dialog } from "../../common/components/Dialog";
@@ -24,6 +10,10 @@ import { Checkbox, InputGroup } from "@blueprintjs/core";
 import { notify } from "../../common/utils/misc";
 import { useEffect } from "react";
 import { SettingsContext } from "./BaseContextProvider";
+import {
+	createDropdownMenu,
+	DropdownMenu,
+} from "../../common/components/DropdownMenu";
 
 export interface EncryptionKey {
 	source: "userDefined" | "generated";
@@ -151,66 +141,81 @@ export const TitleBar = (): JSX.Element => {
 		]
 	);
 
-	const encrytionSourceTypeMenu = (
-		<Menu>
-			<MenuItem
-				onClick={() => {
-					setEncryptionKey((encryptionKey) => ({
-						...encryptionKey,
-						type: "file",
-						url: "",
-					}));
-				}}
-				key={"file"}
-				text={"File"}
-			/>
-			<MenuItem
-				onClick={() => {
-					setEncryptionKey((encryptionKey) => ({
-						...encryptionKey,
-						type: "url",
-						keyFile: "",
-					}));
-				}}
-				key={"url"}
-				text={"URL"}
-			/>
-		</Menu>
+	const encrytionSourceTypeMenu = useMemo(
+		() =>
+			createDropdownMenu([
+				{
+					key: "file",
+					text: "File",
+					onClick: () => {
+						setEncryptionKey((encryptionKey) => ({
+							...encryptionKey,
+							type: "file",
+							url: "",
+						}));
+					},
+				},
+				{
+					onClick: () => {
+						setEncryptionKey((encryptionKey) => ({
+							...encryptionKey,
+							type: "url",
+							keyFile: "",
+						}));
+					},
+					key: "url",
+					text: "URL",
+				},
+			]),
+		[]
 	);
 
-	const encryptionSourceMenu = (
-		<Menu>
-			<MenuItem
-				onClick={() => {
-					setEncryptionKey((encryptionKey) => ({
-						...encryptionKey,
-						source: "generated",
-						type: "file",
-						keyFile: "",
-						url: "",
-					}));
-				}}
-				key={"generated"}
-				text={"Generate a key"}
-			/>
-			<MenuItem
-				onClick={() => {
-					setEncryptionKey((encryptionKey) => ({
-						...encryptionKey,
-						source: "userDefined",
-						type: "file",
-						keyFile: "",
-						url: "",
-					}));
-				}}
-				key={"userDefined"}
-				text={"Use an existing key"}
-			/>
-		</Menu>
+	const encryptionSourceMenu = useMemo(
+		() =>
+			createDropdownMenu([
+				{
+					key: "generated",
+					text: "Generate a key",
+					onClick: () => {
+						setEncryptionKey((encryptionKey) => ({
+							...encryptionKey,
+							source: "generated",
+							type: "file",
+							keyFile: "",
+							url: "",
+						}));
+					},
+				},
+				{
+					onClick: () => {
+						setEncryptionKey((encryptionKey) => ({
+							...encryptionKey,
+							source: "userDefined",
+							type: "file",
+							keyFile: "",
+							url: "",
+						}));
+					},
+					key: "userDefined",
+					text: "Use an existing key",
+				},
+			]),
+		[]
 	);
 
-	const encryptionDialog = (
-		<div>
+	const encryptionDialogContent = (
+		<div className="encryption-dialog-content">
+			<p>
+				For the purpose of encrypting the credentials for your connections, we
+				require a key. You may to choose to have us generate it otherwise
+				provide your own.
+			</p>
+			<p>
+				<b>
+					Note: If you change this key, your existing connections will need to
+					be created again.
+				</b>
+			</p>
 			<FormGroup label="Encryption Key Source">
 				<div className="input-field">
 					<Button
@@ -269,7 +274,7 @@ export const TitleBar = (): JSX.Element => {
 					className="flex-fill"
 					label="Encryption Key File"
 					helperText={
-						"The encryption key must be a 256 bit hex encoded string."
+						"The encryption key must be AES-256 compatible (i.e. a 256 bit hexadecimal string)."
 					}
 				>
 					<div className="input-field">
@@ -328,6 +333,7 @@ export const TitleBar = (): JSX.Element => {
 		<div className="title-bar">
 			{secretKeyDialog && (
 				<Dialog
+					title={"Encryption Settings"}
 					size="large"
 					onCancel={() => {
 						if (
@@ -344,142 +350,135 @@ export const TitleBar = (): JSX.Element => {
 						showSecretKeyDialog(false);
 					}}
 				>
-					{encryptionDialog}
+					{encryptionDialogContent}
 				</Dialog>
 			)}
 			<div className="header-container">
 				<div className="logo">Ark</div>
-				<div>
-					<Popover2
-						content={
-							<Menu>
-								<MenuItem
-									text="Open Script"
-									onClick={() => {
-										window.ark
-											.browseForFile("Select A File", "Select")
-											.then((result) => {
-												const { path } = result;
-												setOpenScriptPath(path);
-											});
+				<DropdownMenu
+					position="bottom-right"
+					items={[
+						{
+							text: "Open Script",
+							onClick: () => {
+								window.ark
+									.browseForFile("Select A File", "Select")
+									.then((result) => {
+										const { path } = result;
+										setOpenScriptPath(path);
+									});
+							},
+							icon: "document-open",
+							key: "open_script",
+						},
+						{
+							title: "Connection Settings",
+							divider: true,
+							key: "divider_two",
+						},
+						{
+							text: "Encryption Key",
+							icon: "key",
+							key: "encryption",
+							onClick: () => showSecretKeyDialog(true),
+						},
+						{ title: "Editor Settings", divider: true, key: "divider_one" },
+						{
+							key: "shell_timeout",
+							text: "Query Timeout",
+							icon: "outdated",
+							onClick: () => setTimeoutDialog(true),
+						},
+						{
+							key: "result_tz",
+							text: "Result Timezone",
+							icon: "globe",
+							submenu: [
+								{
+									key: "tz_local",
+									text: "Local",
+									onClick: () =>
+										changeSettings<"timezone">("timezone", "local"),
+								},
+								{
+									key: "tz_utc",
+									text: "UTC",
+									onClick: () => changeSettings<"timezone">("timezone", "utc"),
+								},
+							],
+						},
+						{
+							key: "line_nos",
+							text: (
+								<Checkbox
+									style={{
+										marginRight: 0,
+										marginBottom: 0,
 									}}
-									icon={<VscFileCode />}
-									key="0"
+									checked={localSettings.lineNumbers}
+									label={"Show Line Numbers"}
+									onChange={(e) => {
+										const showLineNumbers = (e.target as HTMLInputElement)
+											.checked
+											? "on"
+											: "off";
+										changeSettings("lineNumbers", showLineNumbers);
+									}}
 								/>
-								<MenuDivider />
-								<MenuItem text="Timezone" icon={<VscWatch />} key="1">
-									<MenuItem
-										text="Local Timezone"
-										onClick={() =>
-											changeSettings<"timezone">("timezone", "local")
-										}
-									/>
-									<MenuItem
-										text="UTC"
-										onClick={() =>
-											changeSettings<"timezone">("timezone", "utc")
-										}
-									/>
-								</MenuItem>
-								<MenuDivider />
-								<MenuItem
-									text="Change Shell Timeout"
-									icon={<VscTerminal />}
-									key="2"
-									onClick={() => setTimeoutDialog(true)}
+							),
+						},
+						{
+							key: "minimap",
+							text: (
+								<Checkbox
+									style={{
+										marginRight: 0,
+										marginBottom: 0,
+									}}
+									checked={localSettings.miniMap}
+									label={"Show Mini Map"}
+									onChange={(e) => {
+										const showMiniMap = (e.target as HTMLInputElement).checked
+											? "on"
+											: "off";
+										changeSettings("miniMap", showMiniMap);
+									}}
 								/>
-								<MenuDivider />
-								<MenuItem
-									key="3"
-									text={
-										<Checkbox
-											checked={localSettings.lineNumbers}
-											label={"Show Line Numbers"}
-											onChange={(e) => {
-												const showLineNumbers = (e.target as HTMLInputElement)
-													.checked
-													? "on"
-													: "off";
-												changeSettings("lineNumbers", showLineNumbers);
-											}}
-										/>
-									}
+							),
+						},
+						{
+							key: "hotkeys",
+							text: (
+								<Checkbox
+									style={{
+										marginRight: 0,
+										marginBottom: 0,
+									}}
+									checked={localSettings.hotKeys}
+									label={"Enable Hot Keys"}
+									onChange={(e) => {
+										const enableHotkeys = (e.target as HTMLInputElement).checked
+											? "on"
+											: "off";
+										changeSettings("hotKeys", enableHotkeys);
+									}}
 								/>
-								<MenuDivider />
-								<MenuItem
-									key="4"
-									text={
-										<Checkbox
-											checked={localSettings.miniMap}
-											label={"Show Mini Map"}
-											onChange={(e) => {
-												const showMiniMap = (e.target as HTMLInputElement)
-													.checked
-													? "on"
-													: "off";
-												changeSettings("miniMap", showMiniMap);
-											}}
-										/>
-									}
-								/>
-								<MenuDivider />
-								<MenuItem
-									key="5"
-									text={
-										<Checkbox
-											checked={localSettings.hotKeys}
-											label={"Enable hotkeys"}
-											onChange={(e) => {
-												const enableHotkeys = (e.target as HTMLInputElement)
-													.checked
-													? "on"
-													: "off";
-												changeSettings("hotKeys", enableHotkeys);
-											}}
-										/>
-									}
-								/>
-								<MenuDivider />
-								<MenuItem
-									key="6"
-									text={
-										<Checkbox
-											checked={localSettings.autoUpdates}
-											label={"Auto Updates"}
-											onChange={(e) => {
-												const autoUpdates = (e.target as HTMLInputElement)
-													.checked
-													? "on"
-													: "off";
-												changeSettings("autoUpdates", autoUpdates);
-											}}
-										/>
-									}
-								/>
-								<MenuDivider />
-								<MenuItem
-									text="Encryption Key"
-									icon={<VscKey />}
-									key="7"
-									onClick={() => showSecretKeyDialog(true)}
-								/>
-								<MenuDivider />
-								<MenuItem
-									intent="danger"
-									text="Exit"
-									icon={<VscClose />}
-									key="8"
-									onClick={() => window.ark.titlebar.close()}
-								/>
-							</Menu>
-						}
-						interactionKind={"click"}
-					>
-						<div className="header-item">
-							<Button variant="link" size="small" text="Options" />
-						</div>
-					</Popover2>
-				</div>
+							),
+						},
+						{ divider: true, key: "divider_three" },
+						{
+							intent: "danger",
+							text: "Exit",
+							icon: "cross",
+							key: "exit",
+							onClick: () => window.ark.titlebar.close(),
+						},
+					]}
+				>
+					<div className="header-item">
+						<Button variant="link" size="small" icon="menu" />
+					</div>
+				</DropdownMenu>
 			</div>
 			<div className="header-draggable-area"></div>
 			<div className="header-container">
@@ -495,8 +494,7 @@ export const TitleBar = (): JSX.Element => {
 				/>
 				<Button
 					icon="cross"
-					variant="link"
-					outlined
+					variant="link-danger"
 					onClick={() => window.ark.titlebar.close()}
 				/>
 			</div>
@@ -524,7 +522,7 @@ export const TitleBar = (): JSX.Element => {
 						changeSettings("shellTimeout", timeout);
 						setTimeoutDialog(false);
 					}}
-					title={"Change Shell Timeout"}
+					title={"Change Query Timeout"}
 				>
 					<div>
 						<InputGroup

@@ -20,10 +20,17 @@ export const Sidebar: FC = () => {
 
 	const switchConnections = useCallback(
 		(connectionId: string) => {
-			if (currentSidebarOpened !== "manager" && currentSidebarOpened !== "none")
-				return setCurrentSidebarOpened("none");
-			dispatch("explorer:switch_connections", { connectionId });
-			setCurrentSidebarOpened(connectionId);
+			if (
+				currentSidebarOpened !== "manager" &&
+				currentSidebarOpened !== "none"
+			) {
+				setCurrentSidebarOpened("none");
+			}
+
+			if (currentSidebarOpened !== connectionId) {
+				dispatch("explorer:switch_connections", { connectionId });
+				setCurrentSidebarOpened(connectionId);
+			}
 		},
 		[currentSidebarOpened, setCurrentSidebarOpened]
 	);
@@ -32,7 +39,7 @@ export const Sidebar: FC = () => {
 		const splitName = name.split(" ");
 		return splitName.length > 1
 			? `${splitName[0][0]}${splitName[1][0]}`.toUpperCase()
-			: `${splitName[0]}${splitName[1]}`.toUpperCase();
+			: `${splitName[0][0]}${splitName[0][1]}`.toUpperCase();
 	};
 
 	useEffect(
@@ -53,7 +60,7 @@ export const Sidebar: FC = () => {
 					active={currentSidebarOpened === "manager"}
 					variant="link"
 					icon="data-connection"
-					size="large"
+					size="medium"
 					tooltipOptions={{
 						content: "Manage Connections",
 					}}
@@ -70,13 +77,11 @@ export const Sidebar: FC = () => {
 							<Button
 								active={currentSidebarOpened === conn.id}
 								text={
-									<div className="icon">
-										<img
-											src={`ark://icons/${conn.iconFileName}`}
-											width={25}
-											height={25}
-										/>
-									</div>
+									<img
+										src={`ark://icons/${conn.iconFileName}`}
+										width={20}
+										height={20}
+									/>
 								}
 								tooltipOptions={{
 									content: conn.name,
@@ -94,7 +99,7 @@ export const Sidebar: FC = () => {
 									content: conn.name,
 								}}
 								variant="link"
-								size="small"
+								size="medium"
 							/>
 						)}
 					</div>

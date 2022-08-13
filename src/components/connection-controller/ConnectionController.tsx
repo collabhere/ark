@@ -11,6 +11,26 @@ import {
 } from "../layout/BaseContextProvider";
 import { notify } from "../../common/utils/misc";
 
+export const notifyFailedConnection = (err) => {
+	notify({
+		type: "error",
+		title: "Error",
+		description: err.message
+			? "Error - " + err.message
+			: "Could not connect. Something unexpected happened.",
+	});
+};
+
+export const notifyFailedDisconnection = (err) => {
+	notify({
+		type: "error",
+		title: "Error",
+		description: err.message
+			? "Error - " + err.message
+			: "Could not disconnnect. Something unexpected happened.",
+	});
+};
+
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface ConnectionManagerProps {}
 
@@ -86,15 +106,11 @@ export const ConnectionController: FC<ConnectionManagerProps> = () => {
 
 	return currentSidebarOpened === "manager" ? (
 		<Resizable
-			defaultSize={{
-				width: "600px",
-				height: "100%",
-			}}
 			enable={{
 				right: true,
 			}}
 			maxWidth="50%"
-			minWidth="30%"
+			minWidth="25%"
 			handleClasses={{
 				right: "resize-handle vertical",
 			}}
@@ -124,6 +140,7 @@ export const ConnectionController: FC<ConnectionManagerProps> = () => {
 								icon="add"
 								text="Create"
 								variant="primary"
+								size="small"
 								onClick={() => openCreateConnection()}
 							/>
 						</div>
@@ -219,10 +236,15 @@ export const ConnectionsList: FC<ConnectionsListProps> = (props) => {
 						</div>
 					))
 				) : (
-					<></>
+					<div className="center-text">
+						<p>No connections</p>
+						<p className="help">
+							{'You can save a connection using the "Create" button.'}
+						</p>
+					</div>
 				)
 			) : (
-				<p className="error">{error}</p>
+				<p className="center-text">{error}</p>
 			)}
 		</div>
 	);
@@ -233,9 +255,9 @@ interface ConnectionCardFunctions {
 	onConnectCallback: (err?: any) => void;
 	onDisconnect: (conn: Ark.StoredConnection) => Promise<void>;
 	onDisconnectCallback: (err?: any) => void;
-	onEdit: (conn: Ark.StoredConnection) => void;
-	onClone: (conn: Ark.StoredConnection) => void;
-	onDelete: (conn: Ark.StoredConnection) => void;
+	onEdit?: (conn: Ark.StoredConnection) => void;
+	onClone?: (conn: Ark.StoredConnection) => void;
+	onDelete?: (conn: Ark.StoredConnection) => void;
 }
 interface DetailedConnectionCardProps extends ConnectionCardFunctions {
 	conn: ManagedConnection;
@@ -298,6 +320,7 @@ export const DetailedConnectionCard = (
 			</div>
 			<div className="card-buttons">
 				<Button
+					variant="none"
 					shape="round"
 					icon="clipboard"
 					size="small"
@@ -309,6 +332,7 @@ export const DetailedConnectionCard = (
 				/>
 				{onEdit && (
 					<Button
+						variant="none"
 						shape="round"
 						icon="edit"
 						size="small"
@@ -321,6 +345,7 @@ export const DetailedConnectionCard = (
 				)}
 				{onClone && (
 					<Button
+						variant="none"
 						shape="round"
 						icon={"add-row-bottom"}
 						size="small"
@@ -333,6 +358,7 @@ export const DetailedConnectionCard = (
 				)}
 				{onDelete && (
 					<Button
+						variant="none"
 						shape="round"
 						icon="trash"
 						size="small"
@@ -461,9 +487,10 @@ const DetailedCardTitle: FC<CardTitleProps> = ({
 		{!active && (
 			<Button
 				shape="round"
-				icon="globe"
+				icon="globe-network"
 				size="small"
 				text="Connect"
+				variant="none"
 				onClick={{ promise: onConnect, callback: onConnectCallback }}
 			/>
 		)}

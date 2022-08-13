@@ -8,13 +8,11 @@ import React, {
 	useRef,
 	useState,
 } from "react";
-import { Tree, Menu, MenuItem } from "@blueprintjs/core";
-import { ContextMenu2, Popover2 } from "@blueprintjs/popover2";
+import { Tree, Intent, Icon, IconSize } from "@blueprintjs/core";
 import { Resizable } from "re-resizable";
 import { dispatch, listenEffect } from "../../common/utils/events";
 import { CollectionInfo, ListDatabasesResult } from "mongodb";
 import { useTree } from "../../hooks/useTree";
-import { VscDatabase, VscFolder, VscListTree } from "react-icons/vsc";
 import { CircularLoading } from "../../common/components/Loading";
 import { handleErrors, notify } from "../../common/utils/misc";
 import { Button } from "../../common/components/Button";
@@ -22,6 +20,9 @@ import { DangerousActionPrompt } from "../dialogs/DangerousActionPrompt";
 import { TextInputPrompt } from "../dialogs/TextInputPrompt";
 import { SpinnerSize } from "@blueprintjs/core";
 import { SettingsContext } from "../layout/BaseContextProvider";
+import { ContextMenu } from "../../common/components/ContextMenu";
+import { DropdownMenu } from "../../common/components/DropdownMenu";
+import { IconNames } from "@blueprintjs/icons";
 
 type Databases = ListDatabasesResult["databases"];
 type DatabasesWithInformation = (ListDatabasesResult["databases"][0] & {
@@ -72,24 +73,6 @@ const createDatabaseList = (databases: Databases): DatabaseList => {
 		personal: personal.sort((a, b) => (a.name > b.name ? 1 : -1)),
 	};
 };
-
-interface CreateMenuItem {
-	item: string;
-	cb: () => void;
-	intent?: "danger" | "none";
-}
-const createContextMenu = (items: CreateMenuItem[]) => (
-	<Menu>
-		{items.map((menuItem, i) => (
-			<MenuItem
-				key={i}
-				onClick={() => menuItem.cb()}
-				intent={menuItem.intent}
-				text={menuItem.item}
-			/>
-		))}
-	</Menu>
-);
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface ExplorerProps {}
@@ -165,7 +148,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 				icon: loading ? (
 					<CircularLoading size={SpinnerSize.SMALL} />
 				) : (
-					<VscDatabase />
+					<Icon icon={IconNames.Database} className="node-icon" />
 				),
 				disabled: loading,
 			});
@@ -200,32 +183,40 @@ export const Explorer: FC<ExplorerProps> = () => {
 		(db: string, collections: CollectionInfo[]) => {
 			const children = collections.map((collection) => {
 				return createNode(
-					<ContextMenu2
-						content={createContextMenu([
-							{
-								item: "Open shell",
-								cb: () => openShell(db, collection.name),
-							},
-							{ item: "Indexes", cb: () => {} },
-							{
-								intent: "danger",
-								item: "Drop collection",
-								cb: () => {
-									setDropCollectionDialogInfo({
-										database: db,
-										collection: collection.name,
-										visible: true,
-									});
+					<div className="node">
+						<ContextMenu
+							items={[
+								{
+									item: "Open shell",
+									cb: () => openShell(db, collection.name),
 								},
-							},
-						])}
-					>
-						<span>{collection.name}</span>
-					</ContextMenu2>,
+								{ item: "Indexes", cb: () => {} },
+								{
+									intent: Intent.DANGER,
+									item: "Drop collection",
+									cb: () => {
+										setDropCollectionDialogInfo({
+											database: db,
+											collection: collection.name,
+											visible: true,
+										});
+									},
+								},
+							]}
+						>
+							<span>{collection.name}</span>
+						</ContextMenu>
+					</div>,
 					collectionTreeKey(collection.name, db),
 					[],
 					{
-						icon: <VscListTree />,
+						icon: (
+							<Icon
+								icon={IconNames.Th}
+								className={"node-icon"}
+								size={IconSize.STANDARD}
+							/>
+						),
 						hasCaret: false,
 					}
 				);
@@ -243,60 +234,69 @@ export const Explorer: FC<ExplorerProps> = () => {
 		}) => {
 			const { system, personal } = databases;
 
-			const createOverlay = (db) =>
-				createContextMenu([
-					{ item: "Open shell", cb: () => openShell(db.name) },
-					{
-						item: "Create collection",
-						cb: () => {
-							setCreateCollectionDialogInfo({
-								database: db.name,
-								visible: true,
-							});
-						},
+			const createOverlayElements = (db) => [
+				{ item: "Open shell", cb: () => openShell(db.name) },
+				{
+					item: "Create collection",
+					cb: () => {
+						setCreateCollectionDialogInfo({
+							database: db.name,
+							visible: true,
+						});
 					},
-					{ item: "Current operations", cb: () => {} },
-					{ item: "Statistics", cb: () => {} },
-					{
-						intent: "danger",
-						item: "Drop database",
-						cb: () => {
-							setDropDatabaseDialogInfo({
-								database: db.name,
-								visible: true,
-							});
-						},
+				},
+				{
+					intent: Intent.DANGER,
+					item: "Drop database",
+					cb: () => {
+						setDropDatabaseDialogInfo({
+							database: db.name,
+							visible: true,
+						});
 					},
-				]);
+				},
+			];
 
 			const systemNodes = system.map((db) =>
 				createNode(
-					<ContextMenu2 content={createOverlay(db)}>
-						<span>{db.name}</span>
-					</ContextMenu2>,
+					<div className="node">
+						<ContextMenu items={createOverlayElements(db)}>
+							<span>{db.name}</span>
+						</ContextMenu>
+					</div>,
 					db.key,
 					setCollectionListToTree(db.name, db.collections || []),
 					{
-						icon: <VscDatabase />,
-						hasCaret: false,
+						icon: <Icon icon={IconNames.Database} className="node-icon" />,
+						hasCaret: !!(db.collections && db.collections.length > 0),
+						isExpanded: expandedKeys && expandedKeys.includes(db.key),
 					}
 				)
 			);
 
-			addNodeAtEnd(<span>system</span>, "folder;system", systemNodes, {
-				icon: <VscFolder />,
-				isExpanded: expandedKeys && expandedKeys.includes("folder;system"),
-			});
+			addNodeAtEnd(
+				<div className="node">
+					<span>system</span>
+				</div>,
+				"folder;system",
+				systemNodes,
+				{
+					icon: <Icon icon={IconNames.FolderOpen} className="node-icon" />,
+					isExpanded: expandedKeys && expandedKeys.includes("folder;system"),
+				}
+			);
 
 			for (const db of personal) {
 				addNodeAtEnd(
-					<ContextMenu2 content={createOverlay(db)}>
-						<span>{db.name}</span>
-					</ContextMenu2>,
+					<div className="node">
+						<ContextMenu items={createOverlayElements(db)}>
+							<span>{db.name}</span>
+						</ContextMenu>
+					</div>,
 					db.key,
 					setCollectionListToTree(db.name, db.collections || []),
 					{
-						icon: <VscDatabase />,
+						icon: <Icon icon={IconNames.Database} className="node-icon" />,
 						hasCaret: !!(db.collections && db.collections.length > 0),
 						isExpanded: expandedKeys && expandedKeys.includes(db.key),
 					}
@@ -393,72 +393,68 @@ export const Explorer: FC<ExplorerProps> = () => {
 		[switchConnections]
 	);
 
+	const explorerHeaderMenu = [
+		{
+			text: "Create database",
+			key: "1",
+			onClick: () => setCreateDatabaseDialogInfo({ visible: true }),
+		},
+		{
+			key: "2",
+			onClick: () => {},
+			text: "Server Info",
+		},
+		{
+			text: "Disconnect",
+			intent: "danger",
+			key: "3",
+			onClick: () => {
+				dispatch("connection_manager:disconnect", {
+					connectionId: storedConnectionId,
+				});
+				dispatch("connection_manager:toggle");
+				dispatch("explorer:hide");
+			},
+		},
+	];
+
 	return currentSidebarOpened === storedConnectionId ? (
 		<Resizable
-			defaultSize={{
-				width: "400px",
-				height: "100%",
-			}}
 			enable={{
 				right: true,
 			}}
 			maxWidth="50%"
-			minWidth="20%"
+			minWidth="25%"
+			handleClasses={{
+				right: "resize-handle vertical",
+			}}
 		>
-			<div className="Explorer">
+			<div className="explorer">
 				{storedConnectionId && cachedConnections[storedConnectionId] ? (
 					<>
-						<div className={"ExplorerHeader"}>
-							<div className={"ExplorerHeaderTitle"}>
+						<div className={"explorer-header"}>
+							<div className={"explorer-header-title"}>
 								{cachedConnections[storedConnectionId] &&
 									cachedConnections[storedConnectionId].connection.name}
 							</div>
-							<div className={"ExplorerHeaderMenu"}>
+							<div className={"explorer-header-menu"}>
 								<Button
 									icon="refresh"
 									size="small"
-									variant="primary"
+									variant="none"
 									tooltipOptions={{
 										content: "Refresh",
+										position: "bottom",
 									}}
 									onClick={() => refresh()}
 								/>
-								<Popover2
-									content={
-										<Menu>
-											<MenuItem
-												text={"Create database"}
-												key={1}
-												onClick={() =>
-													setCreateDatabaseDialogInfo({ visible: true })
-												}
-											/>
-											<MenuItem
-												key={2}
-												onClick={() => {}}
-												text={"Server Info"}
-											/>
-											<MenuItem
-												text={"Disconnect"}
-												intent="danger"
-												key={3}
-												onClick={() => {
-													dispatch("connection_manager:disconnect", {
-														connectionId: storedConnectionId,
-													});
-													dispatch("connection_manager:toggle");
-													dispatch("explorer:hide");
-												}}
-											/>
-										</Menu>
-									}
-								>
-									<Button icon="more" size="small" variant="primary" />
-								</Popover2>
+								<DropdownMenu items={explorerHeaderMenu}>
+									<Button icon="more" size="small" variant="none" />
+								</DropdownMenu>
 							</div>
 						</div>
 						<Tree
-							className={"ExplorerTree"}
+							className={"explorer-tree"}
 							onNodeExpand={(node) => {
 								setExpandedKeys((keys) => [...keys, node.id as string]);
 							}}
@@ -490,7 +486,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 						/>
 					</>
 				) : (
-					<div className="ExplorerLoading">
+					<div className="explorer-loading">
 						<CircularLoading />
 					</div>
 				)}

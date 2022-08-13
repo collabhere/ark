@@ -78,6 +78,13 @@ declare global {
 				mongodPort?: string;
 			};
 			uri?: string;
+			active?: boolean;
+		}
+
+		interface StoredScript {
+			id: string;
+			fullpath: string;
+			storedConnectionId?: string;
 		}
 
 		type AnyObject = BSONDocument | BSONArray;

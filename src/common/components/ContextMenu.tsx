@@ -1,19 +1,17 @@
-import React from "react";
-import {
-	IconName,
-	MenuDivider,
-	MenuItem,
-	Menu,
-	Intent,
-} from "@blueprintjs/core";
+import "./ContextMenu.less";
+
+import React, { FC, PropsWithChildren } from "react";
+import { IconName, MenuDivider, Menu, Intent } from "@blueprintjs/core";
+import { ContextMenu2, MenuItem2 } from "@blueprintjs/popover2";
 
 export interface CreateMenuItem {
-	item?: string;
+	item?: string | React.ReactNode;
 	key?: string;
 	cb?: (key?: string) => void;
 	icon?: IconName;
 	intent?: Intent;
 	divider?: boolean;
+	disabled?: boolean;
 	submenu?: CreateMenuItem[];
 }
 export const createContextMenuItems = (items: CreateMenuItem[]) => (
@@ -22,19 +20,17 @@ export const createContextMenuItems = (items: CreateMenuItem[]) => (
 			menuItem.divider ? (
 				<MenuDivider key={menuItem.key + "_idx_" + idx} />
 			) : menuItem.submenu ? (
-				<MenuItem
-					intent={menuItem.intent}
-					icon={menuItem.icon}
+				<MenuItem2
+					{...menuItem}
 					key={menuItem.key + "_idx_" + idx}
 					text={menuItem.item}
 					onClick={() => menuItem.cb && menuItem.cb(menuItem.key)}
 				>
 					{createContextMenuItems(menuItem.submenu)}
-				</MenuItem>
+				</MenuItem2>
 			) : (
-				<MenuItem
-					intent={menuItem.intent}
-					icon={menuItem.icon}
+				<MenuItem2
+					{...menuItem}
 					key={menuItem.key + "_idx_" + idx}
 					text={menuItem.item}
 					onClick={() => menuItem.cb && menuItem.cb(menuItem.key)}
@@ -43,3 +39,21 @@ export const createContextMenuItems = (items: CreateMenuItem[]) => (
 		)}
 	</Menu>
 );
+
+export const ContextMenu: FC<PropsWithChildren<{ items: CreateMenuItem[] }>> = (
+	props
+) => {
+	const { items, children } = props;
+	return items.length ? (
+		<ContextMenu2
+			popoverProps={{
+				popoverClassName: "context-menu",
+			}}
+			content={createContextMenuItems(items)}
+		>
+			{children}
+		</ContextMenu2>
+	) : (
+		<>{children}</>
+	);
+};

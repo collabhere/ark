@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { Hotkeys } from "../../common/components/Hotkeys";
-import { TitleBar } from "./TitleBar";
+import { TitleBar } from "./Titlebar";
 
 export interface SettingsContextType {
 	settings?: Ark.Settings;
@@ -51,12 +51,6 @@ export const BaseContextProvider = (props: PageBodyProps): JSX.Element => {
 
 	const [enableHotkeys, setEnableHotkeys] = useState(true);
 
-	const load = useCallback(() => {
-		return window.ark.driver
-			.run("connection", "list", undefined)
-			.then(setConnections);
-	}, []);
-
 	const connect = useCallback((id: string) => {
 		return window.ark.driver
 			.run("connection", "connect", {
@@ -106,6 +100,21 @@ export const BaseContextProvider = (props: PageBodyProps): JSX.Element => {
 				});
 			});
 	}, []);
+
+	const load = useCallback(() => {
+		return window.ark.driver
+			.run("connection", "list", undefined)
+			.then((connections) => {
+				setConnections(
+					connections.map((connection) => {
+						if (connection.active) {
+							connect(connection.id);
+						}
+						return connection;
+					})
+				);
+			});
+	}, [connect]);
 
 	const deleteConnectionOnDisk = useCallback(
 		(id: string) => {

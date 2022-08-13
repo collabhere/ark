@@ -19,7 +19,7 @@
 			"runtimeArgs": [".", "--remote-debugging-port=9223", "--enable-logging"],
 			"skipFiles": ["<node_internals>/**"],
 			"env": {
-				"ARK_ENTRY_URL": "http://localhost:3000",
+				"ARK_ENTRY_URL": "http://localhost:5173",
 				"BROWSER": "none",
 				"ARK_OPEN_DEV_TOOLS": "true"
 			},

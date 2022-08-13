@@ -9,6 +9,8 @@ import { ConnectionFormTab, EditorTab, Tab, Tabs } from "./Tabs";
 interface CreateEditorTabArgs {
 	shellConfig: Ark.ShellConfig;
 	contextDB: string;
+	collections: string[];
+	storedConnectionId: string;
 }
 
 interface DeleteEditorTabArgs {
@@ -22,14 +24,10 @@ export const Browser = (): JSX.Element => {
 
 	const changeCurrentTabWithIdx = useCallback(
 		(idx: number) => {
-			setCurrentTab(tabs[idx]);
+			setCurrentTab(() => tabs[idx]);
 		},
 		[tabs]
 	);
-
-	const changeCurrentTabWithTab = useCallback((tab: Tab) => {
-		setCurrentTab(tab);
-	}, []);
 
 	useEffect(() => {
 		if (!currentTab && tabs.length) {
@@ -50,21 +48,22 @@ export const Browser = (): JSX.Element => {
 							? "Edit connection"
 							: "Clone connection"
 						: "New connection";
-				changeCurrentTabWithIdx(tabs.length + 1);
-				return [
-					...tabs,
-					{
-						type: "connection_form",
-						closable: true,
-						connectionParams: connectionParams?.connectionDetails,
-						mode: connectionParams?.mode,
-						id,
-						title,
-					} as ConnectionFormTab,
-				];
+
+				const tab: ConnectionFormTab = {
+					type: "connection_form",
+					closable: true,
+					connectionParams: connectionParams?.connectionDetails,
+					mode: connectionParams?.mode,
+					id,
+					title,
+				};
+
+				setCurrentTab(tab);
+
+				return [...tabs, tab];
 			});
 		},
-		[changeCurrentTabWithIdx]
+		[]
 	);
 
 	const createEditorTab = useCallback(
@@ -74,22 +73,22 @@ export const Browser = (): JSX.Element => {
 				const title = `Untitled-${
 					untitledCount + 1
 				} ${args.shellConfig.name.slice(0, 24)}...`;
-				changeCurrentTabWithIdx(tabs.length + 1);
 
-				return [
-					...tabs,
-					{
-						type: "editor",
-						title,
-						id: "" + id,
-						closable: true,
-						...args,
-					} as EditorTab,
-				];
+				const tab: EditorTab = {
+					type: "editor",
+					title,
+					id: "" + id,
+					closable: true,
+					...args,
+				};
+
+				setCurrentTab(tab);
+
+				return [...tabs, tab];
 			});
 			setUntitledCount((count) => (count += 1));
 		},
-		[changeCurrentTabWithIdx, untitledCount]
+		[untitledCount]
 	);
 
 	const deleteTab = useCallback(
@@ -145,7 +144,7 @@ export const Browser = (): JSX.Element => {
 			{tabs && tabs.length && currentTab ? (
 				<Tabs
 					selectedTab={currentTab}
-					onSelect={(tab) => changeCurrentTabWithTab(tab)}
+					onSelect={(tab) => setCurrentTab(tab)}
 					onReorder={(orderedTabs) => {
 						if (orderedTabs.length) setTabs(orderedTabs);
 					}}
