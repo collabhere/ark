@@ -9,7 +9,7 @@ import {
 	ManagedConnection,
 	SettingsContext,
 } from "../layout/BaseContextProvider";
-import { notify } from "../../common/utils/misc";
+import { hostToString, notify } from "../../common/utils/misc";
 
 export const notifyFailedConnection = (err) => {
 	notify({
@@ -32,7 +32,7 @@ export const notifyFailedDisconnection = (err) => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-interface ConnectionManagerProps {}
+interface ConnectionManagerProps { }
 
 export const ConnectionController: FC<ConnectionManagerProps> = () => {
 	const {
@@ -283,7 +283,7 @@ export const DetailedConnectionCard = (
 				title={conn.name}
 				onDisconnect={() => onDisconnect(conn)}
 				onDisconnectCallback={onDisconnectCallback}
-				onConnect={() => onConnect(conn).then(() => {})}
+				onConnect={() => onConnect(conn).then(() => { })}
 				onConnectCallback={onConnectCallback}
 				active={conn.active}
 			/>
@@ -294,11 +294,11 @@ export const DetailedConnectionCard = (
 					{conn.hosts.length > 1 ? (
 						<div className="cell-content">
 							{conn.hosts.map((host) => (
-								<div key={host}>{host}</div>
+								<div key={host.host}>{hostToString(host)}</div>
 							))}
 						</div>
 					) : (
-						<div className="cell-content">{conn.hosts[0]}</div>
+						<div className="cell-content">{hostToString(conn.hosts[0])}</div>
 					)}
 				</div>
 				<div className="cell">
@@ -306,15 +306,15 @@ export const DetailedConnectionCard = (
 						{conn.username && conn.database
 							? "User / AuthDB"
 							: conn.username
-							? "User"
-							: ""}
+								? "User"
+								: ""}
 					</div>
 					<div className="cell-content">
 						{conn.username && conn.database
 							? `${conn.username} / ${conn.database}`
 							: conn.username
-							? `${conn.username}`
-							: ""}
+								? `${conn.username}`
+								: ""}
 					</div>
 				</div>
 			</div>
@@ -399,7 +399,7 @@ export const CompactConnectionCard = (
 			</div>
 			<div className="cell">
 				<div className="cell-title">Host</div>
-				<div className="cell-content">{conn.hosts[0]}</div>
+				<div className="cell-content">{conn.hosts[0].host}</div>
 			</div>
 			<div className="cell">
 				<div className="cell-title">{"User / AuthDB"}</div>

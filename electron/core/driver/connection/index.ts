@@ -100,7 +100,7 @@ export const Connection: Connection = {
 
 				const result: GetConnectionResult = {};
 
-				if (storedConnection.hosts && storedConnection.hosts.length > 1) {
+				if (storedConnection.type === "replicaSet") {
 					const replSet = await getReplicaSetDetails(connection);
 
 					if (replSet && replSet.set) {
@@ -273,6 +273,8 @@ export const Connection: Connection = {
 					status: false,
 					message: "Could not list databases",
 				};
+			} finally {
+				await client.close();
 			}
 
 			return {

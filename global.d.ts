@@ -44,25 +44,28 @@ declare global {
 			id: string;
 			name: string;
 			protocol: string;
-			hosts: Array<string>;
+			hosts: Array<{ host: string; port: number }>;
 			database?: string;
 			username?: string;
 			iv?: string;
 			password?: string;
 			icon?: boolean;
 			type: "directConnection" | "replicaSet";
+			/** mongodb driver options. picked keys from interface: MongoClientOptions */
 			options: Pick<
 				MongoClientOptions,
 				| "authSource"
 				| "retryWrites"
-				| "tls"
-				| "tlsCertificateFile"
 				| "w"
 				| "replicaSet"
 				| "authMechanism"
-				| "tlsCertificateKeyFilePassword"
+				| "tls"
 				| "tlsCAFile"
+				| "tlsCertificateFile"
+				| "tlsCertificateKeyFile"
+				| "tlsCertificateKeyFilePassword"
 			>;
+			tlsMethod?: "ca-certificate" | "self-signed";
 			ssh: {
 				useSSH?: boolean;
 				host?: string;

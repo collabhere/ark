@@ -122,3 +122,18 @@ export const handleErrors = (
 		});
 	}
 };
+
+export const hostToString = ({
+	host,
+	port,
+}: {
+	host: string;
+	port: number | undefined;
+}) => `${host}:${typeof port === "number" ? port : 27017}`;
+
+export const hostStringToHost = (hostString: string) => {
+	const split = hostString.split(":");
+	const host = split[0] || "localhost";
+	const port = /\d+/.test(split[1]) ? parseInt(split[1]) : 27017;
+	return { host, port };
+};
