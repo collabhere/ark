@@ -40,9 +40,9 @@ export const TitleBar = (): JSX.Element => {
 		keyFile:
 			settings?.encryptionKey?.type === "file"
 				? settings.encryptionKey.value
-						.split(PATH_SEPARATOR)
-						.slice(0, -1)
-						.join(PATH_SEPARATOR)
+					.split(PATH_SEPARATOR)
+					.slice(0, -1)
+					.join(PATH_SEPARATOR)
 				: "",
 		url:
 			settings?.encryptionKey?.type === "url"
@@ -94,8 +94,8 @@ export const TitleBar = (): JSX.Element => {
 			const encryptionKeyPromise =
 				encryptionKey.source === "generated" || forceCreate
 					? window.ark.driver.run("connection", "createEncryptionKey", {
-							path: !forceCreate ? encryptionKey.keyFile : "",
-					  })
+						path: !forceCreate ? encryptionKey.keyFile : "",
+					})
 					: Promise.resolve("");
 
 			encryptionKeyPromise.then((path: string) => {
@@ -106,8 +106,8 @@ export const TitleBar = (): JSX.Element => {
 						encryptionKey.type === "url"
 							? encryptionKey.url
 							: encryptionKey.source === "userDefined"
-							? encryptionKey.keyFile
-							: path,
+								? encryptionKey.keyFile
+								: path,
 				});
 			});
 		},
@@ -458,6 +458,14 @@ export const TitleBar = (): JSX.Element => {
 							),
 						},
 						{ divider: true, key: "divider_three" },
+						{
+							text: "Feedback / Issues",
+							onClick: () => {
+								doorbell.show();
+							},
+							icon: "volume-up",
+							key: "user_feedback",
+						},
 						{
 							intent: "danger",
 							text: "Exit",

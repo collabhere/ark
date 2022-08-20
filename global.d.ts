@@ -240,4 +240,15 @@ declare global {
 	interface Window {
 		ark: Ark.Context;
 	}
+
+	/**
+	 * Add more functions as required.
+	 * https://doorbell.io/docs/javascript
+	 */
+	interface Doorbell {
+		// shows feedback dialog
+		show(): void;
+	}
+
+	const doorbell: Doorbell;
 }

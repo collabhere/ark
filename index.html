@@ -25,4 +25,22 @@
 	<script type="module" src="/src/index.tsx"></script>
 </body>
 
+<script type="text/javascript">
+	window.doorbellOptions = {
+		id: "13305",
+		hideEmail: true,
+		hideButton: true,
+		email: "arkfeedback@ark.com",
+		// this works because of the custom html plugin for vite
+		appKey: '<%=VITE_ARK_DOORBELL_API_KEY%>'
+	};
+	(function (w, d, t) {
+		var hasLoaded = false;
+		function l() { if (hasLoaded) { return; } hasLoaded = true; window.doorbellOptions.windowLoaded = true; var g = d.createElement(t); g.id = 'doorbellScript'; g.type = 'text/javascript'; g.async = true; g.src = 'https://embed.doorbell.io/button/' + window.doorbellOptions['id'] + '?t=' + (new Date().getTime()); (d.getElementsByTagName('head')[0] || d.getElementsByTagName('body')[0]).appendChild(g); }
+		if (w.attachEvent) { w.attachEvent('onload', l); } else if (w.addEventListener) { w.addEventListener('load', l, false); } else { l(); }
+		if (d.readyState == 'complete') { l(); }
+	}(window, document, 'script'));
+</script>
+
+
 </html>
