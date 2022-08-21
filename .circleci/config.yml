@@ -23,8 +23,28 @@ jobs:
           command: "mkdir -p /tmp/release && mv ./release/*.AppImage ./release/*.deb /tmp/release"
       - store_artifacts:
           path: /tmp/release
+  build_macos:
+    macos:
+      xcode: 13.4.1
+    steps:
+      - checkout
+      - run:
+          name: "Install dependencies"
+          command: "npm ci && npm i dmg-license"
+      - run:
+          name: "Build electron & react"
+          command: "npm run build"
+      - run:
+          name: "Build dmg"
+          command: "npm run dist:macos_dmg"
+      - run:
+          name: "Move necessary build output"
+          command: "mkdir -p /tmp/release && mv ./release/*.dmg /tmp/release"
+      - store_artifacts:
+          path: /tmp/release
 
 workflows:
   main:
     jobs:
       - build_linux
+      - build_macos
