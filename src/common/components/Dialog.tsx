@@ -1,8 +1,8 @@
-import React, { ReactNode } from "react";
 import { Classes, Dialog as Modal } from "@blueprintjs/core";
-import "./Dialog.less";
-import { Button } from "./Button";
+import React, { ReactNode } from "react";
 import { EventOverloadMethod } from "../utils/misc";
+import { Button } from "./Button";
+import "./Dialog.less";
 
 interface ModalProps {
 	size: "small" | "large";
@@ -15,12 +15,7 @@ interface ModalProps {
 	noFooter?: boolean;
 }
 
-function DialogFooter(
-	footerOptions: Pick<
-		ModalProps,
-		"onCancel" | "onConfirm" | "variant" | "confirmButtonText"
-	>
-) {
+function DialogFooter(footerOptions: Pick<ModalProps, "onCancel" | "onConfirm" | "variant" | "confirmButtonText">) {
 	const { onCancel, onConfirm, confirmButtonText, variant } = footerOptions;
 
 	return (
@@ -63,18 +58,12 @@ export function Dialog({
 		<Modal
 			isOpen
 			usePortal
-			title={
-				<span className={["title", Classes.DIALOG_HEADER].join(" ")}>
-					{title}
-				</span>
-			}
+			title={<span className={["title", Classes.DIALOG_HEADER].join(" ")}>{title}</span>}
 			onClose={onCancel}
 			portalContainer={rootElement}
 			className={["modal", sizeClass].join(" ")}
 		>
-			<div className={[Classes.DIALOG_BODY, "content"].join(" ")}>
-				{children}
-			</div>
+			<div className={[Classes.DIALOG_BODY, "content"].join(" ")}>{children}</div>
 			{!noFooter && (
 				<DialogFooter
 					variant={variant}

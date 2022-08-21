@@ -9,6 +9,8 @@
 		"start": "BROWSER=none ARK_ENTRY_URL=http://localhost:5173 concurrently \"vite\" \"sleep 2 && electron .\"",
 		"dev:electron": "tsc --build electron/tsconfig.json -w",
 		"dev:react": "vite dev",
+		"format:prettier": "prettier -w .",
+		"format:prettier:diff": "prettier --check --ignore-unknown $(git diff --staged --name-only --diff-filter=d origin/master) package.json",
 		"build:renderer": "vite build",
 		"build:main": "tsc --build electron/tsconfig.json",
 		"build": "rimraf build && npm run build:renderer && npm run build:main",
@@ -19,7 +21,8 @@
 		"dist:macos_deb": "echo 'Not supported for now'",
 		"dist:windows": "electron-builder --windows",
 		"storybook": "start-storybook -p 6006",
-		"build-storybook": "build-storybook"
+		"build-storybook": "build-storybook",
+		"prepare": "husky install"
 	},
 	"browser": "none",
 	"browserslist": {
@@ -143,11 +146,13 @@
 		"eslint-plugin-react": "^7.29.4",
 		"eslint-plugin-react-hooks": "^4.5.0",
 		"framer-motion": "^6.3.11",
+		"husky": "^8.0.1",
 		"less": "^4.1.2",
 		"less-loader": "^10.2.0",
 		"less-vars-to-js": "^1.3.0",
 		"monaco-editor": "0.31",
 		"prettier": "^2.6.2",
+		"prettier-plugin-organize-imports": "^3.1.0",
 		"re-resizable": "^6.9.9",
 		"react": "^18.1.0",
 		"react-dom": "^18.1.0",

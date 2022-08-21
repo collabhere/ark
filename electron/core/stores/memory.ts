@@ -1,6 +1,6 @@
 import { ERR_CODES } from "../../../util/errors";
 
-export type ListResult = Array<{ key: string; value: any; }>;
+export type ListResult = Array<{ key: string; value: any }>;
 export interface MemoryStore<T> {
 	save(id: string, entry: Partial<T>): string;
 	get(id: string): T;
@@ -15,9 +15,8 @@ export const createMemoryStore = <T extends Record<string, any>>(): MemoryStore<
 
 	const keys = () => Array.from(store.keys());
 
-	const list = () => Array.from(
-		store.entries()
-	).reduce<ListResult>((acc, [key, value]) => (acc.push({ key, value }), acc), []);
+	const list = () =>
+		Array.from(store.entries()).reduce<ListResult>((acc, [key, value]) => (acc.push({ key, value }), acc), []);
 
 	const has = (k: string) => store.has(k);
 

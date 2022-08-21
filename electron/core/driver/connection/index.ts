@@ -1,7 +1,12 @@
+import { generateKeySync } from "crypto";
+import { existsSync } from "fs";
+import { mkdir, writeFile } from "fs/promises";
 import { ListDatabasesResult, MongoClient } from "mongodb";
 import { Server } from "net";
-import { MemEntry } from "../../../modules/ipc/types";
+import { resolve } from "path";
 import { ERR_CODES } from "../../../../util/errors";
+import { MemEntry } from "../../../modules/ipc/types";
+import { ARK_FOLDER_PATH, ENCRYPTION_KEY_FILENAME } from "../../../utils/constants";
 import {
 	createConnectionConfigurations,
 	decrypt,
@@ -11,22 +16,11 @@ import {
 	sshTunnel,
 	URIConfiguration,
 } from "./library";
-import { mkdir, writeFile } from "fs/promises";
-import { generateKeySync } from "crypto";
-import { resolve } from "path";
-import { existsSync } from "fs";
-import {
-	ARK_FOLDER_PATH,
-	ENCRYPTION_KEY_FILENAME,
-} from "../../../utils/constants";
 
 const CONNECTION_TIMEOUT_MS = 3000;
 
 export interface Connection {
-	info(
-		dep: Ark.DriverDependency,
-		arg: { id: string }
-	): Promise<GetConnectionResult>;
+	info(dep: Ark.DriverDependency, arg: { id: string }): Promise<GetConnectionResult>;
 	/**
 	 * Load all stored connections from disk.
 	 */
@@ -40,15 +34,12 @@ export interface Connection {
 		arg: {
 			type: "config" | "uri";
 			config: Ark.StoredConnection | URIConfiguration;
-		}
+		},
 	): Promise<{ status: boolean; message: string }>;
 	/**
 	 * Load a single stored connection from disk.
 	 */
-	load(
-		dep: Ark.DriverDependency,
-		arg: { id: string }
-	): Promise<Ark.StoredConnection>;
+	load(dep: Ark.DriverDependency, arg: { id: string }): Promise<Ark.StoredConnection>;
 	/**
 	 * Save a connection using a URI or granular configurations
 	 */
@@ -58,7 +49,7 @@ export interface Connection {
 			type: "config" | "uri";
 			config: Ark.StoredConnection | URIConfiguration;
 			icon?: Ark.StoredIcon;
-		}
+		},
 	): Promise<string>;
 	/**
 	 * Delete a stored conneection from disk.
@@ -75,28 +66,19 @@ export interface Connection {
 	/**
 	 * List databases for a cached connection
 	 */
-	listDatabases(
-		dep: Ark.DriverDependency,
-		arg: { id: string }
-	): Promise<ListDatabasesResult["databases"]>;
+	listDatabases(dep: Ark.DriverDependency, arg: { id: string }): Promise<ListDatabasesResult["databases"]>;
 	decryptPassword(
 		dep: Ark.DriverDependency,
 		arg: {
 			pwd: string;
 			iv: string;
-		}
+		},
 	): Promise<string>;
-	createEncryptionKey(
-		dep: Ark.DriverDependency,
-		arg: { path?: string }
-	): Promise<string>;
-	convertConnectionToUri(
-		dep: Ark.DriverDependency,
-		arg: { config: Ark.StoredConnection }
-	): Promise<{ uri: string }>;
+	createEncryptionKey(dep: Ark.DriverDependency, arg: { path?: string }): Promise<string>;
+	convertConnectionToUri(dep: Ark.DriverDependency, arg: { config: Ark.StoredConnection }): Promise<{ uri: string }>;
 	convertUriToConnection(
 		dep: Ark.DriverDependency,
-		arg: { config: URIConfiguration }
+		arg: { config: URIConfiguration },
 	): Promise<{ connection: Ark.StoredConnection }>;
 }
 
@@ -133,17 +115,14 @@ export const Connection: Connection = {
 			Object.values(connections).map(async (connection) => ({
 				...connection,
 				uri: await getConnectionUri(connection, settings?.encryptionKey),
-			}))
+			})),
 		);
 		return populated;
 	},
 	load: async ({ storedConnection, _stores }) => {
 		if (storedConnection) {
 			const settings = await _stores.settingsStore.get("general");
-			const uri = await getConnectionUri(
-				storedConnection,
-				settings?.encryptionKey
-			);
+			const uri = await getConnectionUri(storedConnection, settings?.encryptionKey);
 			return { ...storedConnection, uri };
 		} else {
 			throw new Error(ERR_CODES.CORE$DRIVER$NO_STORED_CONNECTION);
@@ -173,10 +152,7 @@ export const Connection: Connection = {
 			}
 
 			const settings = await settingsStore.get("general");
-			const connectionUri = await getConnectionUri(
-				storedConnection,
-				settings?.encryptionKey
-			);
+			const connectionUri = await getConnectionUri(storedConnection, settings?.encryptionKey);
 			const client = new MongoClient(connectionUri, {
 				connectTimeoutMS: CONNECTION_TIMEOUT_MS,
 				serverSelectionTimeoutMS: CONNECTION_TIMEOUT_MS,
@@ -222,10 +198,7 @@ export const Connection: Connection = {
 		const { diskStore, iconStore } = stores;
 
 		const settings = await stores.settingsStore.get("general");
-		const config = await createConnectionConfigurations(
-			args,
-			settings?.encryptionKey
-		);
+		const config = await createConnectionConfigurations(args, settings?.encryptionKey);
 
 		if (config.id && args.icon) {
 			config.icon = true;
@@ -244,18 +217,12 @@ export const Connection: Connection = {
 	test: async ({ _stores: store }, args) => {
 		try {
 			const settings = await store.settingsStore.get("general");
-			const config = await createConnectionConfigurations(
-				args,
-				settings?.encryptionKey
-			);
+			const config = await createConnectionConfigurations(args, settings?.encryptionKey);
 			if (config.ssh && config.ssh.useSSH) {
 				await sshTunnel(config.ssh, config.hosts);
 			}
 
-			const connectionUri = await getConnectionUri(
-				config,
-				settings?.encryptionKey
-			);
+			const connectionUri = await getConnectionUri(config, settings?.encryptionKey);
 
 			const client = new MongoClient(connectionUri, {
 				connectTimeoutMS: CONNECTION_TIMEOUT_MS,
@@ -293,11 +260,7 @@ export const Connection: Connection = {
 			return {
 				status: false,
 				message:
-					err && err instanceof Error
-						? err.message
-						: typeof err === "string"
-						? err
-						: "Something unexpected happened.",
+					err && err instanceof Error ? err.message : typeof err === "string" ? err : "Something unexpected happened.",
 			};
 		}
 	},
@@ -327,9 +290,7 @@ export const Connection: Connection = {
 		return Promise.resolve(decrypt(pwd, settings?.encryptionKey, iv));
 	},
 	createEncryptionKey: async function (_, { path }) {
-		const key: string = generateKeySync("aes", { length: 256 })
-			.export()
-			.toString("hex");
+		const key: string = generateKeySync("aes", { length: 256 }).export().toString("hex");
 
 		if (path && !existsSync(path)) {
 			await mkdir(path, { recursive: true });
@@ -359,7 +320,7 @@ export const Connection: Connection = {
 				type: "uri",
 				config,
 			},
-			settings?.encryptionKey
+			settings?.encryptionKey,
 		);
 
 		return { connection: stored };

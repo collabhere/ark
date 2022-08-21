@@ -7,11 +7,10 @@ export const dispatch = <T = unknown>(event: string, payload?: T): void => {
 };
 
 export const listenEffect = (
-	listeners: Array<{ event: string; cb: (event: string, payload: any) => void }>
+	listeners: Array<{ event: string; cb: (event: string, payload: any) => void }>,
 ): (() => void) => {
 	const unmounts = listeners.map((listener) => {
-		const l = (event: Event) =>
-			listener.cb(listener.event, (event as CustomEvent).detail);
+		const l = (event: Event) => listener.cb(listener.event, (event as CustomEvent).detail);
 		window.addEventListener(listener.event, l);
 		return () => window.removeEventListener(listener.event, l);
 	});

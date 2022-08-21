@@ -1,6 +1,6 @@
-import * as React from "react";
-import { Reorder } from "framer-motion";
 import { IconName } from "@blueprintjs/core";
+import { Reorder } from "framer-motion";
+import * as React from "react";
 import { Button } from "../../common/components/Button";
 
 export interface TabItem {

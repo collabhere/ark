@@ -1,27 +1,27 @@
 import AsyncWriter from "@mongosh/async-rewriter2";
-import {
-	Mongo,
-	Database,
-	ShellInstanceState,
-	ShellApi,
-	ReplicaSet,
-	Shard,
-	AggregationCursor,
-	Cursor,
-} from "@mongosh/shell-api";
 import { bson, MongoClientOptions } from "@mongosh/service-provider-core";
 import { CliServiceProvider } from "@mongosh/service-provider-server";
+import {
+	AggregationCursor,
+	Cursor,
+	Database,
+	Mongo,
+	ReplicaSet,
+	Shard,
+	ShellApi,
+	ShellInstanceState,
+} from "@mongosh/shell-api";
 import { EventEmitter } from "stream";
 import { exportData } from "../../../modules/exports";
 
-import { _evaluate } from "./_eval";
 import { ObjectId } from "bson";
+import { _evaluate } from "./_eval";
 
 export interface Evaluator {
 	evaluate(
 		code: string,
 		database: string,
-		options: Ark.QueryOptions
+		options: Ark.QueryOptions,
 	): Promise<{
 		result: Ark.AnyObject;
 		isCursor: boolean;
@@ -31,7 +31,7 @@ export interface Evaluator {
 	export(
 		code: string,
 		database: string,
-		options: Ark.ExportCsvOptions | Ark.ExportNdjsonOptions
+		options: Ark.ExportCsvOptions | Ark.ExportNdjsonOptions,
 	): Promise<{ exportPath: string }>;
 }
 
@@ -40,9 +40,7 @@ interface CreateEvaluatorOptions {
 	mongoOptions: MongoClientOptions;
 }
 
-export async function createEvaluator(
-	options: CreateEvaluatorOptions
-): Promise<Evaluator> {
+export async function createEvaluator(options: CreateEvaluatorOptions): Promise<Evaluator> {
 	const { uri, mongoOptions } = options;
 
 	const provider = await createServiceProvider(uri, mongoOptions);
@@ -53,14 +51,7 @@ export async function createEvaluator(
 
 			const transpiledCodeString = new AsyncWriter().process(code);
 
-			let result = await _evaluate(
-				transpiledCodeString,
-				db,
-				rs,
-				sh,
-				shellApi,
-				bson
-			);
+			let result = await _evaluate(transpiledCodeString, db, rs, sh, shellApi, bson);
 
 			const exportPath = await exportData(result, options);
 
@@ -73,34 +64,17 @@ export async function createEvaluator(
 
 			const transpiledCodeString = new AsyncWriter().process(code);
 
-			let result = await _evaluate(
-				transpiledCodeString,
-				db,
-				rs,
-				sh,
-				shellApi,
-				bson
-			);
+			let result = await _evaluate(transpiledCodeString, db, rs, sh, shellApi, bson);
 
 			let isCursor = false;
 			let boolIsNotDocumentArray = false;
 
 			if (result instanceof AggregationCursor) {
-				result = await paginateAggregationCursor(
-					result,
-					page || 1,
-					limit || 50,
-					timeout
-				).toArray();
+				result = await paginateAggregationCursor(result, page || 1, limit || 50, timeout).toArray();
 
 				isCursor = true;
 			} else if (result instanceof Cursor) {
-				result = await paginateFindCursor(
-					result,
-					page || 1,
-					limit || 50,
-					timeout
-				).toArray();
+				result = await paginateFindCursor(result, page || 1, limit || 50, timeout).toArray();
 
 				isCursor = true;
 			} else if (typeof result === "object" && "toArray" in result) {
@@ -124,30 +98,14 @@ export async function createEvaluator(
 const isNotDocumentArray = (val: any) =>
 	val instanceof Date ||
 	ObjectId.isValid(val) ||
-	(!Array.isArray(val) &&
-		typeof val !== "object" &&
-		typeof val !== "function" &&
-		typeof val !== "symbol");
+	(!Array.isArray(val) && typeof val !== "object" && typeof val !== "function" && typeof val !== "symbol");
 
-async function createServiceProvider(
-	uri: string,
-	driverOpts: MongoClientOptions = {}
-) {
-	const provider = await CliServiceProvider.connect(
-		uri,
-		driverOpts,
-		{},
-		new EventEmitter()
-	);
+async function createServiceProvider(uri: string, driverOpts: MongoClientOptions = {}) {
+	const provider = await CliServiceProvider.connect(uri, driverOpts, {}, new EventEmitter());
 	return provider;
 }
 
-function paginateFindCursor(
-	cursor: Cursor,
-	page: number,
-	limit: number,
-	timeout?: number
-) {
+function paginateFindCursor(cursor: Cursor, page: number, limit: number, timeout?: number) {
 	const shellTimeout = timeout ? timeout * 1000 : 120000;
 	return cursor
 		.limit(limit)
@@ -155,12 +113,7 @@ function paginateFindCursor(
 		.maxTimeMS(shellTimeout);
 }
 
-function paginateAggregationCursor(
-	cursor: AggregationCursor,
-	page: number,
-	limit: number,
-	timeout?: number
-) {
+function paginateAggregationCursor(cursor: AggregationCursor, page: number, limit: number, timeout?: number) {
 	const shellTimeout = timeout ? timeout * 1000 : 120000;
 	return cursor
 		.skip((page - 1) * limit)
@@ -168,19 +121,10 @@ function paginateAggregationCursor(
 		._cursor.limit(limit);
 }
 
-function createShellGlobals(
-	serviceProvider: CliServiceProvider,
-	database: string
-) {
+function createShellGlobals(serviceProvider: CliServiceProvider, database: string) {
 	const internalState = new ShellInstanceState(serviceProvider);
 
-	const mongo = new Mongo(
-		internalState,
-		undefined,
-		undefined,
-		undefined,
-		serviceProvider
-	);
+	const mongo = new Mongo(internalState, undefined, undefined, undefined, serviceProvider);
 
 	const db = new Database(mongo, database);
 

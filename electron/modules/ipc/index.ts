@@ -1,33 +1,20 @@
 import type { BrowserWindow } from "electron";
-import { ipcMain, dialog } from "electron";
+import { dialog, ipcMain } from "electron";
 import fs from "fs";
-import path from "path";
 import { nanoid } from "nanoid";
+import path from "path";
 
 import { createDriver, RunCommandInput } from "../../core/driver";
 import { createShellManager } from "../../core/shell-manager";
-import { createMemoryStore } from "../../core/stores/memory";
 import { createDiskStore } from "../../core/stores/disk";
+import { createMemoryStore } from "../../core/stores/memory";
 import { ipcHandlers } from "./handler";
 
-import type {
-	CreateShell,
-	DestroyShell,
-	ExportData,
-	InvokeJS,
-	StoredShellValue,
-} from "../../core/shell-manager/types";
+import type { CreateShell, DestroyShell, ExportData, InvokeJS, StoredShellValue } from "../../core/shell-manager/types";
 
-import {
-	BrowseFS,
-	IconActions,
-	MemEntry,
-	ScriptActionData,
-	SettingsAction,
-	TitlebarActions,
-} from "./types";
 import { ERR_CODES } from "../../../util/errors";
 import { ARK_FOLDER_PATH } from "../../utils/constants";
+import { BrowseFS, IconActions, MemEntry, ScriptActionData, SettingsAction, TitlebarActions } from "./types";
 
 interface IPCInitParams {
 	window: BrowserWindow;
@@ -62,35 +49,35 @@ function IPC() {
 						`calling ${data.library}.${data.action}() ${
 							data.args ? `args=${JSON.stringify(data.args).slice(0, 100)}` : ``
 						}`,
-				})
+				}),
 			);
 
 			ipcMain.handle(
 				...ipcHandlers<CreateShell>({
 					channel: "shell_create",
 					controller: shellManager.create,
-				})
+				}),
 			);
 
 			ipcMain.handle(
 				...ipcHandlers<InvokeJS>({
 					channel: "shell_eval",
 					controller: shellManager.eval,
-				})
+				}),
 			);
 
 			ipcMain.handle(
 				...ipcHandlers<ExportData>({
 					channel: "shell_export",
 					controller: shellManager.export,
-				})
+				}),
 			);
 
 			ipcMain.handle(
 				...ipcHandlers<DestroyShell>({
 					channel: "shell_destroy",
 					controller: shellManager.destroy,
-				})
+				}),
 			);
 
 			ipcMain.handle(
@@ -118,7 +105,7 @@ function IPC() {
 							};
 						}
 					},
-				})
+				}),
 			);
 
 			ipcMain.handle(
@@ -126,10 +113,7 @@ function IPC() {
 					channel: "icon_actions",
 					controller: async (data) => {
 						if (data.action === "copy") {
-							const destinationPath = path.join(
-								ARK_FOLDER_PATH,
-								data.cacheFolder
-							);
+							const destinationPath = path.join(ARK_FOLDER_PATH, data.cacheFolder);
 
 							if (!fs.existsSync(destinationPath)) {
 								await fs.promises.mkdir(destinationPath);
@@ -147,7 +131,7 @@ function IPC() {
 							return stored;
 						}
 					},
-				})
+				}),
 			);
 
 			ipcMain.handle(
@@ -158,11 +142,8 @@ function IPC() {
 							const { fileLocation, storedConnectionId } = data.params;
 
 							if (fileLocation && storedConnectionId) {
-								const [fileName] =
-									fileLocation.match(/(?<=\/)[ \w-]+?(\.)js/i) || [];
-								const code = (
-									await fs.promises.readFile(fileLocation)
-								).toString();
+								const [fileName] = fileLocation.match(/(?<=\/)[ \w-]+?(\.)js/i) || [];
+								const code = (await fs.promises.readFile(fileLocation)).toString();
 
 								const id = nanoid();
 
@@ -233,7 +214,7 @@ function IPC() {
 							await scriptDiskStore.remove(scriptId);
 						}
 					},
-				})
+				}),
 			);
 
 			ipcMain.handle(
@@ -247,7 +228,7 @@ function IPC() {
 							return await settingsStore.get(data.type);
 						}
 					},
-				})
+				}),
 			);
 
 			ipcMain.handle(
@@ -266,7 +247,7 @@ function IPC() {
 							window.minimize();
 						}
 					},
-				})
+				}),
 			);
 		},
 	};

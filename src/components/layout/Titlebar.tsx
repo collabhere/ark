@@ -1,19 +1,13 @@
 import "./styles.less";
 
-import React, { useCallback, useContext, useMemo } from "react";
+import { Checkbox, FileInput, FormGroup, InputGroup } from "@blueprintjs/core";
+import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Button } from "../../common/components/Button";
-import { FormGroup, FileInput } from "@blueprintjs/core";
-import { useState } from "react";
-import { SelectConnectionForFilePath } from "../dialogs/SelectConnectionForScript";
 import { Dialog } from "../../common/components/Dialog";
-import { Checkbox, InputGroup } from "@blueprintjs/core";
+import { createDropdownMenu, DropdownMenu } from "../../common/components/DropdownMenu";
 import { notify } from "../../common/utils/misc";
-import { useEffect } from "react";
+import { SelectConnectionForFilePath } from "../dialogs/SelectConnectionForScript";
 import { SettingsContext } from "./BaseContextProvider";
-import {
-	createDropdownMenu,
-	DropdownMenu,
-} from "../../common/components/DropdownMenu";
 
 import { ReactComponent as Logo } from "../../assets/logo_outline.svg";
 
@@ -39,32 +33,19 @@ export const TitleBar = (): JSX.Element => {
 		type: settings?.encryptionKey?.type || "file",
 		keyFile:
 			settings?.encryptionKey?.type === "file"
-				? settings.encryptionKey.value
-					.split(PATH_SEPARATOR)
-					.slice(0, -1)
-					.join(PATH_SEPARATOR)
+				? settings.encryptionKey.value.split(PATH_SEPARATOR).slice(0, -1).join(PATH_SEPARATOR)
 				: "",
-		url:
-			settings?.encryptionKey?.type === "url"
-				? settings.encryptionKey.value
-				: "",
+		url: settings?.encryptionKey?.type === "url" ? settings.encryptionKey.value : "",
 	});
 
 	useEffect(() => {
-		if (
-			!settings?.encryptionKey?.source ||
-			!settings.encryptionKey.type ||
-			!settings.encryptionKey.value
-		) {
+		if (!settings?.encryptionKey?.source || !settings.encryptionKey.type || !settings.encryptionKey.value) {
 			showSecretKeyDialog(true);
 		}
 	}, [settings]);
 
 	const changeSettings = useCallback(
-		function <T extends keyof Ark.Settings>(
-			setting: T,
-			value: Ark.Settings[T]
-		) {
+		function <T extends keyof Ark.Settings>(setting: T, value: Ark.Settings[T]) {
 			setSettings && setSettings((s) => ({ ...s, [setting]: value }));
 			window.ark.settings
 				.save("general", { ...settings, [setting]: value })
@@ -84,7 +65,7 @@ export const TitleBar = (): JSX.Element => {
 					});
 				});
 		},
-		[setSettings, settings]
+		[setSettings, settings],
 	);
 
 	const changeEncryptionKey = useCallback(
@@ -94,8 +75,8 @@ export const TitleBar = (): JSX.Element => {
 			const encryptionKeyPromise =
 				encryptionKey.source === "generated" || forceCreate
 					? window.ark.driver.run("connection", "createEncryptionKey", {
-						path: !forceCreate ? encryptionKey.keyFile : "",
-					})
+							path: !forceCreate ? encryptionKey.keyFile : "",
+					  })
 					: Promise.resolve("");
 
 			encryptionKeyPromise.then((path: string) => {
@@ -106,18 +87,12 @@ export const TitleBar = (): JSX.Element => {
 						encryptionKey.type === "url"
 							? encryptionKey.url
 							: encryptionKey.source === "userDefined"
-								? encryptionKey.keyFile
-								: path,
+							? encryptionKey.keyFile
+							: path,
 				});
 			});
 		},
-		[
-			changeSettings,
-			encryptionKey.keyFile,
-			encryptionKey.source,
-			encryptionKey.type,
-			encryptionKey.url,
-		]
+		[changeSettings, encryptionKey.keyFile, encryptionKey.source, encryptionKey.type, encryptionKey.url],
 	);
 
 	const encrytionSourceTypeMenu = useMemo(
@@ -146,7 +121,7 @@ export const TitleBar = (): JSX.Element => {
 					text: "URL",
 				},
 			]),
-		[]
+		[],
 	);
 
 	const encryptionSourceMenu = useMemo(
@@ -179,21 +154,17 @@ export const TitleBar = (): JSX.Element => {
 					text: "Use an existing key",
 				},
 			]),
-		[]
+		[],
 	);
 
 	const encryptionDialogContent = (
 		<div className="encryption-dialog-content">
 			<p>
-				For the purpose of encrypting the credentials for your connections, we
-				require a key. You may to choose to have us generate it otherwise
-				provide your own.
+				For the purpose of encrypting the credentials for your connections, we require a key. You may to choose to have
+				us generate it otherwise provide your own.
 			</p>
 			<p>
-				<b>
-					Note: If you change this key, your existing connections will need to
-					be created again.
-				</b>
+				<b>Note: If you change this key, your existing connections will need to be created again.</b>
 			</p>
 			<FormGroup label="Encryption Key Source">
 				<div className="input-field">
@@ -204,11 +175,7 @@ export const TitleBar = (): JSX.Element => {
 							interactionKind: "click-target",
 							fill: true,
 						}}
-						text={
-							encryptionKey.source === "userDefined"
-								? "Use an existing key"
-								: "Generate a key"
-						}
+						text={encryptionKey.source === "userDefined" ? "Use an existing key" : "Generate a key"}
 					/>
 				</div>
 			</FormGroup>
@@ -252,18 +219,12 @@ export const TitleBar = (): JSX.Element => {
 				<FormGroup
 					className="flex-fill"
 					label="Encryption Key File"
-					helperText={
-						"The encryption key must be AES-256 compatible (i.e. a 256 bit hexadecimal string)."
-					}
+					helperText={"The encryption key must be AES-256 compatible (i.e. a 256 bit hexadecimal string)."}
 				>
 					<div className="input-field">
 						<FileInput
 							fill
-							text={
-								encryptionKey && encryptionKey.type === "file"
-									? encryptionKey.keyFile
-									: "Select encryption key..."
-							}
+							text={encryptionKey && encryptionKey.type === "file" ? encryptionKey.keyFile : "Select encryption key..."}
 							onInputChange={(e) => {
 								const list = e.currentTarget.files;
 								const file = list?.item(0) as File & {
@@ -315,11 +276,7 @@ export const TitleBar = (): JSX.Element => {
 					title={"Encryption Settings"}
 					size="large"
 					onCancel={() => {
-						if (
-							!settings?.encryptionKey?.source ||
-							!settings.encryptionKey.type ||
-							!settings.encryptionKey.value
-						) {
+						if (!settings?.encryptionKey?.source || !settings.encryptionKey.type || !settings.encryptionKey.value) {
 							changeEncryptionKey(true);
 						}
 						showSecretKeyDialog(false);
@@ -343,12 +300,10 @@ export const TitleBar = (): JSX.Element => {
 						{
 							text: "Open Script",
 							onClick: () => {
-								window.ark
-									.browseForFile("Select A File", "Select")
-									.then((result) => {
-										const { path } = result;
-										setOpenScriptPath(path);
-									});
+								window.ark.browseForFile("Select A File", "Select").then((result) => {
+									const { path } = result;
+									setOpenScriptPath(path);
+								});
 							},
 							icon: "document-open",
 							key: "open_script",
@@ -379,8 +334,7 @@ export const TitleBar = (): JSX.Element => {
 								{
 									key: "tz_local",
 									text: "Local",
-									onClick: () =>
-										changeSettings<"timezone">("timezone", "local"),
+									onClick: () => changeSettings<"timezone">("timezone", "local"),
 								},
 								{
 									key: "tz_utc",
@@ -482,29 +436,12 @@ export const TitleBar = (): JSX.Element => {
 			</div>
 			<div className="header-draggable-area"></div>
 			<div className="header-container">
-				<Button
-					variant="link"
-					icon="minus"
-					onClick={() => window.ark.titlebar.minimize()}
-				/>
-				<Button
-					variant="link"
-					icon="symbol-square"
-					onClick={() => window.ark.titlebar.maximize()}
-				/>
-				<Button
-					icon="cross"
-					variant="link-danger"
-					onClick={() => window.ark.titlebar.close()}
-				/>
+				<Button variant="link" icon="minus" onClick={() => window.ark.titlebar.minimize()} />
+				<Button variant="link" icon="symbol-square" onClick={() => window.ark.titlebar.maximize()} />
+				<Button icon="cross" variant="link-danger" onClick={() => window.ark.titlebar.close()} />
 			</div>
 
-			{openScriptPath && (
-				<SelectConnectionForFilePath
-					path={openScriptPath}
-					onClose={() => setOpenScriptPath("")}
-				/>
-			)}
+			{openScriptPath && <SelectConnectionForFilePath path={openScriptPath} onClose={() => setOpenScriptPath("")} />}
 			{timeoutDialog && (
 				<Dialog
 					size="small"
@@ -527,9 +464,7 @@ export const TitleBar = (): JSX.Element => {
 					<div>
 						<InputGroup
 							value={settings?.shellTimeout?.toString()}
-							onChange={(event) =>
-								changeSettings("shellTimeout", parseInt(event.target.value))
-							}
+							onChange={(event) => changeSettings("shellTimeout", parseInt(event.target.value))}
 							placeholder={"Shell timeout (in seconds)"}
 						/>
 					</div>

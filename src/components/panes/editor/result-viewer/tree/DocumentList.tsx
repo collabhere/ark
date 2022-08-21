@@ -1,10 +1,7 @@
 import { Collapse, Icon, IconSize } from "@blueprintjs/core";
 import React, { FC, PropsWithChildren, useState } from "react";
 import { Button } from "../../../../../common/components/Button";
-import {
-	ContextMenu,
-	CreateMenuItem,
-} from "../../../../../common/components/ContextMenu";
+import { ContextMenu, CreateMenuItem } from "../../../../../common/components/ContextMenu";
 
 export enum ContentRowActions {
 	copy_json = "copy_json",
@@ -21,15 +18,8 @@ export interface ContentRowProps {
 	allowModifyActions: boolean;
 }
 
-export const DocumentField: FC<PropsWithChildren<ContentRowProps>> = (
-	props
-) => {
-	const {
-		children,
-		onContextMenuAction = () => {},
-		enableInlineEdits,
-		allowModifyActions,
-	} = props;
+export const DocumentField: FC<PropsWithChildren<ContentRowProps>> = (props) => {
+	const { children, onContextMenuAction = () => {}, enableInlineEdits, allowModifyActions } = props;
 
 	const items: CreateMenuItem[] = [
 		{
@@ -63,7 +53,7 @@ export const DocumentField: FC<PropsWithChildren<ContentRowProps>> = (
 				cb: () => onContextMenuAction(ContentRowActions.delete_document),
 				icon: "trash",
 				intent: "danger",
-			}
+			},
 		);
 
 		items.splice(
@@ -83,7 +73,7 @@ export const DocumentField: FC<PropsWithChildren<ContentRowProps>> = (
 
 						icon: "edit",
 						key: ContentRowActions.edit_document,
-				  }
+				  },
 		);
 	}
 
@@ -118,17 +108,9 @@ export const DocumentList: FC<DocumentTreeProps> = (props) => {
 	const [openKeys, setOpenKeys] = useState<Set<number>>(new Set());
 
 	const toggleKey = (key: number) =>
-		setOpenKeys(
-			(keys) => (
-				keys.has(key) ? keys.delete(key) : keys.add(key), new Set(keys)
-			)
-		);
+		setOpenKeys((keys) => (keys.has(key) ? keys.delete(key) : keys.add(key), new Set(keys)));
 
-	const createDocument = (
-		jsx: React.ReactNode,
-		header: DocumentConfigHeader,
-		key: number
-	) => (
+	const createDocument = (jsx: React.ReactNode, header: DocumentConfigHeader, key: number) => (
 		<ContextMenu items={header.menu || []}>
 			<div
 				className={"item" + (header.primary ? " primary" : "")}
@@ -139,17 +121,11 @@ export const DocumentList: FC<DocumentTreeProps> = (props) => {
 				<div className="handle">
 					<Icon
 						size={IconSize.STANDARD}
-						icon={
-							("chevron-" + (openKeys.has(key) ? "down" : "right")) as
-								| "chevron-right"
-								| "chevron-down"
-						}
+						icon={("chevron-" + (openKeys.has(key) ? "down" : "right")) as "chevron-right" | "chevron-down"}
 					/>
 				</div>
 				<span className="heading">{header.title}</span>
-				{header.rightElement && (
-					<div className="top-right-element">{header.rightElement}</div>
-				)}
+				{header.rightElement && <div className="top-right-element">{header.rightElement}</div>}
 			</div>
 			<Collapse isOpen={openKeys.has(key)}>
 				<div

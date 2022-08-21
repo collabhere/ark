@@ -1,5 +1,5 @@
-import "./styles.less";
 import React, { FC } from "react";
+import "./styles.less";
 
 import { ReactComponent as Logo } from "../../assets/logo_fill.svg";
 

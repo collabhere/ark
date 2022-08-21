@@ -1,5 +1,4 @@
-import React, { FC, useContext, useEffect, useState } from "react";
-import { useCallback } from "react";
+import React, { FC, useCallback, useContext, useEffect, useState } from "react";
 import { Button } from "../../common/components/Button";
 import { Dialog } from "../../common/components/Dialog";
 import { CircularLoading } from "../../common/components/Loading";
@@ -9,10 +8,7 @@ import {
 	notifyFailedConnection,
 	notifyFailedDisconnection,
 } from "../connection-controller/ConnectionController";
-import {
-	ConnectionsContext,
-	ManagedConnection,
-} from "../layout/BaseContextProvider";
+import { ConnectionsContext, ManagedConnection } from "../layout/BaseContextProvider";
 
 interface SelectConnectionForScriptProps {
 	path: string;
@@ -20,20 +16,14 @@ interface SelectConnectionForScriptProps {
 	onClose?: (conn?: Ark.StoredConnection) => void;
 }
 
-export const SelectConnectionForFilePath: FC<
-	SelectConnectionForScriptProps
-> = ({ path, onClose }) => {
+export const SelectConnectionForFilePath: FC<SelectConnectionForScriptProps> = ({ path, onClose }) => {
 	const [loading, setLoading] = useState(false);
 
-	const { connections, load, connect, disconnect } =
-		useContext(ConnectionsContext);
+	const { connections, load, connect, disconnect } = useContext(ConnectionsContext);
 
-	const [databaseOptions, setDatabaseOptions] = useState<
-		(string | undefined)[]
-	>([]);
+	const [databaseOptions, setDatabaseOptions] = useState<(string | undefined)[]>([]);
 	const [code, setCode] = useState<string>();
-	const [selectedStoredConnection, setSelectedStoredConnection] =
-		useState<ManagedConnection>();
+	const [selectedStoredConnection, setSelectedStoredConnection] = useState<ManagedConnection>();
 	const [storedScript, setStoredScript] = useState<Ark.StoredScript>();
 
 	const openShell = useCallback(
@@ -57,7 +47,7 @@ export const SelectConnectionForFilePath: FC<
 				onClose && onClose(selectedStoredConnection);
 			}
 		},
-		[code, onClose, selectedStoredConnection, storedScript?.id]
+		[code, onClose, selectedStoredConnection, storedScript?.id],
 	);
 
 	/** On-load effect */
@@ -71,11 +61,7 @@ export const SelectConnectionForFilePath: FC<
 	return (
 		<Dialog
 			size={databaseOptions && databaseOptions.length ? "small" : "large"}
-			title={
-				databaseOptions && databaseOptions.length
-					? "Select a Database"
-					: "Select a Connection"
-			}
+			title={databaseOptions && databaseOptions.length ? "Select a Database" : "Select a Connection"}
 			onCancel={onClose}
 			noFooter
 		>
@@ -85,11 +71,7 @@ export const SelectConnectionForFilePath: FC<
 				<div className="database-select-list">
 					<div className="database-list">
 						{databaseOptions.map((option) => (
-							<Button
-								key={option}
-								onClick={() => openShell(option)}
-								text={option}
-							/>
+							<Button key={option} onClick={() => openShell(option)} text={option} />
 						))}
 					</div>
 					<Button
@@ -121,9 +103,7 @@ export const SelectConnectionForFilePath: FC<
 													id: connection.id,
 												})
 												.then((result) => {
-													const databases: string[] = result.map(
-														(database) => database.name
-													);
+													const databases: string[] = result.map((database) => database.name);
 													setDatabaseOptions(databases);
 													setCode(code);
 													setSelectedStoredConnection(connection);

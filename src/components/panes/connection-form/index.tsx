@@ -1,12 +1,12 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { dispatch } from "../../../common/utils/events";
-import "../styles.less";
-import "../../../common/styles/layout.less";
-import { notify } from "../../../common/utils/misc";
 import { parse } from "mongodb-uri";
+import React, { useCallback, useEffect, useState } from "react";
+import "../../../common/styles/layout.less";
+import { dispatch } from "../../../common/utils/events";
+import { notify } from "../../../common/utils/misc";
 import { ConnectionFormTab } from "../../browser/Tabs";
-import { BasicConnectionForm } from "./basic/BasicConnectionForm";
+import "../styles.less";
 import { AdvancedConnectionForm } from "./advanced/AdvancedConnectionForm";
+import { BasicConnectionForm } from "./basic/BasicConnectionForm";
 
 type FormType = "basic" | "advanced";
 
@@ -14,9 +14,7 @@ const defaultConnectionSettings = (): Ark.StoredConnection => ({
 	id: "",
 	name: "",
 	protocol: "mongodb",
-	hosts: [
-		{ host: "localhost", port: 27017 }
-	],
+	hosts: [{ host: "localhost", port: 27017 }],
 	database: "",
 	type: "directConnection",
 	username: "",
@@ -35,7 +33,7 @@ const defaultConnectionSettings = (): Ark.StoredConnection => ({
 
 export interface EditConnectionMethod<T extends Ark.StoredConnection = Ark.StoredConnection> {
 	(key: keyof T, value: T[keyof T]): void;
-	(key: `host.${number}`, value: { host?: string; port?: number; }): void;
+	(key: `host.${number}`, value: { host?: string; port?: number }): void;
 }
 
 export interface ConnectionFormProps {
@@ -44,41 +42,35 @@ export interface ConnectionFormProps {
 }
 
 export function ConnectionForm(props: ConnectionFormTab): JSX.Element {
-	const [type, setType] = useState<FormType>(
-		props.mode === "edit" || props.mode === "clone" ? "advanced" : "basic"
-	);
+	const [type, setType] = useState<FormType>(props.mode === "edit" || props.mode === "clone" ? "advanced" : "basic");
 
 	const [icon, setIcon] = useState<Ark.StoredIcon>();
 
 	const editConnection = useCallback<EditConnectionMethod>(function (key, value) {
 		if (key.startsWith("host.")) {
 			const idx: number = key.split(".")[1];
-			setConnectionData(conn => {
+			setConnectionData((conn) => {
 				const hosts = conn.hosts;
-				hosts[idx] = ({
+				hosts[idx] = {
 					host: value.host || hosts[idx].host || "localhost",
-					port: typeof value.port == "number" ? value.port : (hosts[idx].port || 27017)
-				});
+					port: typeof value.port == "number" ? value.port : hosts[idx].port || 27017,
+				};
 				return { ...conn };
-			})
+			});
 		} else if (key && value !== undefined) {
 			setConnectionData((conn) => ({ ...conn, [key]: value }));
 		}
 	}, []);
 
 	const connectionDetails = props.connectionParams
-		? ({
-			...props.connectionParams,
-			id:
-				props.connectionParams && props.mode === "clone"
-					? ""
-					: props.connectionParams.id,
-		})
-		: ({ ...defaultConnectionSettings() });
+		? {
+				...props.connectionParams,
+				id: props.connectionParams && props.mode === "clone" ? "" : props.connectionParams.id,
+		  }
+		: { ...defaultConnectionSettings() };
 
 	const [mongoURI, setMongoURI] = useState("");
-	const [connectionData, setConnectionData] =
-		useState<Ark.StoredConnection>(connectionDetails);
+	const [connectionData, setConnectionData] = useState<Ark.StoredConnection>(connectionDetails);
 
 	useEffect(() => {
 		if (connectionData.id && connectionData.icon) {
@@ -93,23 +85,21 @@ export function ConnectionForm(props: ConnectionFormTab): JSX.Element {
 		/* eslint-disable-next-line */
 	}, []);
 
-
 	useEffect(() => {
 		if (!mongoURI) {
-			window.ark.driver.run("connection", "convertConnectionToUri", {
-				config: connectionData
-			}).then(({ uri }) => {
-				setMongoURI(uri);
-			});
+			window.ark.driver
+				.run("connection", "convertConnectionToUri", {
+					config: connectionData,
+				})
+				.then(({ uri }) => {
+					setMongoURI(uri);
+				});
 		}
 		/* eslint-disable-next-line */
 	}, []);
 
 	useEffect(() => {
-		if (
-			connectionData.password &&
-			(props.mode === "edit" || props.mode === "clone")
-		) {
+		if (connectionData.password && (props.mode === "edit" || props.mode === "clone")) {
 			window.ark.driver
 				.run<"decryptPassword">("connection", "decryptPassword", {
 					pwd: connectionData.password,
@@ -132,8 +122,7 @@ export function ConnectionForm(props: ConnectionFormTab): JSX.Element {
 			const parsedUri = parse(uri);
 			if (
 				parsedUri &&
-				(parsedUri.scheme === "mongodb" ||
-					parsedUri.scheme === "mongodb+srv") &&
+				(parsedUri.scheme === "mongodb" || parsedUri.scheme === "mongodb+srv") &&
 				parsedUri.hosts.every((elem) => !!elem.host)
 			) {
 				return { ok: true };
@@ -143,10 +132,7 @@ export function ConnectionForm(props: ConnectionFormTab): JSX.Element {
 		} catch (err) {
 			return {
 				ok: true,
-				err:
-					err && (err as Error).message
-						? (err as Error).message
-						: "Invalid URI",
+				err: err && (err as Error).message ? (err as Error).message : "Invalid URI",
 			};
 		}
 	}, []);
@@ -159,8 +145,7 @@ export function ConnectionForm(props: ConnectionFormTab): JSX.Element {
 					type: "uri",
 					config: {
 						uri: mongoURI,
-						name:
-							connectionData.name || "Test Connection " + new Date().valueOf(),
+						name: connectionData.name || "Test Connection " + new Date().valueOf(),
 					},
 				})
 				.then((connectionId) => {
@@ -224,11 +209,7 @@ export function ConnectionForm(props: ConnectionFormTab): JSX.Element {
 		} else if (!connectionData.hosts) {
 			msg = "Invalid hosts.";
 		} else if (connectionData.ssh.useSSH) {
-			if (
-				!connectionData.ssh.host ||
-				!connectionData.ssh.port ||
-				isNaN(Number(connectionData.ssh.port))
-			) {
+			if (!connectionData.ssh.host || !connectionData.ssh.port || isNaN(Number(connectionData.ssh.port))) {
 				msg = "Incorrect ssh host or port format.";
 			} else if (
 				!connectionData.ssh.mongodHost ||
@@ -242,8 +223,7 @@ export function ConnectionForm(props: ConnectionFormTab): JSX.Element {
 				(connectionData.ssh.method === "password" && !connectionData.ssh.password) ||
 				(connectionData.ssh.method === "privateKey" && !connectionData.ssh.privateKey)
 			) {
-				msg =
-					"Either the password or the private key must be specified.";
+				msg = "Either the password or the private key must be specified.";
 			}
 		}
 
@@ -255,14 +235,13 @@ export function ConnectionForm(props: ConnectionFormTab): JSX.Element {
 	}, [connectionData]);
 
 	const saveAdvancedConnection = useCallback(() => {
-		const { ok, msg } = validateAdvancedConfig()
+		const { ok, msg } = validateAdvancedConfig();
 		if (ok) {
 			return window.ark.driver.run("connection", "save", {
 				type: "config",
 				config: {
 					...connectionData,
-					name:
-						connectionData.name || `Connection ${new Date().valueOf()}`,
+					name: connectionData.name || `Connection ${new Date().valueOf()}`,
 				},
 				icon: icon,
 			});
@@ -284,48 +263,49 @@ export function ConnectionForm(props: ConnectionFormTab): JSX.Element {
 		} else {
 			return Promise.resolve({
 				status: false,
-				message: msg
+				message: msg,
 			});
 		}
 	}, [connectionData, validateAdvancedConfig]);
 
-
-	const onFormTypeChange = useCallback((type: FormType) => {
-		return Promise.resolve()
-			.then(() => {
-				if (type === "basic") {
-					const { ok } = validateAdvancedConfig();
-					if (ok) {
-						return window.ark.driver
-							.run("connection", "convertConnectionToUri", {
-								config: connectionData
-							})
-							.then(({ uri }) => {
-								setMongoURI(uri);
-								setType(type);
-							})
+	const onFormTypeChange = useCallback(
+		(type: FormType) => {
+			return Promise.resolve()
+				.then(() => {
+					if (type === "basic") {
+						const { ok } = validateAdvancedConfig();
+						if (ok) {
+							return window.ark.driver
+								.run("connection", "convertConnectionToUri", {
+									config: connectionData,
+								})
+								.then(({ uri }) => {
+									setMongoURI(uri);
+									setType(type);
+								});
+						}
+					} else if (type === "advanced") {
+						const { ok } = validateUri(mongoURI);
+						if (ok) {
+							return window.ark.driver
+								.run("connection", "convertUriToConnection", {
+									config: {
+										uri: mongoURI,
+										name: "convert",
+									},
+								})
+								.then(({ connection }) => {
+									setConnectionData(connection);
+								});
+						}
 					}
-				} else if (type === "advanced") {
-					const { ok } = validateUri(mongoURI);
-					if (ok) {
-						return window.ark.driver
-							.run("connection", "convertUriToConnection", {
-								config: {
-									uri: mongoURI,
-									name: "convert"
-								}
-							})
-							.then(({ connection }) => {
-								setConnectionData(connection);
-							})
-					}
-				}
-			})
-			.finally(() => {
-				setType(type);
-			});
-
-	}, [connectionData, mongoURI, validateAdvancedConfig, validateUri]);
+				})
+				.finally(() => {
+					setType(type);
+				});
+		},
+		[connectionData, mongoURI, validateAdvancedConfig, validateUri],
+	);
 
 	return (
 		<div className="uri-container">
@@ -346,7 +326,7 @@ export function ConnectionForm(props: ConnectionFormTab): JSX.Element {
 						connectionData={connectionData}
 						editConnection={editConnection}
 						icon={icon}
-						onIconChange={icon => setIcon(icon)}
+						onIconChange={(icon) => setIcon(icon)}
 						onFormTypeChange={onFormTypeChange}
 						onTestConnection={{
 							promise: () => testAdvancedConnection(),

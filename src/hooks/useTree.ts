@@ -1,55 +1,35 @@
 import { TreeNodeInfo } from "@blueprintjs/core";
 import { useCallback, useState } from "react";
 
-const findNodeRecursively = (
-	tree: TreeNodeInfo[],
-	key: string
-): TreeNodeInfo | undefined => {
+const findNodeRecursively = (tree: TreeNodeInfo[], key: string): TreeNodeInfo | undefined => {
 	let result;
 	for (const node of tree) {
 		if (node.id === key) result = node;
 
-		if (!result && node.childNodes?.length)
-			result = findNodeRecursively(node.childNodes, key);
+		if (!result && node.childNodes?.length) result = findNodeRecursively(node.childNodes, key);
 
 		if (result) return result;
 	}
 	return result;
 };
 
-type NodeProperties = Pick<
-	TreeNodeInfo,
-	"className" | "icon" | "disabled" | "childNodes" | "isExpanded" | "hasCaret"
->;
+type NodeProperties = Pick<TreeNodeInfo, "className" | "icon" | "disabled" | "childNodes" | "isExpanded" | "hasCaret">;
 
 interface UseTree {
 	tree: TreeNodeInfo[];
 	node(key: string): TreeNodeInfo | undefined;
-	addNodeAtEnd(
-		title: JSX.Element,
-		key: string,
-		childNodes?: TreeNodeInfo[],
-		properties?: NodeProperties
-	): void;
+	addNodeAtEnd(title: JSX.Element, key: string, childNodes?: TreeNodeInfo[], properties?: NodeProperties): void;
 	addChildrenToNode(key: string, childNodes: TreeNodeInfo[]): void;
 	removeNode(key: string): void;
 	updateNodeProperties(key: string, properties: NodeProperties): void;
-	createNode(
-		title: JSX.Element,
-		key: string,
-		childNodes?: TreeNodeInfo[],
-		properties?: NodeProperties
-	): TreeNodeInfo;
+	createNode(title: JSX.Element, key: string, childNodes?: TreeNodeInfo[], properties?: NodeProperties): TreeNodeInfo;
 	dropTree(): void;
 }
 
 export function useTree(): UseTree {
 	const [tree, setTree] = useState<TreeNodeInfo[]>([]);
 
-	const node: UseTree["node"] = useCallback(
-		(key) => findNodeRecursively(tree, key),
-		[tree]
-	);
+	const node: UseTree["node"] = useCallback((key) => findNodeRecursively(tree, key), [tree]);
 
 	const updateNodeProperties: UseTree["updateNodeProperties"] = useCallback(
 		(key, properties: NodeProperties) => {
@@ -63,7 +43,7 @@ export function useTree(): UseTree {
 				return _tree;
 			});
 		},
-		[tree]
+		[tree],
 	);
 
 	const createNode: UseTree["createNode"] = useCallback(
@@ -73,36 +53,30 @@ export function useTree(): UseTree {
 			childNodes,
 			...properties,
 		}),
-		[]
+		[],
 	);
 
 	const addNodeAtEnd: UseTree["addNodeAtEnd"] = useCallback(
 		(title, key, childNodes = [], properties = {}) => {
-			setTree((tree) => [
-				...tree,
-				createNode(title, key, childNodes, properties),
-			]);
+			setTree((tree) => [...tree, createNode(title, key, childNodes, properties)]);
 		},
-		[createNode]
+		[createNode],
 	);
 
-	const addChildrenToNode: UseTree["addChildrenToNode"] = useCallback(
-		(key, childNodes) => {
-			setTree((_tree) => {
-				const node = findNodeRecursively(_tree, key);
-				if (node) {
-					if (node.childNodes?.length) {
-						node.childNodes.push(...childNodes);
-					} else {
-						node.childNodes = childNodes;
-					}
-					return [..._tree];
+	const addChildrenToNode: UseTree["addChildrenToNode"] = useCallback((key, childNodes) => {
+		setTree((_tree) => {
+			const node = findNodeRecursively(_tree, key);
+			if (node) {
+				if (node.childNodes?.length) {
+					node.childNodes.push(...childNodes);
+				} else {
+					node.childNodes = childNodes;
 				}
-				return _tree;
-			});
-		},
-		[]
-	);
+				return [..._tree];
+			}
+			return _tree;
+		});
+	}, []);
 
 	const removeNode: UseTree["removeNode"] = useCallback((key) => {
 		setTree((_tree) => {

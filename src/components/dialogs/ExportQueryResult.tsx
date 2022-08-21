@@ -1,21 +1,11 @@
-import "./styles.less";
-import {
-	FileInput,
-	FormGroup,
-	InputGroup,
-	Radio,
-	RadioGroup,
-	Switch,
-	TextArea,
-} from "@blueprintjs/core";
+import { FileInput, FormGroup, InputGroup, Radio, RadioGroup, TextArea } from "@blueprintjs/core";
 import React, { FC, useCallback, useState } from "react";
 import { Dialog } from "../../common/components/Dialog";
 import { notify } from "../../common/utils/misc";
+import "./styles.less";
 
 interface ExportQueryResultProps {
-	onExport: (
-		exportOptions: Ark.ExportNdjsonOptions | Ark.ExportCsvOptions
-	) => void;
+	onExport: (exportOptions: Ark.ExportNdjsonOptions | Ark.ExportCsvOptions) => void;
 	onCancel: () => void;
 }
 
@@ -24,9 +14,7 @@ const defaultFileName = () => `query-export-${new Date().toISOString()}.ndjson`;
 export const ExportQueryResult: FC<ExportQueryResultProps> = (props) => {
 	const { onExport, onCancel } = props;
 
-	const [exportOptions, setExportOptions] = useState<
-		Ark.ExportNdjsonOptions | Ark.ExportCsvOptions
-	>({
+	const [exportOptions, setExportOptions] = useState<Ark.ExportNdjsonOptions | Ark.ExportCsvOptions>({
 		type: "NDJSON",
 		saveLocation: "",
 		fileName: defaultFileName(),
@@ -42,48 +30,39 @@ export const ExportQueryResult: FC<ExportQueryResultProps> = (props) => {
 		return { ok: true };
 	}, [exportOptions.saveLocation, exportOptions.fileName]);
 
-	const changeExportOptions = useCallback(
-		(
-			option: "fields" | "type" | "saveLocation" | "fileName",
-			value?: string
-		) => {
-			if (option === "type") {
-				if (value === "CSV") {
-					setExportOptions((options) => ({
-						...options,
-						type: "CSV",
-						fileName: options.fileName.replace(/\.ndjson$/i, ".csv"),
-						fields: [],
-					}));
-				} else if (value === "NDJSON") {
-					setExportOptions((options) => ({
-						saveLocation: options.saveLocation,
-						fileName: options.fileName.replace(/\.csv$/i, ".ndjson"),
-						type: "NDJSON",
-					}));
-				}
-			} else if (option === "saveLocation" && typeof value !== "undefined") {
+	const changeExportOptions = useCallback((option: "fields" | "type" | "saveLocation" | "fileName", value?: string) => {
+		if (option === "type") {
+			if (value === "CSV") {
 				setExportOptions((options) => ({
 					...options,
-					saveLocation: value,
+					type: "CSV",
+					fileName: options.fileName.replace(/\.ndjson$/i, ".csv"),
+					fields: [],
 				}));
-			} else if (option === "fileName" && typeof value !== "undefined") {
+			} else if (value === "NDJSON") {
 				setExportOptions((options) => ({
-					...options,
-					fileName: value,
-				}));
-			} else {
-				setExportOptions((options) => ({
-					...options,
-					fields:
-						options.type === "CSV"
-							? value?.split(",").map((field) => field.trim())
-							: undefined,
+					saveLocation: options.saveLocation,
+					fileName: options.fileName.replace(/\.csv$/i, ".ndjson"),
+					type: "NDJSON",
 				}));
 			}
-		},
-		[]
-	);
+		} else if (option === "saveLocation" && typeof value !== "undefined") {
+			setExportOptions((options) => ({
+				...options,
+				saveLocation: value,
+			}));
+		} else if (option === "fileName" && typeof value !== "undefined") {
+			setExportOptions((options) => ({
+				...options,
+				fileName: value,
+			}));
+		} else {
+			setExportOptions((options) => ({
+				...options,
+				fields: options.type === "CSV" ? value?.split(",").map((field) => field.trim()) : undefined,
+			}));
+		}
+	}, []);
 
 	return (
 		<Dialog
@@ -125,20 +104,14 @@ export const ExportQueryResult: FC<ExportQueryResultProps> = (props) => {
 					<FormGroup label="Output Destination">
 						<FileInput
 							fill
-							text={
-								exportOptions.saveLocation
-									? exportOptions.saveLocation
-									: "Choose a destination..."
-							}
+							text={exportOptions.saveLocation ? exportOptions.saveLocation : "Choose a destination..."}
 							onClick={(e) => {
 								e.preventDefault();
-								return window.ark
-									.browseForDirs("Select A Save Location", "Set")
-									.then((result) => {
-										const { dirs } = result;
-										const saveLocation = dirs[dirs.length - 1];
-										changeExportOptions("saveLocation", saveLocation);
-									});
+								return window.ark.browseForDirs("Select A Save Location", "Set").then((result) => {
+									const { dirs } = result;
+									const saveLocation = dirs[dirs.length - 1];
+									changeExportOptions("saveLocation", saveLocation);
+								});
 							}}
 						/>
 					</FormGroup>

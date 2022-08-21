@@ -1,10 +1,10 @@
 import "./styles.less";
 
-import React, { FC, useCallback, useEffect, useMemo, useState } from "react";
-const Monaco = React.lazy(() => import("@monaco-editor/react"));
-import { mountMonaco } from "./monaco";
-import { editor, KeyCode, KeyMod } from "monaco-editor";
+import { editor } from "monaco-editor";
+import React, { FC, useCallback, useState } from "react";
 import MONACO_THEME from "../../common/styles/monaco-theme.json";
+import { mountMonaco } from "./monaco";
+const Monaco = React.lazy(() => import("@monaco-editor/react"));
 
 export enum MONACO_COMMANDS {
 	CLONE_SHELL,
@@ -19,11 +19,9 @@ export interface ShellProps {
 	onMonacoCommand?: (command: MONACO_COMMANDS) => void;
 }
 export const Shell: FC<ShellProps> = (props) => {
-	const { allCollections, code, onCodeChange, onMonacoCommand, settings } =
-		props;
+	const { allCollections, code, onCodeChange, onMonacoCommand, settings } = props;
 
-	const [monacoEditor, setMonacoEditor] =
-		useState<editor.IStandaloneCodeEditor>();
+	const [monacoEditor, setMonacoEditor] = useState<editor.IStandaloneCodeEditor>();
 
 	const exec = useCallback(() => {
 		onMonacoCommand && onMonacoCommand(MONACO_COMMANDS.EXEC_CODE);
@@ -53,10 +51,7 @@ export const Shell: FC<ShellProps> = (props) => {
 					theme={"ark"}
 					beforeMount={(monaco) => {
 						mountMonaco(monaco, { collections: allCollections });
-						monaco.editor.defineTheme(
-							"ark",
-							MONACO_THEME as editor.IStandaloneThemeData
-						);
+						monaco.editor.defineTheme("ark", MONACO_THEME as editor.IStandaloneThemeData);
 					}}
 					onMount={(editor) => {
 						setMonacoEditor(editor);

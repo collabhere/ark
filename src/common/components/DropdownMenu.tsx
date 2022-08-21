@@ -1,11 +1,6 @@
-import React, { FC, PropsWithChildren } from "react";
-import {
-	MenuItem2,
-	MenuItem2Props,
-	Popover2,
-	Popover2Props,
-} from "@blueprintjs/popover2";
 import { Menu, MenuDivider, MenuDividerProps } from "@blueprintjs/core";
+import { MenuItem2, MenuItem2Props, Popover2, Popover2Props } from "@blueprintjs/popover2";
+import React, { FC, PropsWithChildren } from "react";
 
 import "./DropdownMenu.less";
 
@@ -37,7 +32,7 @@ const createSubMenu = (items: DropdownMenuItem[]) =>
 			<MenuItem2 {...item}>{createSubMenu(item.submenu)}</MenuItem2>
 		) : (
 			<MenuItem2 {...item} />
-		)
+		),
 	);
 
 export const createDropdownMenu = (items: DropdownMenuItems) => {
@@ -49,18 +44,11 @@ interface DropdownMenuProps extends Popover2Props {
 	items: DropdownMenuItems;
 }
 
-export const DropdownMenu: FC<PropsWithChildren<DropdownMenuProps>> = (
-	props
-) => {
+export const DropdownMenu: FC<PropsWithChildren<DropdownMenuProps>> = (props) => {
 	const { children, items } = props;
 
 	return (
-		<Popover2
-			{...props}
-			interactionKind="click"
-			minimal
-			content={createDropdownMenu(items)}
-		>
+		<Popover2 {...props} interactionKind="click" minimal content={createDropdownMenu(items)}>
 			{children}
 		</Popover2>
 	);

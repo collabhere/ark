@@ -1,6 +1,6 @@
 import electronStorage from "electron-json-storage";
-import { ARK_FOLDER_PATH } from "../../utils/constants";
 import { promisifyCallback } from "../../../util/misc";
+import { ARK_FOLDER_PATH } from "../../utils/constants";
 
 electronStorage.setDataPath(ARK_FOLDER_PATH);
 

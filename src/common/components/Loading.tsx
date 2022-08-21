@@ -1,5 +1,5 @@
-import React, { FC } from "react";
 import { Spinner, SpinnerSize } from "@blueprintjs/core";
+import React, { FC } from "react";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface CircularLoadingProps {

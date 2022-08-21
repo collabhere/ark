@@ -1,12 +1,9 @@
-import "./styles.less";
-import React, { useEffect } from "react";
 import { Reorder } from "framer-motion";
-import { Tab } from "./Tab";
+import React, { useEffect } from "react";
+import { ConnectionForm, ConnectionFormProps } from "../panes/connection-form";
 import { Editor, EditorProps } from "../panes/editor/Editor";
-import {
-	ConnectionForm,
-	ConnectionFormProps,
-} from "../panes/connection-form";
+import "./styles.less";
+import { Tab } from "./Tab";
 
 export interface BaseTab {
 	title: string;
@@ -84,11 +81,7 @@ export function Tabs(props: TabsProps) {
 			{tabs.map((tab) => {
 				const Component = React.createElement(TAB_PANES[tab.type] as any, tab);
 				return (
-					<div
-						key={tab.id}
-						className="tab-pane"
-						style={{ display: selectedTab.id === tab.id ? "block" : "none" }}
-					>
+					<div key={tab.id} className="tab-pane" style={{ display: selectedTab.id === tab.id ? "block" : "none" }}>
 						{Component}
 					</div>
 				);

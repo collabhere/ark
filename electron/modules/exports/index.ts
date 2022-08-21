@@ -1,17 +1,13 @@
 import { createWriteStream, promises as fs } from "fs";
-import { Transform } from "stream";
 import path from "path";
+import { Transform } from "stream";
 import { CSVTransform } from "./csv-transform";
 import { NDJSONTransform } from "./ndjson-transform";
 
-export type MongoExportOptions = (Ark.ExportCsvOptions | Ark.ExportNdjsonOptions);
+export type MongoExportOptions = Ark.ExportCsvOptions | Ark.ExportNdjsonOptions;
 
-export async function exportData(
-	result: any,
-	options: MongoExportOptions
-) {
+export async function exportData(result: any, options: MongoExportOptions) {
 	return new Promise<string>((resolve, reject) => {
-
 		const filePath = path.join(options.saveLocation, options.fileName);
 
 		const reader = result._cursor.stream();
@@ -46,7 +42,7 @@ export async function exportData(
 					// by rewriting the file with the
 					// header first.
 					const csv = await fs.readFile(filePath);
-					const handle = await fs.open(filePath, 'w+');
+					const handle = await fs.open(filePath, "w+");
 					await fs.writeFile(handle, chunk.header);
 					await fs.writeFile(handle, csv);
 					await handle.close();
@@ -63,6 +59,5 @@ export async function exportData(
 
 			reader.pipe(transformer).pipe(writer);
 		}
-
 	});
 }

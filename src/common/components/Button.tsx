@@ -1,19 +1,9 @@
 import "./Button.less";
 
-import React, { FC, useState, useMemo } from "react";
-import {
-	Button as BPButton,
-	ActionProps,
-	IconName,
-	Icon,
-} from "@blueprintjs/core";
-import {
-	Popover2,
-	Popover2Props,
-	Tooltip2,
-	Tooltip2Props,
-} from "@blueprintjs/popover2";
-import { PromiseCompleteCallback, asyncEventOverload } from "../utils/misc";
+import { ActionProps, Button as BPButton, Icon, IconName } from "@blueprintjs/core";
+import { Popover2, Popover2Props, Tooltip2, Tooltip2Props } from "@blueprintjs/popover2";
+import React, { FC, useMemo, useState } from "react";
+import { asyncEventOverload, PromiseCompleteCallback } from "../utils/misc";
 
 export interface PromiseButtonMouseEventHandler<T = any> {
 	promise: (e: React.MouseEvent) => Promise<T>;
@@ -54,10 +44,7 @@ export const Button: FC<ButtonProps> = (props) => {
 
 	const [loading, setLoading] = useState(false);
 
-	const iconSize = useMemo(
-		() => (size === "large" ? 24 : size === "medium" ? 20 : 16),
-		[size]
-	);
+	const iconSize = useMemo(() => (size === "large" ? 24 : size === "medium" ? 20 : 16), [size]);
 
 	const baseButton = (
 		<BPButton
@@ -65,12 +52,7 @@ export const Button: FC<ButtonProps> = (props) => {
 			className={
 				disabled
 					? "button-base button-disabled" + " " + "button-text-size-" + size
-					: "button-base button-" +
-					variant +
-					" " +
-					"button-text-size-" +
-					size +
-					(outlined ? " button-outlined" : "")
+					: "button-base button-" + variant + " " + "button-text-size-" + size + (outlined ? " button-outlined" : "")
 			}
 			disabled={loading || disabled}
 			onClick={(e) => {
@@ -82,13 +64,9 @@ export const Button: FC<ButtonProps> = (props) => {
 			large={size === "large"}
 			small={size === "small"}
 			minimal={variant === "link" || variant === "link-danger"}
-			intent={
-				variant !== "link" && variant !== "link-danger" ? variant : undefined
-			}
+			intent={variant !== "link" && variant !== "link-danger" ? variant : undefined}
 			icon={icon ? <Icon icon={icon} size={iconSize} /> : undefined}
-			rightIcon={
-				rightIcon ? <Icon icon={rightIcon} size={iconSize} /> : undefined
-			}
+			rightIcon={rightIcon ? <Icon icon={rightIcon} size={iconSize} /> : undefined}
 		/>
 	);
 
@@ -106,13 +84,14 @@ export const Button: FC<ButtonProps> = (props) => {
 		baseButton
 	);
 
-	const buttonWithPopoversAndDropdown = dropdownOptions && !disabled ? (
-		<Popover2 {...dropdownOptions} minimal>
-			{buttonWithTooltips}
-		</Popover2>
-	) : (
-		buttonWithTooltips
-	);
+	const buttonWithPopoversAndDropdown =
+		dropdownOptions && !disabled ? (
+			<Popover2 {...dropdownOptions} minimal>
+				{buttonWithTooltips}
+			</Popover2>
+		) : (
+			buttonWithTooltips
+		);
 
 	return buttonWithPopoversAndDropdown;
 };

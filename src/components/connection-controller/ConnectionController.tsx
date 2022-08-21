@@ -1,23 +1,17 @@
-import "./styles.less";
-import React, { FC, useCallback, useContext, useEffect, useState } from "react";
-import { Icon, Card, IconSize } from "@blueprintjs/core";
-import { dispatch, listenEffect } from "../../common/utils/events";
+import { Card, Icon, IconSize } from "@blueprintjs/core";
 import { Resizable } from "re-resizable";
+import React, { FC, useCallback, useContext, useEffect, useState } from "react";
 import { Button } from "../../common/components/Button";
-import {
-	ConnectionsContext,
-	ManagedConnection,
-	SettingsContext,
-} from "../layout/BaseContextProvider";
+import { dispatch, listenEffect } from "../../common/utils/events";
 import { hostToString, notify } from "../../common/utils/misc";
+import { ConnectionsContext, ManagedConnection, SettingsContext } from "../layout/BaseContextProvider";
+import "./styles.less";
 
 export const notifyFailedConnection = (err) => {
 	notify({
 		type: "error",
 		title: "Error",
-		description: err.message
-			? "Error - " + err.message
-			: "Could not connect. Something unexpected happened.",
+		description: err.message ? "Error - " + err.message : "Could not connect. Something unexpected happened.",
 	});
 };
 
@@ -25,9 +19,7 @@ export const notifyFailedDisconnection = (err) => {
 	notify({
 		type: "error",
 		title: "Error",
-		description: err.message
-			? "Error - " + err.message
-			: "Could not disconnnect. Something unexpected happened.",
+		description: err.message ? "Error - " + err.message : "Could not disconnnect. Something unexpected happened.",
 	});
 };
 
@@ -35,30 +27,19 @@ export const notifyFailedDisconnection = (err) => {
 interface ConnectionManagerProps { }
 
 export const ConnectionController: FC<ConnectionManagerProps> = () => {
-	const {
-		connections,
-		setConnections,
-		load,
-		connect,
-		disconnect,
-		deleteConnectionOnDisk,
-	} = useContext(ConnectionsContext);
+	const { connections, setConnections, load, connect, disconnect, deleteConnectionOnDisk } =
+		useContext(ConnectionsContext);
 	const { currentSidebarOpened } = useContext(SettingsContext);
 
-	const [listViewMode, setListViewMode] = useState<"detailed" | "compact">(
-		"detailed"
-	);
+	const [listViewMode, setListViewMode] = useState<"detailed" | "compact">("detailed");
 	const [listLoadError, setListLoadError] = useState<JSX.Element>();
 
-	const openEditOrCloneConnection = useCallback(
-		(connectionDetails: ManagedConnection, mode: "edit" | "clone") => {
-			dispatch("browser:create_tab:connection_form", {
-				connectionDetails,
-				mode,
-			});
-		},
-		[]
-	);
+	const openEditOrCloneConnection = useCallback((connectionDetails: ManagedConnection, mode: "edit" | "clone") => {
+		dispatch("browser:create_tab:connection_form", {
+			connectionDetails,
+			mode,
+		});
+	}, []);
 
 	const openCreateConnection = useCallback(() => {
 		dispatch("browser:create_tab:connection_form");
@@ -71,7 +52,7 @@ export const ConnectionController: FC<ConnectionManagerProps> = () => {
 				<div>
 					<span>Something went wrong with loading the list.</span>
 					<p>Error: {err.message}</p>
-				</div>
+				</div>,
 			);
 		});
 	}, [load]);
@@ -101,7 +82,7 @@ export const ConnectionController: FC<ConnectionManagerProps> = () => {
 					},
 				},
 			]),
-		[disconnect, setConnections]
+		[disconnect, setConnections],
 	);
 
 	return currentSidebarOpened === "manager" ? (
@@ -238,9 +219,7 @@ export const ConnectionsList: FC<ConnectionsListProps> = (props) => {
 				) : (
 					<div className="center-text">
 						<p>No connections</p>
-						<p className="help">
-							{'You can save a connection using the "Create" button.'}
-						</p>
+						<p className="help">{'You can save a connection using the "Create" button.'}</p>
 					</div>
 				)
 			) : (
@@ -263,19 +242,8 @@ interface DetailedConnectionCardProps extends ConnectionCardFunctions {
 	conn: ManagedConnection;
 }
 
-export const DetailedConnectionCard = (
-	props: DetailedConnectionCardProps
-): JSX.Element => {
-	const {
-		conn,
-		onConnect,
-		onConnectCallback,
-		onDisconnect,
-		onDisconnectCallback,
-		onEdit,
-		onClone,
-		onDelete,
-	} = props;
+export const DetailedConnectionCard = (props: DetailedConnectionCardProps): JSX.Element => {
+	const { conn, onConnect, onConnectCallback, onDisconnect, onDisconnectCallback, onEdit, onClone, onDelete } = props;
 
 	return (
 		<Card className="card-detailed" interactive={false}>
@@ -303,11 +271,7 @@ export const DetailedConnectionCard = (
 				</div>
 				<div className="cell">
 					<div className="cell-title">
-						{conn.username && conn.database
-							? "User / AuthDB"
-							: conn.username
-								? "User"
-								: ""}
+						{conn.username && conn.database ? "User / AuthDB" : conn.username ? "User" : ""}
 					</div>
 					<div className="cell-content">
 						{conn.username && conn.database
@@ -378,19 +342,8 @@ interface CompactConnectionCardProps extends ConnectionCardFunctions {
 	conn: ManagedConnection;
 }
 
-export const CompactConnectionCard = (
-	props: CompactConnectionCardProps
-): JSX.Element => {
-	const {
-		conn,
-		onConnect,
-		onConnectCallback,
-		onDisconnect,
-		onDisconnectCallback,
-		onDelete,
-		onEdit,
-		onClone,
-	} = props;
+export const CompactConnectionCard = (props: CompactConnectionCardProps): JSX.Element => {
+	const { conn, onConnect, onConnectCallback, onDisconnect, onDisconnectCallback, onDelete, onEdit, onClone } = props;
 	return (
 		<div className="card-compact">
 			<div className="cell">
@@ -403,9 +356,7 @@ export const CompactConnectionCard = (
 			</div>
 			<div className="cell">
 				<div className="cell-title">{"User / AuthDB"}</div>
-				<div className="cell-content">
-					{`${conn.username || "-"} / ${conn.database || "-"}`}
-				</div>
+				<div className="cell-content">{`${conn.username || "-"} / ${conn.database || "-"}`}</div>
 			</div>
 			<div className="cell">
 				<div className="cell-buttons">
@@ -432,30 +383,9 @@ export const CompactConnectionCard = (
 							}}
 						/>
 					)}
-					{onEdit && (
-						<Button
-							shape="round"
-							icon="edit"
-							size="small"
-							onClick={() => onEdit(conn)}
-						/>
-					)}
-					{onClone && (
-						<Button
-							shape="round"
-							icon="add-row-bottom"
-							size="small"
-							onClick={() => onClone(conn)}
-						/>
-					)}
-					{onDelete && (
-						<Button
-							shape="round"
-							icon="trash"
-							size="small"
-							onClick={() => onDelete(conn)}
-						/>
-					)}
+					{onEdit && <Button shape="round" icon="edit" size="small" onClick={() => onEdit(conn)} />}
+					{onClone && <Button shape="round" icon="add-row-bottom" size="small" onClick={() => onClone(conn)} />}
+					{onDelete && <Button shape="round" icon="trash" size="small" onClick={() => onDelete(conn)} />}
 				</div>
 			</div>
 		</div>
@@ -494,7 +424,6 @@ const DetailedCardTitle: FC<CardTitleProps> = ({
 				onClick={{ promise: onConnect, callback: onConnectCallback }}
 			/>
 		)}
-
 		{active && (
 			<Button
 				shape="round"
