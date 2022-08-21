@@ -24,7 +24,7 @@ export const notifyFailedDisconnection = (err) => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-interface ConnectionManagerProps { }
+interface ConnectionManagerProps {}
 
 export const ConnectionController: FC<ConnectionManagerProps> = () => {
 	const { connections, setConnections, load, connect, disconnect, deleteConnectionOnDisk } =
@@ -251,7 +251,7 @@ export const DetailedConnectionCard = (props: DetailedConnectionCardProps): JSX.
 				title={conn.name}
 				onDisconnect={() => onDisconnect(conn)}
 				onDisconnectCallback={onDisconnectCallback}
-				onConnect={() => onConnect(conn).then(() => { })}
+				onConnect={() => onConnect(conn).then(() => {})}
 				onConnectCallback={onConnectCallback}
 				active={conn.active}
 			/>
@@ -277,8 +277,8 @@ export const DetailedConnectionCard = (props: DetailedConnectionCardProps): JSX.
 						{conn.username && conn.database
 							? `${conn.username} / ${conn.database}`
 							: conn.username
-								? `${conn.username}`
-								: ""}
+							? `${conn.username}`
+							: ""}
 					</div>
 				</div>
 			</div>
