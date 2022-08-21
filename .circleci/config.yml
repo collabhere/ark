@@ -37,6 +37,7 @@ jobs:
       - run:
           name: "Build dmg"
           command: "npm run dist:macos_dmg"
+          no_output_timeout: 30m
       - run:
           name: "Move necessary build output"
           command: "mkdir -p /tmp/release && mv ./release/*.dmg /tmp/release"
@@ -47,4 +48,5 @@ workflows:
   main:
     jobs:
       - build_linux
-      - build_macos
+      # @todo: figure out how to test macos
+      # - build_macos
