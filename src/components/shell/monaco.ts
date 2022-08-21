@@ -3,78 +3,70 @@ import { Monaco } from "@monaco-editor/react";
 import { languages } from "monaco-editor";
 import { addMongoShellCompletions } from "./mongo-shell-completion";
 
-
 interface Intellisense {
-    collections: string[];
-    database?: string;
-    disableTypeChecking?: boolean;
+	collections: string[];
+	database?: string;
+	disableTypeChecking?: boolean;
 }
 
 export async function mountMonaco(monaco: Monaco, intellisense: Intellisense): Promise<void> {
+	const { collections: COLLECTIONS, database: DATABASE, disableTypeChecking = false } = intellisense;
 
-    const {
-        collections: COLLECTIONS,
-        database: DATABASE,
-        disableTypeChecking = false
-    } = intellisense;
+	// Add all of @mongosh/shell-api's definitions along with a custom global.d.ts with editor globals.
+	addMongoShellCompletions(monaco);
 
+	// Compiler options
+	monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+		target: monaco.languages.typescript.ScriptTarget.ES2016,
+		allowNonTsExtensions: true,
+		moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+		module: monaco.languages.typescript.ModuleKind.CommonJS,
+		noEmit: true,
+		typeRoots: ["node_modules/@types", "node_modules/@mongosh"],
+	});
 
-    // Add all of @mongosh/shell-api's definitions along with a custom global.d.ts with editor globals.
-    addMongoShellCompletions(monaco);
+	// validation settings
+	monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+		onlyVisible: true,
+		noSyntaxValidation: !disableTypeChecking,
+	});
 
-    // Compiler options
-    monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
-        target: monaco.languages.typescript.ScriptTarget.ES2016,
-        allowNonTsExtensions: true,
-        moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
-        module: monaco.languages.typescript.ModuleKind.CommonJS,
-        noEmit: true,
-        typeRoots: ["node_modules/@types", "node_modules/@mongosh"],
-    });
+	// Completions
+	monaco.languages.registerCompletionItemProvider("typescript", {
+		triggerCharacters: ["."],
+		provideCompletionItems: (model, position) => {
+			const suggestions: languages.CompletionItem[] = [];
 
-    // validation settings
-    monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
-        onlyVisible: true,
-        noSyntaxValidation: !disableTypeChecking,
-    });
+			const { word } = model.getWordUntilPosition(position);
 
-    // Completions
-    monaco.languages.registerCompletionItemProvider('typescript', {
-        triggerCharacters: ["."],
-        provideCompletionItems: (model, position) => {
-            const suggestions: languages.CompletionItem[] = [];
+			const currentLine = model.getValueInRange({
+				startLineNumber: position.lineNumber,
+				startColumn: 1,
+				endLineNumber: position.lineNumber,
+				endColumn: position.column,
+			});
 
-            const { word } = model.getWordUntilPosition(position);
+			const DB_SUGGESTIONS: languages.CompletionItem[] = COLLECTIONS.map((coll) => ({
+				label: coll,
+				kind: monaco.languages.CompletionItemKind.Function,
+				documentation: "Same as `Database.getCollection(" + coll + ")`",
+				insertText: "getCollection('" + coll + "')",
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				range: {
+					startLineNumber: position.lineNumber,
+					startColumn: position.column,
+					endLineNumber: position.lineNumber,
+					endColumn: position.column,
+				},
+			}));
 
-            const currentLine = model.getValueInRange({
-                startLineNumber: position.lineNumber,
-                startColumn: 1,
-                endLineNumber: position.lineNumber,
-                endColumn: position.column
-            });
+			if (/db\.(?!.)/i.test(currentLine)) {
+				suggestions.push(...DB_SUGGESTIONS);
+			}
 
-            const DB_SUGGESTIONS: languages.CompletionItem[] = COLLECTIONS.map(coll => ({
-                label: coll,
-                kind: monaco.languages.CompletionItemKind.Function,
-                documentation: "Same as `Database.getCollection(" + coll + ")`",
-                insertText: "getCollection('" + coll + "')",
-                insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                range: {
-                    startLineNumber: position.lineNumber,
-                    startColumn: position.column,
-                    endLineNumber: position.lineNumber,
-                    endColumn: position.column
-                }
-            }));
-
-            if ((/db\.(?!.)/i.test(currentLine))) {
-                suggestions.push(...DB_SUGGESTIONS);
-            }
-
-            return {
-                suggestions: suggestions
-            }
-        }
-    });
-
+			return {
+				suggestions: suggestions,
+			};
+		},
+	});
 }

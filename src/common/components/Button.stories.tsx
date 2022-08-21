@@ -1,6 +1,6 @@
+import { Menu, MenuDivider, MenuItem } from "@blueprintjs/core";
+import { ComponentMeta, ComponentStory } from "@storybook/react";
 import React from "react";
-import { ComponentStory, ComponentMeta } from "@storybook/react";
-import { Menu, MenuItem, MenuDivider } from "@blueprintjs/core";
 
 import { Button } from "./Button";
 

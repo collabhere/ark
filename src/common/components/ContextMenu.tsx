@@ -1,8 +1,8 @@
 import "./ContextMenu.less";
 
-import React, { FC, PropsWithChildren } from "react";
-import { IconName, MenuDivider, Menu, Intent } from "@blueprintjs/core";
+import { IconName, Intent, Menu, MenuDivider } from "@blueprintjs/core";
 import { ContextMenu2, MenuItem2 } from "@blueprintjs/popover2";
+import React, { FC, PropsWithChildren } from "react";
 
 export interface CreateMenuItem {
 	item?: string | React.ReactNode;
@@ -35,14 +35,12 @@ export const createContextMenuItems = (items: CreateMenuItem[]) => (
 					text={menuItem.item}
 					onClick={() => menuItem.cb && menuItem.cb(menuItem.key)}
 				/>
-			)
+			),
 		)}
 	</Menu>
 );
 
-export const ContextMenu: FC<PropsWithChildren<{ items: CreateMenuItem[] }>> = (
-	props
-) => {
+export const ContextMenu: FC<PropsWithChildren<{ items: CreateMenuItem[] }>> = (props) => {
 	const { items, children } = props;
 	return items.length ? (
 		<ContextMenu2

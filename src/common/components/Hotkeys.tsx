@@ -4,11 +4,11 @@ import { dispatch } from "../../common/utils/events";
 
 export enum HOT_KEYS {
 	CONNECTION_TOGGLE = "ctrl+e",
-	NEW_CONNECTION = "ctrl+n"
+	NEW_CONNECTION = "ctrl+n",
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-interface HotkeysProps { }
+interface HotkeysProps {}
 
 export const Hotkeys: FC<HotkeysProps> = () => {
 	useHotkeys(HOT_KEYS.CONNECTION_TOGGLE, () => {

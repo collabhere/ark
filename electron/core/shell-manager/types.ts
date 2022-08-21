@@ -1,41 +1,41 @@
 import { Evaluator } from "./evaluator";
 
 export interface CreateShell {
-    contextDB: string;
-    connectionId: string;
-    encryptionKey?: Ark.Settings["encryptionKey"]
+	contextDB: string;
+	connectionId: string;
+	encryptionKey?: Ark.Settings["encryptionKey"];
 }
 
 export interface DestroyShell {
-    shell: string;
+	shell: string;
 }
 
 export interface ShellEvalResult {
-    editable: boolean;
-    isCursor: boolean;
-    isNotDocumentArray: boolean;
-    result: Buffer;
-    err?: Error;
+	editable: boolean;
+	isCursor: boolean;
+	isNotDocumentArray: boolean;
+	result: Buffer;
+	err?: Error;
 }
 
 export interface InvokeJS {
-    code: string;
-    shell: string;
-    connectionId: string;
-    page: number;
-    limit: number;
-    timeout?: number;
+	code: string;
+	shell: string;
+	connectionId: string;
+	page: number;
+	limit: number;
+	timeout?: number;
 }
 
 export interface ExportData extends InvokeJS {
-    options: Ark.ExportCsvOptions | Ark.ExportNdjsonOptions;
+	options: Ark.ExportCsvOptions | Ark.ExportNdjsonOptions;
 }
 
 export interface StoredShellValue {
-    id: string;
-    connectionId: string;
-    uri: string;
-    database: string;
-    evaluator: Evaluator;
-    validateDriver(): void;
+	id: string;
+	connectionId: string;
+	uri: string;
+	database: string;
+	evaluator: Evaluator;
+	validateDriver(): void;
 }

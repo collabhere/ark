@@ -4,76 +4,66 @@ import { Database } from "./database";
 import { Query } from "./query";
 
 export interface RunCommandInput {
-    library: keyof DriverModules;
-    action: string;
-    args: Record<string, any> & { id: string };
+	library: keyof DriverModules;
+	action: string;
+	args: Record<string, any> & { id: string };
 }
 
 export interface Driver {
-    getConnection(connectionId: string): MemEntry | undefined;
-    run(input: RunCommandInput): Promise<any>;
+	getConnection(connectionId: string): MemEntry | undefined;
+	run(input: RunCommandInput): Promise<any>;
 }
 
 export interface DriverModules {
-    connection: Connection;
-    database: Database;
-    query: Query;
+	connection: Connection;
+	database: Database;
+	query: Query;
 }
 
 export function createDriver(stores: Ark.DriverStores) {
+	const modules: DriverModules = {
+		connection: Connection,
+		database: Database,
+		query: Query,
+	};
 
-    const modules: DriverModules = {
-        connection: Connection,
-        database: Database,
-        query: Query
-    };
+	const { memoryStore, diskStore, iconStore } = stores;
 
-    const {
-        memoryStore,
-        diskStore,
-        iconStore
-    } = stores;
+	const driver: Driver = {
+		getConnection: (connectionId: string) =>
+			memoryStore.has(connectionId) ? memoryStore.get(connectionId) : undefined,
+		run: async (input) => {
+			const { library, action, args } = input;
 
-    const driver: Driver = {
-        getConnection: (connectionId: string) => memoryStore.has(connectionId) ? memoryStore.get(connectionId) : undefined,
-        run: async (input) => {
+			const module: any = modules[library];
 
-            const {
-                library,
-                action,
-                args,
-            } = input;
+			if (!module) {
+				throw new Error("Library (" + library + ") not found.");
+			}
 
-            const module: any = modules[library];
+			const method = module[action];
 
-            if (!module) {
-                throw new Error("Library (" + library + ") not found.");
-            }
+			if (!method) {
+				throw new Error("Method (" + action + ") not found.");
+			}
 
-            const method = module[action];
+			const mem = args && args.id && memoryStore.has(args.id) ? memoryStore.get(args.id) : undefined;
+			const stored = args && args.id && diskStore.has(args.id) ? await diskStore.get(args.id) : undefined;
 
-            if (!method) {
-                throw new Error("Method (" + action + ") not found.");
-            }
+			const icon = args && args.id ? await iconStore.get(args.id) : undefined;
 
-            const mem = (args && args.id && memoryStore.has(args.id)) ? memoryStore.get(args.id) : undefined;
-            const stored = (args && args.id && diskStore.has(args.id)) ? await diskStore.get(args.id) : undefined;
+			const DriverDependency: Ark.DriverDependency = {
+				_stores: stores,
+				memEntry: mem,
+				storedConnection: stored,
+				icon,
+			};
 
-            const icon = (args && args.id) ? await iconStore.get(args.id) : undefined;
+			return method(DriverDependency, args);
+		},
+	};
 
-            const DriverDependency: Ark.DriverDependency = {
-                _stores: stores,
-                memEntry: mem,
-                storedConnection: stored,
-                icon
-            };
-
-            return method(DriverDependency, args);
-
-        }
-    };
-
-    return driver;
+	return driver;
 }
 
 export type { Database };

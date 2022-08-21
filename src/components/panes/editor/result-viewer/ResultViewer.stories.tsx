@@ -1,8 +1,8 @@
+import { ComponentMeta, ComponentStory } from "@storybook/react";
 import React from "react";
-import { ComponentStory, ComponentMeta } from "@storybook/react";
 
-import { ResultViewer } from "./ResultViewer";
 import { ObjectId } from "bson";
+import { ResultViewer } from "./ResultViewer";
 
 const createTestingBSON = (count) =>
 	new Array(count).fill({
@@ -77,9 +77,7 @@ export default {
 	],
 } as ComponentMeta<typeof ResultViewer>;
 
-const Template: ComponentStory<typeof ResultViewer> = (args) => (
-	<ResultViewer {...args} />
-);
+const Template: ComponentStory<typeof ResultViewer> = (args) => <ResultViewer {...args} />;
 
 export const TreeView = Template.bind({});
 TreeView.args = {

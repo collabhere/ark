@@ -1,11 +1,11 @@
+import { ButtonGroup, InputGroup } from "@blueprintjs/core";
 import React, { FC, useState } from "react";
 import { Button } from "../../../../common/components/Button";
-import "../../styles.less";
 import "../../../../common/styles/layout.less";
+import "../../styles.less";
+import { PlainTextViewer } from "./plaintext/PlainTextViewer";
 import "./styles.less";
 import { TreeViewer } from "./tree/TreeViewer";
-import { PlainTextViewer } from "./plaintext/PlainTextViewer";
-import { InputGroup, ButtonGroup } from "@blueprintjs/core";
 
 export type ResultViewerProps = {
 	type: "plaintext" | "tree";
@@ -21,10 +21,7 @@ export type ResultViewerProps = {
 	switchViews?: (type: "tree" | "plaintext") => void;
 	paramsState?: {
 		queryParams: Ark.QueryOptions;
-		changeQueryParams: (
-			type: Exclude<keyof Ark.QueryOptions, "timeout">,
-			value: number
-		) => void;
+		changeQueryParams: (type: Exclude<keyof Ark.QueryOptions, "timeout">, value: number) => void;
 	};
 };
 
@@ -64,10 +61,7 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 									disabled={paramsState && paramsState.queryParams.page <= 0}
 									onClick={() => {
 										if (paramsState && paramsState.queryParams.page > 1) {
-											paramsState?.changeQueryParams(
-												"page",
-												paramsState?.queryParams.page - 1
-											);
+											paramsState?.changeQueryParams("page", paramsState?.queryParams.page - 1);
 										}
 									}}
 									tooltipOptions={{
@@ -80,22 +74,14 @@ export const ResultViewer: FC<ResultViewerProps> = (props) => {
 									value={paramsState?.queryParams.limit.toString()}
 									onChange={(e) => {
 										if (!isNaN(Number(e.currentTarget.value))) {
-											paramsState?.changeQueryParams(
-												"limit",
-												Number(e.currentTarget.value)
-											);
+											paramsState?.changeQueryParams("limit", Number(e.currentTarget.value));
 										}
 									}}
 								/>
 								<Button
 									size="small"
 									icon={"arrow-right"}
-									onClick={() =>
-										paramsState?.changeQueryParams(
-											"page",
-											paramsState?.queryParams.page + 1
-										)
-									}
+									onClick={() => paramsState?.changeQueryParams("page", paramsState?.queryParams.page + 1)}
 									tooltipOptions={{
 										position: "top",
 										content: "Next page",

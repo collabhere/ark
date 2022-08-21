@@ -6,11 +6,7 @@ export const NDJSONTransform = () => {
 	return new Transform({
 		objectMode: true,
 
-		transform(
-			chunk: Record<string, any>,
-			encoding: string,
-			callback: (err?: Error, value?: string) => void
-		) {
+		transform(chunk: Record<string, any>, encoding: string, callback: (err?: Error, value?: string) => void) {
 			try {
 				const json = ndjsonFormatter(chunk);
 				callback(undefined, json);

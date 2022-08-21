@@ -20,95 +20,55 @@ export interface AdvancedConnectionFormProps {
 }
 
 export const AdvancedConnectionForm = (props: AdvancedConnectionFormProps) => {
+	const { onFormTypeChange, onSaveConnection, onTestConnection } = props;
 
-	const {
-		onFormTypeChange,
-		onSaveConnection,
-		onTestConnection
-	} = props;
+	const [form, setForm] = useState<"connection" | "authentication" | "ssh" | "tls" | "misc">("connection");
 
-	const [form, setForm] = useState<
-		"connection" | "authentication" | "ssh" | "tls" | "misc"
-	>("connection");
-
-	return <div className="advanced-wrapper">
-		<div className="header">
-			<div className="section-header">
-				<Button
-					text="Connection"
-					variant="link"
-					active={form === "connection"}
-					onClick={() => setForm("connection")}
-				/>
+	return (
+		<div className="advanced-wrapper">
+			<div className="header">
+				<div className="section-header">
+					<Button
+						text="Connection"
+						variant="link"
+						active={form === "connection"}
+						onClick={() => setForm("connection")}
+					/>
+				</div>
+				<div className="section-header">
+					<Button
+						text="Authentication"
+						variant="link"
+						active={form === "authentication"}
+						onClick={() => setForm("authentication")}
+					/>
+				</div>
+				<div className="section-header">
+					<Button text="SSH" variant="link" active={form === "ssh"} onClick={() => setForm("ssh")} />
+				</div>
+				<div className="section-header">
+					<Button text="TLS" variant="link" active={form === "tls"} onClick={() => setForm("tls")} />
+				</div>
+				<div className="section-header">
+					<Button text="Misc" variant="link" active={form === "misc"} onClick={() => setForm("misc")} />
+				</div>
 			</div>
-			<div className="section-header">
-				<Button
-					text="Authentication"
-					variant="link"
-					active={form === "authentication"}
-					onClick={() => setForm("authentication")}
-				/>
-			</div>
-			<div className="section-header">
-				<Button
-					text="SSH"
-					variant="link"
-					active={form === "ssh"}
-					onClick={() => setForm("ssh")}
-				/>
-			</div>
-			<div className="section-header">
-				<Button
-					text="TLS"
-					variant="link"
-					active={form === "tls"}
-					onClick={() => setForm("tls")}
-				/>
-			</div>
-			<div className="section-header">
-				<Button
-					text="Misc"
-					variant="link"
-					active={form === "misc"}
-					onClick={() => setForm("misc")}
-				/>
-			</div>
+			{form === "connection" && <FormSectionConnection {...props} />}
+			{form === "authentication" && <FormSectionAuthentication {...props} />}
+			{form === "ssh" && <FormSectionSSH {...props} />}
+			{form === "tls" && <FormSectionTLS {...props} />}
+			{form === "misc" && <FormSectionMisc {...props} />}
+			{
+				<div className="advanced-footer-row">
+					<ButtonGroup className="button-group">
+						<Button text="Back" variant="link" onClick={() => onFormTypeChange("basic")} />
+					</ButtonGroup>
+					<ButtonGroup className="button-group">
+						<Button text="Test" variant="link" onClick={onTestConnection} />
+						<Button text="Save" variant="primary" onClick={onSaveConnection} />
+					</ButtonGroup>
+				</div>
+			}
 		</div>
-		{form === "connection" && (
-			<FormSectionConnection {...props} />
-		)}
-		{form === "authentication" && (
-			<FormSectionAuthentication {...props} />
-		)}
-		{form === "ssh" && (
-			<FormSectionSSH {...props} />
-		)}
-		{form === "tls" && (
-			<FormSectionTLS	{...props} />
-		)}
-		{form === "misc" && (
-			<FormSectionMisc {...props} />
-		)}
-		{<div className="advanced-footer-row">
-			<ButtonGroup className="button-group">
-				<Button
-					text="Back"
-					variant="link"
-					onClick={() => onFormTypeChange("basic")}
-				/>
-			</ButtonGroup>
-			<ButtonGroup className="button-group">
-				<Button
-					text="Test"
-					variant="link"
-					onClick={onTestConnection}
-				/>
-				<Button
-					text="Save"
-					variant="primary"
-					onClick={onSaveConnection}
-				/>
-			</ButtonGroup>
-		</div>}
-	</div>
-}
+	);
+};

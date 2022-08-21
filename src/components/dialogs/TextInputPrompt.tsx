@@ -21,10 +21,7 @@ export const TextInputPrompt: FC<TextInputPromptProps> = ({
 	inputs,
 }) => {
 	const [inputValues, setInputValues] = useState(() =>
-		(inputs || []).reduce(
-			(acc, input) => ((acc[input.key] = input.initialValue || ""), acc),
-			{}
-		)
+		(inputs || []).reduce((acc, input) => ((acc[input.key] = input.initialValue || ""), acc), {}),
 	);
 	return (
 		<Dialog
@@ -45,9 +42,7 @@ export const TextInputPrompt: FC<TextInputPromptProps> = ({
 							value={inputValues[input.key]}
 							onChange={(e) =>
 								setInputValues((state) => {
-									e.target.value
-										? (state[input.key] = e.target.value)
-										: (state[input.key] = "");
+									e.target.value ? (state[input.key] = e.target.value) : (state[input.key] = "");
 									return { ...state };
 								})
 							}

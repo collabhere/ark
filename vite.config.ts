@@ -1,7 +1,7 @@
-import { defineConfig, loadEnv } from "vite";
 import reactRefresh from "@vitejs/plugin-react-refresh";
-import svgr from "vite-plugin-svgr";
+import { defineConfig, loadEnv } from "vite";
 import eslintPlugin from "vite-plugin-eslint";
+import svgr from "vite-plugin-svgr";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {

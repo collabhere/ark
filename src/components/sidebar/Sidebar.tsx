@@ -1,29 +1,21 @@
-import "./styles.less";
 import React, { FC, useCallback, useContext, useEffect } from "react";
-import { dispatch, listenEffect } from "../../common/utils/events";
-import {
-	ConnectionsContext,
-	SettingsContext,
-} from "../layout/BaseContextProvider";
 import { Button } from "../../common/components/Button";
+import { dispatch, listenEffect } from "../../common/utils/events";
+import { ConnectionsContext, SettingsContext } from "../layout/BaseContextProvider";
+import "./styles.less";
 
 export const Sidebar: FC = () => {
-	const { currentSidebarOpened, setCurrentSidebarOpened } =
-		useContext(SettingsContext);
+	const { currentSidebarOpened, setCurrentSidebarOpened } = useContext(SettingsContext);
 	const { connections } = useContext(ConnectionsContext);
 
 	const listConnections = useCallback(() => {
-		if (currentSidebarOpened !== "manager")
-			return setCurrentSidebarOpened("manager");
+		if (currentSidebarOpened !== "manager") return setCurrentSidebarOpened("manager");
 		return setCurrentSidebarOpened("none");
 	}, [currentSidebarOpened, setCurrentSidebarOpened]);
 
 	const switchConnections = useCallback(
 		(connectionId: string) => {
-			if (
-				currentSidebarOpened !== "manager" &&
-				currentSidebarOpened !== "none"
-			) {
+			if (currentSidebarOpened !== "manager" && currentSidebarOpened !== "none") {
 				setCurrentSidebarOpened("none");
 			}
 
@@ -32,7 +24,7 @@ export const Sidebar: FC = () => {
 				setCurrentSidebarOpened(connectionId);
 			}
 		},
-		[currentSidebarOpened, setCurrentSidebarOpened]
+		[currentSidebarOpened, setCurrentSidebarOpened],
 	);
 
 	const calculateInitials = (name: string) => {
@@ -50,7 +42,7 @@ export const Sidebar: FC = () => {
 					cb: () => listConnections(),
 				},
 			]),
-		[listConnections]
+		[listConnections],
 	);
 
 	return (
@@ -68,21 +60,11 @@ export const Sidebar: FC = () => {
 			</div>
 			{connections.map((conn) =>
 				conn.active ? (
-					<div
-						className="item"
-						key={conn.id}
-						onClick={() => switchConnections(conn.id)}
-					>
+					<div className="item" key={conn.id} onClick={() => switchConnections(conn.id)}>
 						{conn.iconFileName ? (
 							<Button
 								active={currentSidebarOpened === conn.id}
-								text={
-									<img
-										src={`ark://icons/${conn.iconFileName}`}
-										width={20}
-										height={20}
-									/>
-								}
+								text={<img src={`ark://icons/${conn.iconFileName}`} width={20} height={20} />}
 								tooltipOptions={{
 									content: conn.name,
 								}}
@@ -92,9 +74,7 @@ export const Sidebar: FC = () => {
 						) : (
 							<Button
 								active={currentSidebarOpened === conn.id}
-								text={
-									<div className="initials">{calculateInitials(conn.name)}</div>
-								}
+								text={<div className="initials">{calculateInitials(conn.name)}</div>}
 								tooltipOptions={{
 									content: conn.name,
 								}}
@@ -105,7 +85,7 @@ export const Sidebar: FC = () => {
 					</div>
 				) : (
 					<></>
-				)
+				),
 			)}
 		</div>
 	);

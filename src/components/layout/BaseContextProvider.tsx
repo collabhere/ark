@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Hotkeys } from "../../common/components/Hotkeys";
 import { TitleBar } from "./Titlebar";
 
@@ -42,8 +42,7 @@ interface PageBodyProps {
 export const BaseContextProvider = (props: PageBodyProps): JSX.Element => {
 	const { children } = props;
 
-	const [currentSidebarOpened, setCurrentSidebarOpened] =
-		useState<string>("none");
+	const [currentSidebarOpened, setCurrentSidebarOpened] = useState<string>("none");
 
 	const [connections, setConnections] = useState<ManagedConnection[]>([]);
 	const [settings, setSettings] = useState<Ark.Settings>({});
@@ -64,9 +63,7 @@ export const BaseContextProvider = (props: PageBodyProps): JSX.Element => {
 					window.ark.getIcon(id),
 				]).then(([connection, icon]) => {
 					setConnections((connections) => {
-						const idx = connections.findIndex(
-							(conn) => conn.id === connection.id
-						);
+						const idx = connections.findIndex((conn) => conn.id === connection.id);
 						if (idx > -1) {
 							connections[idx].active = true;
 							connections[idx].iconFileName = icon.name;
@@ -82,38 +79,34 @@ export const BaseContextProvider = (props: PageBodyProps): JSX.Element => {
 					};
 
 					return managed;
-				})
+				}),
 			);
 	}, []);
 
 	const disconnect = useCallback((id: string) => {
-		return window.ark.driver
-			.run("connection", "disconnect", { id })
-			.then(() => {
-				setConnections((connections) => {
-					const idx = connections.findIndex((c) => c.id === id);
-					if (idx > -1) {
-						connections[idx].active = false;
-						return [...connections];
-					}
-					return connections;
-				});
+		return window.ark.driver.run("connection", "disconnect", { id }).then(() => {
+			setConnections((connections) => {
+				const idx = connections.findIndex((c) => c.id === id);
+				if (idx > -1) {
+					connections[idx].active = false;
+					return [...connections];
+				}
+				return connections;
 			});
+		});
 	}, []);
 
 	const load = useCallback(() => {
-		return window.ark.driver
-			.run("connection", "list", undefined)
-			.then((connections) => {
-				setConnections(
-					connections.map((connection) => {
-						if (connection.active) {
-							connect(connection.id);
-						}
-						return connection;
-					})
-				);
-			});
+		return window.ark.driver.run("connection", "list", undefined).then((connections) => {
+			setConnections(
+				connections.map((connection) => {
+					if (connection.active) {
+						connect(connection.id);
+					}
+					return connection;
+				}),
+			);
+		});
 	}, [connect]);
 
 	const deleteConnectionOnDisk = useCallback(
@@ -124,23 +117,21 @@ export const BaseContextProvider = (props: PageBodyProps): JSX.Element => {
 					disconnect(id);
 				}
 
-				return window.ark.driver
-					.run("connection", "delete", { id: connection.id })
-					.then(() => {
-						setConnections((connections) => {
-							const connectionIdx = connections.findIndex((c) => c.id === id);
-							if (connectionIdx > -1) {
-								connections.splice(connectionIdx, 1);
-								return [...connections];
-							}
-							return connections;
-						});
+				return window.ark.driver.run("connection", "delete", { id: connection.id }).then(() => {
+					setConnections((connections) => {
+						const connectionIdx = connections.findIndex((c) => c.id === id);
+						if (connectionIdx > -1) {
+							connections.splice(connectionIdx, 1);
+							return [...connections];
+						}
+						return connections;
 					});
+				});
 			} else {
 				return Promise.resolve();
 			}
 		},
-		[connections, disconnect]
+		[connections, disconnect],
 	);
 
 	useEffect(() => {

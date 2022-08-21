@@ -26,7 +26,7 @@ export const Browser = (): JSX.Element => {
 		(idx: number) => {
 			setCurrentTab(() => tabs[idx]);
 		},
-		[tabs]
+		[tabs],
 	);
 
 	useEffect(() => {
@@ -36,10 +36,7 @@ export const Browser = (): JSX.Element => {
 	}, [changeCurrentTabWithIdx, currentTab, tabs]);
 
 	const createConnectionFormTab = useCallback(
-		(connectionParams?: {
-			connectionDetails: Ark.StoredConnection;
-			mode?: "edit" | "clone";
-		}) => {
+		(connectionParams?: { connectionDetails: Ark.StoredConnection; mode?: "edit" | "clone" }) => {
 			const id = "cf-" + nanoid();
 			setTabs((tabs) => {
 				const title =
@@ -63,16 +60,14 @@ export const Browser = (): JSX.Element => {
 				return [...tabs, tab];
 			});
 		},
-		[]
+		[],
 	);
 
 	const createEditorTab = useCallback(
 		(args: CreateEditorTabArgs) => {
 			const id = "e-" + nanoid();
 			setTabs((tabs) => {
-				const title = `Untitled-${
-					untitledCount + 1
-				} ${args.shellConfig.name.slice(0, 24)}...`;
+				const title = `Untitled-${untitledCount + 1} ${args.shellConfig.name.slice(0, 24)}...`;
 
 				const tab: EditorTab = {
 					type: "editor",
@@ -88,7 +83,7 @@ export const Browser = (): JSX.Element => {
 			});
 			setUntitledCount((count) => (count += 1));
 		},
-		[untitledCount]
+		[untitledCount],
 	);
 
 	const deleteTab = useCallback(
@@ -112,7 +107,7 @@ export const Browser = (): JSX.Element => {
 				return tabs;
 			});
 		},
-		[changeCurrentTabWithIdx, currentTab]
+		[changeCurrentTabWithIdx, currentTab],
 	);
 
 	/** Register browser event listeners */
@@ -136,7 +131,7 @@ export const Browser = (): JSX.Element => {
 					cb: (e, payload) => deleteTab(payload),
 				},
 			]),
-		[createEditorTab, deleteTab, createConnectionFormTab]
+		[createEditorTab, deleteTab, createConnectionFormTab],
 	);
 
 	return (
@@ -149,8 +144,7 @@ export const Browser = (): JSX.Element => {
 						if (orderedTabs.length) setTabs(orderedTabs);
 					}}
 					onRemove={(tab) => {
-						if (tab.id.startsWith("e-"))
-							return dispatch("browser:delete_tab:editor", { id: tab.id });
+						if (tab.id.startsWith("e-")) return dispatch("browser:delete_tab:editor", { id: tab.id });
 						else if (tab.id.startsWith("cf-"))
 							return dispatch("browser:delete_tab:connection_form", {
 								id: tab.id,

@@ -1,28 +1,20 @@
 import "./styles.less";
 
-import React, {
-	FC,
-	useCallback,
-	useContext,
-	useEffect,
-	useRef,
-	useState,
-} from "react";
-import { Tree, Intent, Icon, IconSize } from "@blueprintjs/core";
-import { Resizable } from "re-resizable";
-import { dispatch, listenEffect } from "../../common/utils/events";
+import { Icon, IconSize, Intent, SpinnerSize, Tree } from "@blueprintjs/core";
+import { IconNames } from "@blueprintjs/icons";
 import { CollectionInfo, ListDatabasesResult } from "mongodb";
-import { useTree } from "../../hooks/useTree";
-import { CircularLoading } from "../../common/components/Loading";
-import { handleErrors, notify } from "../../common/utils/misc";
+import { Resizable } from "re-resizable";
+import React, { FC, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Button } from "../../common/components/Button";
-import { DangerousActionPrompt } from "../dialogs/DangerousActionPrompt";
-import { TextInputPrompt } from "../dialogs/TextInputPrompt";
-import { SpinnerSize } from "@blueprintjs/core";
-import { SettingsContext } from "../layout/BaseContextProvider";
 import { ContextMenu } from "../../common/components/ContextMenu";
 import { DropdownMenu } from "../../common/components/DropdownMenu";
-import { IconNames } from "@blueprintjs/icons";
+import { CircularLoading } from "../../common/components/Loading";
+import { dispatch, listenEffect } from "../../common/utils/events";
+import { handleErrors, notify } from "../../common/utils/misc";
+import { useTree } from "../../hooks/useTree";
+import { DangerousActionPrompt } from "../dialogs/DangerousActionPrompt";
+import { TextInputPrompt } from "../dialogs/TextInputPrompt";
+import { SettingsContext } from "../layout/BaseContextProvider";
 
 type Databases = ListDatabasesResult["databases"];
 type DatabasesWithInformation = (ListDatabasesResult["databases"][0] & {
@@ -35,14 +27,10 @@ interface DatabaseList {
 	personal: DatabasesWithInformation;
 }
 
-type CachedTrees = Record<
-	string,
-	{ dbList: DatabaseList; connection: Ark.StoredConnection }
->;
+type CachedTrees = Record<string, { dbList: DatabaseList; connection: Ark.StoredConnection }>;
 
 const dbTreeKey = (dbName: string) => "database:" + dbName;
-const collectionTreeKey = (collectionName: string, dbName: string) =>
-	"collection:" + collectionName + ";" + dbName;
+const collectionTreeKey = (collectionName: string, dbName: string) => "collection:" + collectionName + ";" + dbName;
 const readKey = (key: string) => {
 	const [type, rhs] = key.split(":");
 	const [value, ctx] = rhs.split(";");
@@ -100,8 +88,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 	});
 	const [cachedConnections, setCachedConnections] = useState<CachedTrees>({});
 
-	const { tree, updateNodeProperties, createNode, addNodeAtEnd, dropTree } =
-		useTree();
+	const { tree, updateNodeProperties, createNode, addNodeAtEnd, dropTree } = useTree();
 
 	const updateCachedConnection = useCallback(
 		(storedConnection: Ark.StoredConnection, dbList: DatabaseList) => {
@@ -114,10 +101,10 @@ export const Explorer: FC<ExplorerProps> = () => {
 								connection: storedConnection,
 							},
 					  }
-					: map
+					: map,
 			);
 		},
-		[storedConnectionId]
+		[storedConnectionId],
 	);
 
 	const updateCachedConnectionDBListEntry = useCallback(
@@ -134,7 +121,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 				}
 			}
 		},
-		[cachedConnections, storedConnectionId, updateCachedConnection]
+		[cachedConnections, storedConnectionId, updateCachedConnection],
 	);
 
 	const switchConnections = useCallback((args: { connectionId: string }) => {
@@ -153,7 +140,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 				disabled: loading,
 			});
 		},
-		[updateNodeProperties]
+		[updateNodeProperties],
 	);
 
 	const openShell = useCallback(
@@ -176,7 +163,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 					});
 				});
 		},
-		[storedConnectionId]
+		[storedConnectionId],
 	);
 
 	const setCollectionListToTree = useCallback(
@@ -210,28 +197,19 @@ export const Explorer: FC<ExplorerProps> = () => {
 					collectionTreeKey(collection.name, db),
 					[],
 					{
-						icon: (
-							<Icon
-								icon={IconNames.Th}
-								className={"node-icon"}
-								size={IconSize.STANDARD}
-							/>
-						),
+						icon: <Icon icon={IconNames.Th} className={"node-icon"} size={IconSize.STANDARD} />,
 						hasCaret: false,
-					}
+					},
 				);
 			});
 
 			return children;
 		},
-		[createNode, openShell]
+		[createNode, openShell],
 	);
 
 	const setDatabaseListToTree = useCallback(
-		(databases: {
-			system: DatabasesWithInformation;
-			personal: DatabasesWithInformation;
-		}) => {
+		(databases: { system: DatabasesWithInformation; personal: DatabasesWithInformation }) => {
 			const { system, personal } = databases;
 
 			const createOverlayElements = (db) => [
@@ -270,8 +248,8 @@ export const Explorer: FC<ExplorerProps> = () => {
 						icon: <Icon icon={IconNames.Database} className="node-icon" />,
 						hasCaret: !!(db.collections && db.collections.length > 0),
 						isExpanded: expandedKeys && expandedKeys.includes(db.key),
-					}
-				)
+					},
+				),
 			);
 
 			addNodeAtEnd(
@@ -283,7 +261,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 				{
 					icon: <Icon icon={IconNames.FolderOpen} className="node-icon" />,
 					isExpanded: expandedKeys && expandedKeys.includes("folder;system"),
-				}
+				},
 			);
 
 			for (const db of personal) {
@@ -299,11 +277,11 @@ export const Explorer: FC<ExplorerProps> = () => {
 						icon: <Icon icon={IconNames.Database} className="node-icon" />,
 						hasCaret: !!(db.collections && db.collections.length > 0),
 						isExpanded: expandedKeys && expandedKeys.includes(db.key),
-					}
+					},
 				);
 			}
 		},
-		[setCollectionListToTree, addNodeAtEnd, createNode, openShell, expandedKeys]
+		[setCollectionListToTree, addNodeAtEnd, createNode, openShell, expandedKeys],
 	);
 
 	const fetchAndCacheCollections = useCallback(
@@ -324,7 +302,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 						})
 				: Promise.resolve();
 		},
-		[storedConnectionId, updateCachedConnectionDBListEntry]
+		[storedConnectionId, updateCachedConnectionDBListEntry],
 	);
 
 	const fetchAndCacheDatabases = useCallback(
@@ -338,14 +316,11 @@ export const Explorer: FC<ExplorerProps> = () => {
 				}),
 			]).then(([databases, storedConnection]) => {
 				if (databases && databases.length && storedConnection) {
-					updateCachedConnection(
-						storedConnection,
-						createDatabaseList(databases)
-					);
+					updateCachedConnection(storedConnection, createDatabaseList(databases));
 				}
 			});
 		},
-		[updateCachedConnection]
+		[updateCachedConnection],
 	);
 
 	const refresh = useCallback(() => {
@@ -359,11 +334,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 
 	/* Load base tree */
 	useEffect(() => {
-		if (
-			storedConnectionId &&
-			storedConnectionIdRef &&
-			storedConnectionIdRef.current !== storedConnectionId
-		) {
+		if (storedConnectionId && storedConnectionIdRef && storedConnectionIdRef.current !== storedConnectionId) {
 			if (cachedConnections && cachedConnections[storedConnectionId]) {
 				setDatabaseListToTree(cachedConnections[storedConnectionId].dbList);
 			} else {
@@ -373,13 +344,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 		return () => {
 			dropTree();
 		};
-	}, [
-		fetchAndCacheDatabases,
-		setDatabaseListToTree,
-		cachedConnections,
-		dropTree,
-		storedConnectionId,
-	]);
+	}, [fetchAndCacheDatabases, setDatabaseListToTree, cachedConnections, dropTree, storedConnectionId]);
 
 	/** Register explorer event listeners */
 	useEffect(
@@ -390,7 +355,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 					cb: (e, payload) => switchConnections(payload),
 				},
 			]),
-		[switchConnections]
+		[switchConnections],
 	);
 
 	const explorerHeaderMenu = [
@@ -434,8 +399,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 					<>
 						<div className={"explorer-header"}>
 							<div className={"explorer-header-title"}>
-								{cachedConnections[storedConnectionId] &&
-									cachedConnections[storedConnectionId].connection.name}
+								{cachedConnections[storedConnectionId] && cachedConnections[storedConnectionId].connection.name}
 							</div>
 							<div className={"explorer-header-menu"}>
 								<Button
@@ -459,9 +423,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 								setExpandedKeys((keys) => [...keys, node.id as string]);
 							}}
 							onNodeCollapse={(node) => {
-								setExpandedKeys((keys) =>
-									keys.filter((key) => key !== node.id)
-								);
+								setExpandedKeys((keys) => keys.filter((key) => key !== node.id));
 							}}
 							onNodeDoubleClick={(node) => {
 								const key = node.id as string;
@@ -496,11 +458,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 						<DangerousActionPrompt
 							confirmButtonText="Drop"
 							title={"Dropping '" + dropDatabaseDialogInfo.database + "'"}
-							prompt={
-								"Are you sure you would like to drop the database '" +
-								dropDatabaseDialogInfo.database +
-								"'?"
-							}
+							prompt={"Are you sure you would like to drop the database '" + dropDatabaseDialogInfo.database + "'?"}
 							onCancel={() => {
 								setDropDatabaseDialogInfo({
 									database: "",
@@ -569,8 +527,7 @@ export const Explorer: FC<ExplorerProps> = () => {
 									console.error(err);
 									notify({
 										title: "Database action",
-										description:
-											"An error occured while dropping the collection",
+										description: "An error occured while dropping the collection",
 										type: "error",
 									});
 								} else if (result) {

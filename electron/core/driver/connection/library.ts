@@ -1,23 +1,23 @@
-import { MongoClient, MongoClientOptions } from "mongodb";
+import axios from "axios";
+import { Buffer } from "buffer";
+import * as crypto from "crypto";
 import type { SrvRecord } from "dns";
 import { promises as netPromises } from "dns";
+import { MongoClient, MongoClientOptions } from "mongodb";
+import mongoUri from "mongodb-uri";
 import { nanoid } from "nanoid";
 import path from "path";
-import mongoUri from "mongodb-uri";
-import * as crypto from "crypto";
-import axios from "axios";
 import tunnel, { Config } from "tunnel-ssh";
-import { Buffer } from "buffer";
 
-import { ARK_FOLDER_PATH } from "../../../utils/constants";
-import { Connection } from ".";
 import { readFile } from "fs/promises";
+import { Connection } from ".";
+import { ARK_FOLDER_PATH } from "../../../utils/constants";
 
 const ARK_CRT_PATH = path.join(ARK_FOLDER_PATH, "certs", "ark.crt");
 
 export const sshTunnel = async (
 	sshConfig: Ark.StoredConnection["ssh"],
-	hosts: Ark.StoredConnection["hosts"]
+	hosts: Ark.StoredConnection["hosts"],
 ): Promise<ReturnType<typeof tunnel> | void> => {
 	if (!sshConfig) {
 		return;
@@ -55,15 +55,8 @@ export const sshTunnel = async (
 };
 
 export const getConnectionUri = async (
-	{
-		hosts,
-		database = "admin",
-		username,
-		password,
-		options,
-		iv,
-	}: Ark.StoredConnection,
-	encryptionKey?: Ark.Settings["encryptionKey"]
+	{ hosts, database = "admin", username, password, options, iv }: Ark.StoredConnection,
+	encryptionKey?: Ark.Settings["encryptionKey"],
 ) => {
 	const pwd =
 		password && iv && encryptionKey?.value && encryptionKey?.type
@@ -95,7 +88,7 @@ export interface URIConfiguration {
 
 export function isURITypeConfig(
 	type: "uri" | "config",
-	config: URIConfiguration | Ark.StoredConnection
+	config: URIConfiguration | Ark.StoredConnection,
 ): config is URIConfiguration {
 	return type === "uri";
 }
@@ -115,7 +108,7 @@ export interface GetConnectionResult {
 }
 
 export const getReplicaSetDetails = async (
-	client: MongoClient
+	client: MongoClient,
 ): Promise<GetConnectionResult["replicaSetDetails"] | void> => {
 	const connection = await client.connect();
 	const admin = connection.db().admin();
@@ -135,10 +128,7 @@ export const getReplicaSetDetails = async (
 	}
 };
 
-export const encrypt = async (
-	password: string,
-	encryptionKey?: Ark.Settings["encryptionKey"]
-) => {
+export const encrypt = async (password: string, encryptionKey?: Ark.Settings["encryptionKey"]) => {
 	const key =
 		encryptionKey?.type === "url" && encryptionKey?.value
 			? (await axios.get(encryptionKey?.value)).data
@@ -147,24 +137,15 @@ export const encrypt = async (
 			: undefined;
 
 	const iv = crypto.randomBytes(16);
-	const cipherKey = crypto.createSecretKey(
-		Buffer.from(key, "hex").toString("hex"),
-		"hex"
-	);
+	const cipherKey = crypto.createSecretKey(Buffer.from(key, "hex").toString("hex"), "hex");
 	const cipher = crypto.createCipheriv("aes-256-cbc", cipherKey, iv);
 	return {
-		pwd:
-			password &&
-			Buffer.concat([cipher.update(password), cipher.final()]).toString("hex"),
+		pwd: password && Buffer.concat([cipher.update(password), cipher.final()]).toString("hex"),
 		iv: iv.toString("hex"),
 	};
 };
 
-export const decrypt = async (
-	password: string,
-	encryptionKey: Ark.Settings["encryptionKey"],
-	iv: string
-) => {
+export const decrypt = async (password: string, encryptionKey: Ark.Settings["encryptionKey"], iv: string) => {
 	try {
 		const key =
 			encryptionKey?.type === "url" && encryptionKey?.value
@@ -173,16 +154,9 @@ export const decrypt = async (
 				? await readFile(encryptionKey.value)
 				: undefined;
 
-		const secret = crypto.createSecretKey(
-			Buffer.from(key, "hex").toString(),
-			"hex"
-		);
+		const secret = crypto.createSecretKey(Buffer.from(key, "hex").toString(), "hex");
 
-		const decipher = crypto.createDecipheriv(
-			"aes-256-cbc",
-			secret,
-			Buffer.from(iv, "hex")
-		);
+		const decipher = crypto.createDecipheriv("aes-256-cbc", secret, Buffer.from(iv, "hex"));
 		return decipher.update(password, "hex", "utf8") + decipher.final("utf8");
 	} catch (err) {
 		console.log("broken_password");
@@ -193,7 +167,7 @@ export const decrypt = async (
 
 export const createConnectionConfigurations = async (
 	{ type, config }: Parameters<Connection["save"]>[1],
-	encryptionKey: Ark.Settings["encryptionKey"]
+	encryptionKey: Ark.Settings["encryptionKey"],
 ): Promise<Ark.StoredConnection> => {
 	const options: MongoClientOptions = {};
 	let hosts: Ark.StoredConnection["hosts"] | undefined;
@@ -207,9 +181,10 @@ export const createConnectionConfigurations = async (
 		if (parsedUri.scheme.includes("+srv")) {
 			const hostdetails = parsedUri.hosts[0];
 
-			hosts = (await lookupSRV(`_mongodb._tcp.${hostdetails.host}`)).map(
-				(record) => ({ host: record.name, port: record.port || 27017 })
-			);
+			hosts = (await lookupSRV(`_mongodb._tcp.${hostdetails.host}`)).map((record) => ({
+				host: record.name,
+				port: record.port || 27017,
+			}));
 
 			if (hosts && hosts.length > 0) {
 				const client = new MongoClient(config.uri);
@@ -242,9 +217,7 @@ export const createConnectionConfigurations = async (
 			}));
 		}
 
-		const encryption = parsedUri.password
-			? await encrypt(parsedUri.password, encryptionKey)
-			: undefined;
+		const encryption = parsedUri.password ? await encrypt(parsedUri.password, encryptionKey) : undefined;
 
 		return {
 			id,
@@ -272,9 +245,7 @@ export const createConnectionConfigurations = async (
 			config.options = { ...opts };
 		}
 
-		const encryption = config.password
-			? await encrypt(config.password, encryptionKey)
-			: undefined;
+		const encryption = config.password ? await encrypt(config.password, encryptionKey) : undefined;
 
 		return {
 			...config,

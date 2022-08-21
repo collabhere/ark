@@ -1,16 +1,16 @@
-import type { Connection, Database } from "./electron/core/driver";
 import type { MongoClientOptions } from "@mongosh/service-provider-core";
+import { ObjectId } from "bson";
+import type { Connection, Database } from "./electron/core/driver";
+import { Query } from "./electron/core/driver/query";
+import type { ShellEvalResult } from "./electron/core/shell-manager/types";
+import type { DiskStore } from "./electron/core/stores/disk";
 import type { MemoryStore } from "./electron/core/stores/memory";
 import type {
 	MemEntry,
+	ScriptOpenActionData,
 	ScriptSaveActionData,
 	ScriptSaveAsActionData,
-	ScriptOpenActionData,
 } from "./electron/modules/ipc/types";
-import type { ShellEvalResult } from "./electron/core/shell-manager/types";
-import type { DiskStore } from "./electron/core/stores/disk";
-import { ObjectId } from "bson";
-import { Query } from "./electron/core/driver/query";
 
 declare global {
 	namespace Ark {
@@ -114,18 +114,14 @@ declare global {
 			run<D extends keyof Database>(
 				library: "database",
 				action: D,
-				arg: Parameters<Database[D]>[1]
+				arg: Parameters<Database[D]>[1],
 			): ReturnType<Database[D]>;
 			run<C extends keyof Connection>(
 				library: "connection",
 				action: C,
-				arg: Parameters<Connection[C]>[1]
+				arg: Parameters<Connection[C]>[1],
 			): ReturnType<Connection[C]>;
-			run<Q extends keyof Query>(
-				library: "query",
-				action: Q,
-				arg: Parameters<Query[Q]>[1]
-			): ReturnType<Query[Q]>;
+			run<Q extends keyof Query>(library: "query", action: Q, arg: Parameters<Query[Q]>[1]): ReturnType<Query[Q]>;
 		}
 
 		interface ShellConfig {
@@ -161,18 +157,14 @@ declare global {
 			create: (
 				contextDB: string,
 				storedConnectionId: string,
-				encryptionKey?: Settings["encryptionKey"]
+				encryptionKey?: Settings["encryptionKey"],
 			) => Promise<{ id: string }>;
 			destroy: (uri: string) => Promise<{ id: string }>;
-			eval: (
-				shellId: string,
-				code: string,
-				options: QueryOptions
-			) => Promise<ShellEvalResult>;
+			eval: (shellId: string, code: string, options: QueryOptions) => Promise<ShellEvalResult>;
 			export: (
 				shellId: string,
 				code: string,
-				options: ExportCsvOptions | ExportNdjsonOptions
+				options: ExportCsvOptions | ExportNdjsonOptions,
 			) => Promise<{ exportPath: string }>;
 		}
 		interface Titlebar {
@@ -182,9 +174,7 @@ declare global {
 		}
 
 		interface Scripts {
-			open(
-				params: ScriptOpenActionData["params"]
-			): Promise<{ code: string; script: StoredScript }>;
+			open(params: ScriptOpenActionData["params"]): Promise<{ code: string; script: StoredScript }>;
 			save(params: ScriptSaveActionData["params"]): Promise<StoredScript>;
 			saveAs(params: ScriptSaveAsActionData["params"]): Promise<StoredScript>;
 			delete(scriptId: string): Promise<void>;
@@ -196,21 +186,11 @@ declare global {
 		}
 
 		interface Context {
-			browseForDirs: (
-				title?: string,
-				buttonLabel?: string
-			) => Promise<{ dirs: string[] }>;
-			browseForFile: (
-				title?: string,
-				buttonLabel?: string
-			) => Promise<{ path: string }>;
+			browseForDirs: (title?: string, buttonLabel?: string) => Promise<{ dirs: string[] }>;
+			browseForFile: (title?: string, buttonLabel?: string) => Promise<{ path: string }>;
 			copyText(text: string): void;
 			getIcon(id: string): Promise<StoredIcon>;
-			copyIcon(
-				cacheFolder: string,
-				name: string,
-				path: string
-			): Promise<{ path: string }>;
+			copyIcon(cacheFolder: string, name: string, path: string): Promise<{ path: string }>;
 			rmIcon(path: string): Promise<void>;
 			scripts: Scripts;
 			driver: {
