@@ -66,11 +66,11 @@ export const Button: FC<ButtonProps> = (props) => {
 				disabled
 					? "button-base button-disabled" + " " + "button-text-size-" + size
 					: "button-base button-" +
-					  variant +
-					  " " +
-					  "button-text-size-" +
-					  size +
-					  (outlined ? " button-outlined" : "")
+					variant +
+					" " +
+					"button-text-size-" +
+					size +
+					(outlined ? " button-outlined" : "")
 			}
 			disabled={loading || disabled}
 			onClick={(e) => {
@@ -106,7 +106,7 @@ export const Button: FC<ButtonProps> = (props) => {
 		baseButton
 	);
 
-	const buttonWithPopoversAndDropdown = dropdownOptions ? (
+	const buttonWithPopoversAndDropdown = dropdownOptions && !disabled ? (
 		<Popover2 {...dropdownOptions} minimal>
 			{buttonWithTooltips}
 		</Popover2>

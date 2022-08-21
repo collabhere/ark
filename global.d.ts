@@ -1,9 +1,8 @@
 import type { Connection, Database } from "./electron/core/driver";
-import type { MongoClientOptions } from "@mongosh/service-provider-server";
+import type { MongoClientOptions } from "@mongosh/service-provider-core";
 import type { MemoryStore } from "./electron/core/stores/memory";
 import type {
 	MemEntry,
-	StoredScript,
 	ScriptSaveActionData,
 	ScriptSaveAsActionData,
 	ScriptOpenActionData,
@@ -45,25 +44,28 @@ declare global {
 			id: string;
 			name: string;
 			protocol: string;
-			hosts: Array<string>;
+			hosts: Array<{ host: string; port: number }>;
 			database?: string;
 			username?: string;
 			iv?: string;
 			password?: string;
 			icon?: boolean;
 			type: "directConnection" | "replicaSet";
+			/** mongodb driver options. picked keys from interface: MongoClientOptions */
 			options: Pick<
 				MongoClientOptions,
 				| "authSource"
 				| "retryWrites"
-				| "tls"
-				| "tlsCertificateFile"
 				| "w"
 				| "replicaSet"
 				| "authMechanism"
-				| "tlsCertificateKeyFilePassword"
+				| "tls"
 				| "tlsCAFile"
+				| "tlsCertificateFile"
+				| "tlsCertificateKeyFile"
+				| "tlsCertificateKeyFilePassword"
 			>;
+			tlsMethod?: "ca-certificate" | "self-signed";
 			ssh: {
 				useSSH?: boolean;
 				host?: string;
@@ -223,10 +225,11 @@ declare global {
 		interface Settings {
 			timezone?: "local" | "utc";
 			shellTimeout?: number;
-			lineNumbers?: "on" | "off";
-			miniMap?: "on" | "off";
-			autoUpdates?: "on" | "off";
-			hotKeys?: "on" | "off";
+			lineNumbers?: boolean;
+			miniMap?: boolean;
+			autoUpdates?: boolean;
+			hotKeys?: boolean;
+			showEditorHelpText?: boolean;
 			encryptionKey?: {
 				type: "file" | "url";
 				source: "generated" | "userDefined";
@@ -237,4 +240,15 @@ declare global {
 	interface Window {
 		ark: Ark.Context;
 	}
+
+	/**
+	 * Add more functions as required.
+	 * https://doorbell.io/docs/javascript
+	 */
+	interface Doorbell {
+		// shows feedback dialog
+		show(): void;
+	}
+
+	const doorbell: Doorbell;
 }

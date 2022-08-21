@@ -15,6 +15,8 @@ import {
 	DropdownMenu,
 } from "../../common/components/DropdownMenu";
 
+import { ReactComponent as Logo } from "../../assets/logo_outline.svg";
+
 export interface EncryptionKey {
 	source: "userDefined" | "generated";
 	type: "file" | "url";
@@ -30,13 +32,6 @@ export const TitleBar = (): JSX.Element => {
 
 	const [openScriptPath, setOpenScriptPath] = useState("");
 	const [timeoutDialog, setTimeoutDialog] = useState(false);
-	const [localSettings, setLocalsettings] = useState({
-		shellTimeout: "120",
-		lineNumbers: true,
-		miniMap: false,
-		autoUpdates: true,
-		hotKeys: true,
-	});
 
 	const [secretKeyDialog, showSecretKeyDialog] = useState(false);
 	const [encryptionKey, setEncryptionKey] = useState<EncryptionKey>({
@@ -45,9 +40,9 @@ export const TitleBar = (): JSX.Element => {
 		keyFile:
 			settings?.encryptionKey?.type === "file"
 				? settings.encryptionKey.value
-						.split(PATH_SEPARATOR)
-						.slice(0, -1)
-						.join(PATH_SEPARATOR)
+					.split(PATH_SEPARATOR)
+					.slice(0, -1)
+					.join(PATH_SEPARATOR)
 				: "",
 		url:
 			settings?.encryptionKey?.type === "url"
@@ -64,22 +59,6 @@ export const TitleBar = (): JSX.Element => {
 			showSecretKeyDialog(true);
 		}
 	}, [settings]);
-
-	useEffect(() => {
-		setLocalsettings({
-			shellTimeout: settings?.shellTimeout?.toString() || "120",
-			lineNumbers: settings?.lineNumbers === "off" ? false : true,
-			miniMap: settings?.miniMap === "on" ? true : false,
-			autoUpdates: settings?.autoUpdates === "off" ? false : true,
-			hotKeys: settings?.hotKeys === "off" ? false : true,
-		});
-	}, [
-		settings?.autoUpdates,
-		settings?.hotKeys,
-		settings?.lineNumbers,
-		settings?.miniMap,
-		settings?.shellTimeout,
-	]);
 
 	const changeSettings = useCallback(
 		function <T extends keyof Ark.Settings>(
@@ -115,8 +94,8 @@ export const TitleBar = (): JSX.Element => {
 			const encryptionKeyPromise =
 				encryptionKey.source === "generated" || forceCreate
 					? window.ark.driver.run("connection", "createEncryptionKey", {
-							path: !forceCreate ? encryptionKey.keyFile : "",
-					  })
+						path: !forceCreate ? encryptionKey.keyFile : "",
+					})
 					: Promise.resolve("");
 
 			encryptionKeyPromise.then((path: string) => {
@@ -127,8 +106,8 @@ export const TitleBar = (): JSX.Element => {
 						encryptionKey.type === "url"
 							? encryptionKey.url
 							: encryptionKey.source === "userDefined"
-							? encryptionKey.keyFile
-							: path,
+								? encryptionKey.keyFile
+								: path,
 				});
 			});
 		},
@@ -354,7 +333,10 @@ export const TitleBar = (): JSX.Element => {
 				</Dialog>
 			)}
 			<div className="header-container">
-				<div className="logo">Ark</div>
+				<div className="logo">
+					<Logo width={"2.5rem"} height={"2.5rem"} opacity="80%" />
+					{/* Ark */}
+				</div>
 				<DropdownMenu
 					position="bottom-right"
 					items={[
@@ -415,14 +397,11 @@ export const TitleBar = (): JSX.Element => {
 										marginRight: 0,
 										marginBottom: 0,
 									}}
-									checked={localSettings.lineNumbers}
+									checked={settings?.lineNumbers}
 									label={"Show Line Numbers"}
 									onChange={(e) => {
-										const showLineNumbers = (e.target as HTMLInputElement)
-											.checked
-											? "on"
-											: "off";
-										changeSettings("lineNumbers", showLineNumbers);
+										const flag = !!(e.target as HTMLInputElement).checked;
+										changeSettings("lineNumbers", flag);
 									}}
 								/>
 							),
@@ -435,13 +414,11 @@ export const TitleBar = (): JSX.Element => {
 										marginRight: 0,
 										marginBottom: 0,
 									}}
-									checked={localSettings.miniMap}
+									checked={settings?.miniMap}
 									label={"Show Mini Map"}
 									onChange={(e) => {
-										const showMiniMap = (e.target as HTMLInputElement).checked
-											? "on"
-											: "off";
-										changeSettings("miniMap", showMiniMap);
+										const flag = !!(e.target as HTMLInputElement).checked;
+										changeSettings("miniMap", flag);
 									}}
 								/>
 							),
@@ -454,18 +431,41 @@ export const TitleBar = (): JSX.Element => {
 										marginRight: 0,
 										marginBottom: 0,
 									}}
-									checked={localSettings.hotKeys}
+									checked={settings?.hotKeys}
 									label={"Enable Hot Keys"}
 									onChange={(e) => {
-										const enableHotkeys = (e.target as HTMLInputElement).checked
-											? "on"
-											: "off";
-										changeSettings("hotKeys", enableHotkeys);
+										const flag = !!(e.target as HTMLInputElement).checked;
+										changeSettings("hotKeys", flag);
+									}}
+								/>
+							),
+						},
+						{
+							key: "editor_help",
+							text: (
+								<Checkbox
+									style={{
+										marginRight: 0,
+										marginBottom: 0,
+									}}
+									checked={!!settings?.showEditorHelpText}
+									label={"Help Comment"}
+									onChange={(e) => {
+										const flag = !!(e.target as HTMLInputElement).checked;
+										changeSettings("showEditorHelpText", flag);
 									}}
 								/>
 							),
 						},
 						{ divider: true, key: "divider_three" },
+						{
+							text: "Feedback / Issues",
+							onClick: () => {
+								doorbell.show();
+							},
+							icon: "volume-up",
+							key: "user_feedback",
+						},
 						{
 							intent: "danger",
 							text: "Exit",
@@ -511,7 +511,7 @@ export const TitleBar = (): JSX.Element => {
 					confirmButtonText="Change"
 					onCancel={() => setTimeoutDialog(false)}
 					onConfirm={() => {
-						const timeout = Number(localSettings.shellTimeout);
+						const timeout = Number(settings?.shellTimeout);
 						if (isNaN(timeout)) {
 							return notify({
 								description: "Timeout must be a number!",
@@ -526,12 +526,9 @@ export const TitleBar = (): JSX.Element => {
 				>
 					<div>
 						<InputGroup
-							value={localSettings.shellTimeout.toString()}
+							value={settings?.shellTimeout?.toString()}
 							onChange={(event) =>
-								setLocalsettings((ls) => ({
-									...ls,
-									shellTimeout: event.target.value,
-								}))
+								changeSettings("shellTimeout", parseInt(event.target.value))
 							}
 							placeholder={"Shell timeout (in seconds)"}
 						/>

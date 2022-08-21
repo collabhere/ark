@@ -6,7 +6,7 @@ import { Editor, EditorProps } from "../panes/editor/Editor";
 import {
 	ConnectionForm,
 	ConnectionFormProps,
-} from "../panes/connection-form/ConnectionForm";
+} from "../panes/connection-form";
 
 export interface BaseTab {
 	title: string;

@@ -27,9 +27,9 @@ export const PlainTextViewer: FC<JSONViewerProps> = (props) => {
 					options={{
 						readOnly: true,
 						scrollBeyondLastLine: false,
-						lineNumbers: settings?.lineNumbers === "off" ? "off" : "on",
+						lineNumbers: settings?.lineNumbers ? "on" : "off",
 						minimap: {
-							enabled: settings?.miniMap === "on" ? true : false,
+							enabled: !!settings?.miniMap,
 						},
 					}}
 					theme={"ark"}

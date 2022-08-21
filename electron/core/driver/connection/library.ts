@@ -2,7 +2,7 @@ import { MongoClient, MongoClientOptions } from "mongodb";
 import type { SrvRecord } from "dns";
 import { promises as netPromises } from "dns";
 import { nanoid } from "nanoid";
-import path, { dirname, resolve } from "path";
+import path from "path";
 import mongoUri from "mongodb-uri";
 import * as crypto from "crypto";
 import axios from "axios";
@@ -13,18 +13,18 @@ import { ARK_FOLDER_PATH } from "../../../utils/constants";
 import { Connection } from ".";
 import { readFile } from "fs/promises";
 
+const ARK_CRT_PATH = path.join(ARK_FOLDER_PATH, "certs", "ark.crt");
+
 export const sshTunnel = async (
 	sshConfig: Ark.StoredConnection["ssh"],
-	hosts: Array<string>
+	hosts: Ark.StoredConnection["hosts"]
 ): Promise<ReturnType<typeof tunnel> | void> => {
 	if (!sshConfig) {
 		return;
 	}
 
-	const host = hosts[0].split(":")[0];
-	const port = hosts[0].split(":")[1]
-		? Number(hosts[0].split(":")[1])
-		: undefined;
+	const host = hosts[0].host;
+	const port = hosts[0].port;
 
 	const tunnelConfig: Config = {
 		username: sshConfig.username,
@@ -71,13 +71,12 @@ export const getConnectionUri = async (
 			: password;
 
 	const uri = mongoUri.format({
-		hosts: hosts.map((host) => ({
-			host: host.split(":")[0],
-			port: host.split(":")[1] ? parseInt(host.split(":")[1]) : undefined,
-		})),
 		scheme: "mongodb",
+		hosts,
 		database,
-		options,
+		// Gets rid of undefined fields because this module
+		// was keeping them in the querystring
+		options: JSON.parse(JSON.stringify(options)),
 		username,
 		password: pwd,
 	});
@@ -98,8 +97,7 @@ export function isURITypeConfig(
 	type: "uri" | "config",
 	config: URIConfiguration | Ark.StoredConnection
 ): config is URIConfiguration {
-	if (type === "uri") return true;
-	return false;
+	return type === "uri";
 }
 
 export interface ReplicaSetMember {
@@ -198,19 +196,24 @@ export const createConnectionConfigurations = async (
 	encryptionKey: Ark.Settings["encryptionKey"]
 ): Promise<Ark.StoredConnection> => {
 	const options: MongoClientOptions = {};
-	let hosts: Array<string>;
+	let hosts: Ark.StoredConnection["hosts"] | undefined;
 
 	if (isURITypeConfig(type, config)) {
 		const id = nanoid();
+		let tlsMethod;
+
 		const parsedUri = mongoUri.parse(config.uri);
+
 		if (parsedUri.scheme.includes("+srv")) {
 			const hostdetails = parsedUri.hosts[0];
+
 			hosts = (await lookupSRV(`_mongodb._tcp.${hostdetails.host}`)).map(
-				(record) => `${record.name}:${record.port || 27017}`
+				(record) => ({ host: record.name, port: record.port || 27017 })
 			);
 
 			if (hosts && hosts.length > 0) {
 				const client = new MongoClient(config.uri);
+
 				const replicaSetDetails = await getReplicaSetDetails(client);
 
 				if (replicaSetDetails && replicaSetDetails.set) {
@@ -218,17 +221,25 @@ export const createConnectionConfigurations = async (
 				}
 			}
 
-			options.tls = true;
-			options.tlsCertificateFile = path.join(
-				ARK_FOLDER_PATH,
-				"certs",
-				"ark.crt"
-			);
-			options.authSource = "admin";
+			if (parsedUri.options) {
+				const { tls, tlsCertificateFile, authSource } = parsedUri.options;
+
+				if (!authSource) {
+					options.authSource = "admin";
+				}
+
+				// if the uri requests tls and doesn't provide a certificate path
+				// we use a self-signed certificate.
+				if (tls && !tlsCertificateFile) {
+					tlsMethod = "self-signed" as const;
+					options.tlsCertificateFile = ARK_CRT_PATH;
+				}
+			}
 		} else {
-			hosts = parsedUri.hosts.map(
-				(host) => `${host.host}:${host.port || 27017}`
-			);
+			hosts = parsedUri.hosts.map((host) => ({
+				host: host.host,
+				port: host.port || 27017,
+			}));
 		}
 
 		const encryption = parsedUri.password
@@ -247,23 +258,13 @@ export const createConnectionConfigurations = async (
 			database: parsedUri.database,
 			options: { ...parsedUri.options, ...options },
 			ssh: { useSSH: false },
+			tlsMethod: tlsMethod,
 		};
 	} else {
 		const id = config.id || nanoid();
 
-		if (!config.options.tls) {
-			const {
-				tls: _,
-				tlsCertificateFile: __,
-				...formattedOptions
-			} = config.options;
-			config.options = { ...formattedOptions };
-		} else if (config.options.tls && !config.options.tlsCertificateFile) {
-			config.options.tlsCertificateFile = path.join(
-				ARK_FOLDER_PATH,
-				"certs",
-				"ark.crt"
-			);
+		if (config.options.tls && config.tlsMethod === "self-signed") {
+			config.options.tlsCertificateFile = ARK_CRT_PATH;
 		}
 
 		if (!config.username) {

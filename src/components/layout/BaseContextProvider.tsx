@@ -149,7 +149,7 @@ export const BaseContextProvider = (props: PageBodyProps): JSX.Element => {
 			.then((settings) => {
 				if (settings) {
 					setSettings(settings);
-					setEnableHotkeys(settings.hotKeys !== "off");
+					setEnableHotkeys(!!settings.hotKeys);
 				}
 				setSettingsFetched(true);
 			})

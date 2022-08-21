@@ -5,7 +5,7 @@ import { MONACO_COMMANDS, Shell } from "../../shell/Shell";
 import { Resizable } from "re-resizable";
 
 import { dispatch, listenEffect } from "../../../common/utils/events";
-import { handleErrors, notify } from "../../../common/utils/misc";
+import { handleErrors, hostToString, notify } from "../../../common/utils/misc";
 import { ResultViewer, ResultViewerProps } from "./result-viewer/ResultViewer";
 import { Button } from "../../../common/components/Button";
 import { CircularLoading } from "../../../common/components/Loading";
@@ -13,7 +13,8 @@ import { useRefresh } from "../../../hooks/useRefresh";
 import { bsonTest } from "../../../../util/misc";
 import { useContext } from "react";
 import { SettingsContext } from "../../layout/BaseContextProvider";
-import { Menu, MenuItem, Tag } from "@blueprintjs/core";
+import { Tag, Menu } from "@blueprintjs/core";
+import { MenuItem2 } from "@blueprintjs/popover2";
 import { ExportQueryResult } from "../../dialogs/ExportQueryResult";
 import { useDebounce } from "../../../hooks/useDebounce";
 import { EditorTab } from "../../browser/Tabs";
@@ -23,12 +24,18 @@ const EDITOR_HELP_COMMENT = `/**
 * 
 * Welcome to Ark's script editor.
 * 
+* You can start off with writing code the same way you would in mongosh shell.
+* 
+* For a full guide on what's possible in this editor, check out the link below.
+* https://makeark.notion.site/Ark-Editor-Guide-c15a4d8326a24466bbd05ed0707d48fc
+* 
+* To stop showing this comment, open the hamburger menu on the top-left corner of
+* the app and toggle off the "Help Comment" option under "Editor Settings".
 */
 `;
 
-const createDefaultCodeSnippet = (collection: string, helpText = true) => `${
-	helpText ? EDITOR_HELP_COMMENT : ""
-}db.getCollection('${collection}').find({ });
+const createDefaultCodeSnippet = (collection: string, helpText = true) => `${helpText ? EDITOR_HELP_COMMENT : "\n"
+	}db.getCollection('${collection}').find({ });
 `;
 
 interface ReplicaSetMember {
@@ -60,7 +67,7 @@ export const Editor: FC<EditorTab> = (props) => {
 		scriptId,
 	} = props;
 
-	const { collection, username: user, uri, hosts } = shellConfig || {};
+	const { collection, username: user/* , uri, hosts */ } = shellConfig || {};
 
 	const { settings } = useContext(SettingsContext);
 	const [initialRender, setInitialRender] = useState<boolean>(true);
@@ -89,10 +96,11 @@ export const Editor: FC<EditorTab> = (props) => {
 		initialCode
 			? initialCode
 			: collection
-			? createDefaultCodeSnippet(collection)
-			: createDefaultCodeSnippet("test")
+				? createDefaultCodeSnippet(collection, settings?.showEditorHelpText)
+				: createDefaultCodeSnippet("test", settings?.showEditorHelpText)
 	);
 	const [exportDialog, toggleExportDialog] = useState<boolean>(false);
+	const [storedConnection, setStoredConnection] = useState<Ark.StoredConnection>()
 
 	const onCodeChange = useCallback((code: string) => {
 		const _code = code.replace(/(\/\/.*)|(\n)/g, "");
@@ -126,55 +134,55 @@ export const Editor: FC<EditorTab> = (props) => {
 			setCurrentResult(undefined);
 			shellId
 				? window.ark.shell
-						.eval(shellId, _code, debouncedQueryParams)
-						.then(function ({
-							editable,
-							result,
-							isCursor,
-							isNotDocumentArray,
-							err,
-						}) {
-							if (err) {
-								console.log("exec shell");
-								console.log(err);
-								return;
-							}
+					.eval(shellId, _code, debouncedQueryParams)
+					.then(function ({
+						editable,
+						result,
+						isCursor,
+						isNotDocumentArray,
+						err,
+					}) {
+						if (err) {
+							console.log("exec shell");
+							console.log(err);
+							return;
+						}
 
-							if (result) {
-								if (isNotDocumentArray) {
-									setCurrentResult({
-										type: "plaintext",
-										bson: new TextDecoder().decode(result),
-										forceView: "plaintext",
-										hidePagination: !isCursor,
-									});
-								} else {
-									const bson = deserialize(result);
-
-									const bsonArray: Ark.BSONArray = bsonTest(bson)
-										? Object.values(bson)
-										: [bson];
-
-									setCurrentResult({
-										type: "tree",
-										bson: bsonArray,
-										allowDocumentEdits: editable,
-										hidePagination: !isCursor,
-									});
-								}
+						if (result) {
+							if (isNotDocumentArray) {
+								setCurrentResult({
+									type: "plaintext",
+									bson: new TextDecoder().decode(result),
+									forceView: "plaintext",
+									hidePagination: !isCursor,
+								});
 							} else {
-								notify({
-									title: "Error",
-									description: "Did not get result from main process.",
-									type: "error",
+								const bson = deserialize(result);
+
+								const bsonArray: Ark.BSONArray = bsonTest(bson)
+									? Object.values(bson)
+									: [bson];
+
+								setCurrentResult({
+									type: "tree",
+									bson: bsonArray,
+									allowDocumentEdits: editable,
+									hidePagination: !isCursor,
 								});
 							}
-						})
-						.catch(function (err) {
-							console.error("exec shell error: ", err);
-							handleErrors(err, storedConnectionId);
-						})
-						.finally(() => setExecuting(false))
+						} else {
+							notify({
+								title: "Error",
+								description: "Did not get result from main process.",
+								type: "error",
+							});
+						}
+					})
+					.catch(function (err) {
+						console.error("exec shell error: ", err);
+						handleErrors(err, storedConnectionId);
+					})
+					.finally(() => setExecuting(false))
 				: setExecuting(false);
 		},
 		[shellId, storedConnectionId, debouncedQueryParams]
@@ -262,47 +270,46 @@ export const Editor: FC<EditorTab> = (props) => {
 			Promise.resolve()
 				.then(() => {
 					console.log("[editor onload]", shellId);
-					if (hosts && hosts.length > 1) {
-						console.log("[editor onload] multi-host");
-						return window.ark.driver
-							.run("connection", "info", {
-								id: storedConnectionId,
-							})
-							.then((connection) => {
-								if (connection.replicaSetDetails) {
-									console.log("[editor onload] multi-host replica set");
-									const primary = connection.replicaSetDetails.members.find(
-										(x) => x.stateStr === "PRIMARY"
-									);
-									if (primary) {
-										setReplicaHosts(
-											() => connection.replicaSetDetails?.members
-										);
-										switchReplicaShell(primary);
-									} else {
-										console.error("NO PRIMARY");
-									}
-								}
-							});
-					} else {
-						console.log("[editor onload] single-host");
-						return Promise.all([
-							window.ark.shell.create(
-								contextDB,
-								storedConnectionId,
-								settings?.encryptionKey
-							),
+					return Promise
+						.all([
 							window.ark.driver.run("connection", "info", {
 								id: storedConnectionId,
 							}),
-						]).then(([{ id }, connection]) => {
-							console.log("[editor onload] single-host shell created - " + id);
-							setShellId(id);
-							// incase of single node replica set
-							connection.replicaSetDetails &&
-								setReplicaHosts(() => connection.replicaSetDetails?.members);
+							window.ark.driver.run("connection", "load", {
+								id: storedConnectionId,
+							}),
+						])
+						.then(([connectionInfo, stored]) => {
+							if (connectionInfo.replicaSetDetails) {
+								console.log("[editor onload] multi-host replica set");
+								const primary = connectionInfo.replicaSetDetails.members.find(
+									(x) => x.stateStr === "PRIMARY"
+								);
+								if (primary) {
+									setReplicaHosts(
+										() => connectionInfo.replicaSetDetails?.members
+									);
+									switchReplicaShell(primary);
+									setStoredConnection(stored);
+								} else {
+									console.error("NO PRIMARY");
+								}
+							} else {
+								console.log("[editor onload] single-host");
+								return window.ark.shell
+									.create(
+										contextDB,
+										storedConnectionId,
+										settings?.encryptionKey
+									)
+									.then(({ id }) => {
+										console.log("[editor onload] single-host shell created - " + id);
+										setShellId(id);
+										setStoredConnection(stored);
+									});
+
+							}
 						});
-					}
 				})
 				.catch(function (err) {
 					console.log(err);
@@ -322,13 +329,12 @@ export const Editor: FC<EditorTab> = (props) => {
 		};
 	}, [
 		contextDB,
-		uri,
 		storedConnectionId,
-		hosts,
 		switchReplicaShell,
 		effectRefToken,
-		// shellId, // Causes infinite re-renders @todo: fix
 		destroyShell,
+		// shellId, // Causes infinite re-renders @todo: fix
+		settings?.encryptionKey
 	]);
 
 	/** Register browser event listeners */
@@ -485,7 +491,7 @@ export const Editor: FC<EditorTab> = (props) => {
 										/>
 									) : (
 										<Tag icon={"globe-network"} round>
-											{hosts[0]}
+											{storedConnection?.hosts.map(h => hostToString(h)).join(",")}
 										</Tag>
 									)}
 								</div>
@@ -575,23 +581,23 @@ export const Editor: FC<EditorTab> = (props) => {
 	);
 };
 
-interface CreateMenuItem {
-	item: string;
-	cb: () => void;
-	active: boolean;
-}
-const createMenu = (items: CreateMenuItem[]) => (
-	<Menu>
-		{items.map((menuItem, i) => (
-			<MenuItem
-				disabled={menuItem.active}
-				text={menuItem.item}
-				key={i}
-				onClick={() => menuItem.cb()}
-			/>
-		))}
-	</Menu>
-);
+// interface CreateMenuItem {
+// 	item: string;
+// 	cb: () => void;
+// 	active: boolean;
+// }
+// const createMenu = (items: CreateMenuItem[]) => (
+// 	<Menu>
+// 		{items.map((menuItem, i) => (
+// 			<MenuItem2
+// 				disabled={menuItem.active}
+// 				text={menuItem.item}
+// 				key={i}
+// 				onClick={() => menuItem.cb()}
+// 			/>
+// 		))}
+// 	</Menu>
+// );
 
 interface HostListProps {
 	currentHost: ReplicaSetMember;

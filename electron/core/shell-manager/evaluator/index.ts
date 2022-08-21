@@ -9,11 +9,8 @@ import {
 	AggregationCursor,
 	Cursor,
 } from "@mongosh/shell-api";
-import { bson } from "@mongosh/service-provider-core";
-import {
-	CliServiceProvider,
-	MongoClientOptions,
-} from "@mongosh/service-provider-server";
+import { bson, MongoClientOptions } from "@mongosh/service-provider-core";
+import { CliServiceProvider } from "@mongosh/service-provider-server";
 import { EventEmitter } from "stream";
 import { exportData } from "../../../modules/exports";
 
@@ -25,7 +22,11 @@ export interface Evaluator {
 		code: string,
 		database: string,
 		options: Ark.QueryOptions
-	): Promise<{ result: Ark.AnyObject; isCursor: boolean; isNotDocumentArray: boolean; }>;
+	): Promise<{
+		result: Ark.AnyObject;
+		isCursor: boolean;
+		isNotDocumentArray: boolean;
+	}>;
 	disconnect(): Promise<void>;
 	export(
 		code: string,
@@ -48,10 +49,7 @@ export async function createEvaluator(
 
 	const evaluator: Evaluator = {
 		export: async (code, database, options) => {
-
-			const {
-				db, rs, sh, shellApi
-			} = createShellGlobals(provider, database);
+			const { db, rs, sh, shellApi } = createShellGlobals(provider, database);
 
 			const transpiledCodeString = new AsyncWriter().process(code);
 
@@ -69,12 +67,9 @@ export async function createEvaluator(
 			return { exportPath };
 		},
 		evaluate: async (code, database, options) => {
-
 			const { page, timeout, limit } = options;
 
-			const {
-				db, rs, sh, shellApi
-			} = createShellGlobals(provider, database);
+			const { db, rs, sh, shellApi } = createShellGlobals(provider, database);
 
 			const transpiledCodeString = new AsyncWriter().process(code);
 
@@ -99,7 +94,6 @@ export async function createEvaluator(
 				).toArray();
 
 				isCursor = true;
-
 			} else if (result instanceof Cursor) {
 				result = await paginateFindCursor(
 					result,
@@ -109,7 +103,6 @@ export async function createEvaluator(
 				).toArray();
 
 				isCursor = true;
-
 			} else if (typeof result === "object" && "toArray" in result) {
 				result = await result.toArray();
 			} else if (isNotDocumentArray(result)) {
@@ -128,11 +121,13 @@ export async function createEvaluator(
 	return evaluator;
 }
 
-const isNotDocumentArray = (val: any) => (val instanceof Date) || (ObjectId.isValid(val)) ||
+const isNotDocumentArray = (val: any) =>
+	val instanceof Date ||
+	ObjectId.isValid(val) ||
 	(!Array.isArray(val) &&
 		typeof val !== "object" &&
 		typeof val !== "function" &&
-		typeof val !== "symbol")
+		typeof val !== "symbol");
 
 async function createServiceProvider(
 	uri: string,
@@ -173,7 +168,10 @@ function paginateAggregationCursor(
 		._cursor.limit(limit);
 }
 
-function createShellGlobals(serviceProvider: CliServiceProvider, database: string) {
+function createShellGlobals(
+	serviceProvider: CliServiceProvider,
+	database: string
+) {
 	const internalState = new ShellInstanceState(serviceProvider);
 
 	const mongo = new Mongo(
