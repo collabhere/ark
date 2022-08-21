@@ -8,6 +8,8 @@ import { ConnectionFormTab } from "../../browser/Tabs";
 import { BasicConnectionForm } from "./basic/BasicConnectionForm";
 import { AdvancedConnectionForm } from "./advanced/AdvancedConnectionForm";
 
+type FormType = "basic" | "advanced";
+
 const defaultConnectionSettings = (): Ark.StoredConnection => ({
 	id: "",
 	name: "",
@@ -22,7 +24,6 @@ const defaultConnectionSettings = (): Ark.StoredConnection => ({
 	tlsMethod: "self-signed",
 	options: {
 		tls: false,
-		authMechanism: "SCRAM-SHA-1",
 	},
 	ssh: {
 		useSSH: false,
@@ -43,9 +44,8 @@ export interface ConnectionFormProps {
 }
 
 export function ConnectionForm(props: ConnectionFormTab): JSX.Element {
-	const [type, setType] = useState<"basic" | "advanced">(
-		// props.mode === "edit" || props.mode === "clone" ? "advanced" : "basic"
-		"advanced"
+	const [type, setType] = useState<FormType>(
+		props.mode === "edit" || props.mode === "clone" ? "advanced" : "basic"
 	);
 
 	const [icon, setIcon] = useState<Ark.StoredIcon>();
@@ -90,6 +90,18 @@ export function ConnectionForm(props: ConnectionFormTab): JSX.Element {
 		}
 		/* We just need the icon fetched during the initial render.
 		Subsequent updates are being handled within the component */
+		/* eslint-disable-next-line */
+	}, []);
+
+
+	useEffect(() => {
+		if (!mongoURI) {
+			window.ark.driver.run("connection", "convertConnectionToUri", {
+				config: connectionData
+			}).then(({ uri }) => {
+				setMongoURI(uri);
+			});
+		}
 		/* eslint-disable-next-line */
 	}, []);
 
@@ -206,54 +218,45 @@ export function ConnectionForm(props: ConnectionFormTab): JSX.Element {
 	}, [mongoURI, validateUri]);
 
 	const validateAdvancedConfig = useCallback(() => {
-		const error: Partial<Parameters<typeof notify>[0]> = {};
+		let msg;
 		if (!connectionData.type) {
-			error.description = "Invalid connection type.";
+			msg = "Invalid connection type.";
 		} else if (!connectionData.hosts) {
-			error.description = "Invalid hosts.";
+			msg = "Invalid hosts.";
 		} else if (connectionData.ssh.useSSH) {
 			if (
 				!connectionData.ssh.host ||
 				!connectionData.ssh.port ||
 				isNaN(Number(connectionData.ssh.port))
 			) {
-				error.description = "Incorrect ssh host or port format.";
+				msg = "Incorrect ssh host or port format.";
 			} else if (
 				!connectionData.ssh.mongodHost ||
 				!connectionData.ssh.mongodPort ||
 				isNaN(Number(connectionData.ssh.mongodPort))
 			) {
-				error.description = "Incorrect mongod host or port.";
+				msg = "Incorrect mongod host or port.";
 			} else if (!connectionData.ssh.username) {
-				error.description = "Invalid username.";
+				msg = "Invalid username.";
 			} else if (
 				(connectionData.ssh.method === "password" && !connectionData.ssh.password) ||
 				(connectionData.ssh.method === "privateKey" && !connectionData.ssh.privateKey)
 			) {
-				error.description =
+				msg =
 					"Either the password or the private key must be specified.";
 			}
-
-			if (error.description) {
-				error.title = "Invalid SSH config";
-			}
 		}
 
-		if (error.description) {
-			notify({
-				title: error.title || "Configuration error.",
-				description: error.description || "",
-				type: "error",
-			});
-
-			return false;
+		if (msg) {
+			return { ok: false, msg };
 		}
 
-		return true;
+		return { ok: true };
 	}, [connectionData]);
 
 	const saveAdvancedConnection = useCallback(() => {
-		if (validateAdvancedConfig()) {
+		const { ok, msg } = validateAdvancedConfig()
+		if (ok) {
 			return window.ark.driver.run("connection", "save", {
 				type: "config",
 				config: {
@@ -264,12 +267,13 @@ export function ConnectionForm(props: ConnectionFormTab): JSX.Element {
 				icon: icon,
 			});
 		} else {
-			return Promise.resolve();
+			return Promise.reject(msg);
 		}
 	}, [connectionData, icon, validateAdvancedConfig]);
 
 	const testAdvancedConnection = useCallback(() => {
-		if (validateAdvancedConfig()) {
+		const { ok, msg } = validateAdvancedConfig();
+		if (ok) {
 			return window.ark.driver.run("connection", "test", {
 				type: "config",
 				config: {
@@ -280,10 +284,48 @@ export function ConnectionForm(props: ConnectionFormTab): JSX.Element {
 		} else {
 			return Promise.resolve({
 				status: false,
-				message: "Invalid configuration"
+				message: msg
 			});
 		}
 	}, [connectionData, validateAdvancedConfig]);
+
+
+	const onFormTypeChange = useCallback((type: FormType) => {
+		return Promise.resolve()
+			.then(() => {
+				if (type === "basic") {
+					const { ok } = validateAdvancedConfig();
+					if (ok) {
+						return window.ark.driver
+							.run("connection", "convertConnectionToUri", {
+								config: connectionData
+							})
+							.then(({ uri }) => {
+								setMongoURI(uri);
+								setType(type);
+							})
+					}
+				} else if (type === "advanced") {
+					const { ok } = validateUri(mongoURI);
+					if (ok) {
+						return window.ark.driver
+							.run("connection", "convertUriToConnection", {
+								config: {
+									uri: mongoURI,
+									name: "convert"
+								}
+							})
+							.then(({ connection }) => {
+								setConnectionData(connection);
+							})
+					}
+				}
+			})
+			.finally(() => {
+				setType(type);
+			});
+
+	}, [connectionData, mongoURI, validateAdvancedConfig, validateUri]);
 
 	return (
 		<div className="uri-container">
@@ -292,7 +334,7 @@ export function ConnectionForm(props: ConnectionFormTab): JSX.Element {
 					<BasicConnectionForm
 						currentName={connectionData?.name || ""}
 						currentUri={mongoURI}
-						onFormTypeChange={setType}
+						onFormTypeChange={onFormTypeChange}
 						onNameChange={(name) => editConnection("name", name)}
 						onUriChange={(uri) => setMongoURI(uri)}
 						onTestConnection={() => testURIConnection()}
@@ -305,7 +347,7 @@ export function ConnectionForm(props: ConnectionFormTab): JSX.Element {
 						editConnection={editConnection}
 						icon={icon}
 						onIconChange={icon => setIcon(icon)}
-						onFormTypeChange={setType}
+						onFormTypeChange={onFormTypeChange}
 						onTestConnection={{
 							promise: () => testAdvancedConnection(),
 							callback: (err, res) => {

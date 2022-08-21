@@ -90,6 +90,14 @@ export interface Connection {
 		dep: Ark.DriverDependency,
 		arg: { path?: string }
 	): Promise<string>;
+	convertConnectionToUri(
+		dep: Ark.DriverDependency,
+		arg: { config: Ark.StoredConnection }
+	): Promise<{ uri: string }>;
+	convertUriToConnection(
+		dep: Ark.DriverDependency,
+		arg: { config: URIConfiguration }
+	): Promise<{ connection: Ark.StoredConnection }>;
 }
 
 export const Connection: Connection = {
@@ -334,5 +342,26 @@ export const Connection: Connection = {
 		await writeFile(encryptionKeyPath, key);
 
 		return Promise.resolve(encryptionKeyPath);
+	},
+	async convertConnectionToUri({ _stores: stores }, arg) {
+		const { config } = arg;
+		const settings = await stores.settingsStore.get("general");
+		const uri = await getConnectionUri(config, settings?.encryptionKey);
+		return { uri };
+	},
+	async convertUriToConnection({ _stores: stores }, arg) {
+		const { config } = arg;
+
+		const settings = await stores.settingsStore.get("general");
+
+		const stored = await createConnectionConfigurations(
+			{
+				type: "uri",
+				config,
+			},
+			settings?.encryptionKey
+		);
+
+		return { connection: stored };
 	},
 };
