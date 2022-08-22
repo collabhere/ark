@@ -13,6 +13,10 @@
 		border-radius: @border-radius;
 	}
 
+	.bp4-popover2-arrow-fill {
+		fill: @background-color;
+	}
+
 	.bp4-tag {
 		background-color: @container-fg-color;
 		color: @text-color;
@@ -61,5 +65,47 @@
 
 	.bp4-file-upload-input::after {
 		content: none;
+	}
+
+	.bp4-datepicker {
+		background-color: @container-bg-color;
+		border-radius: @border-radius;
+
+		.bp4-selected {
+			color: @highlight-color;
+			background-color: @container-fg-color;
+		}
+
+		.DayPicker-Day,
+		.DayPicker-Month {
+			color: @text-color;
+			background-color: @container-fg-color;
+		}
+		.DayPicker-Day:hover {
+			background-color: @container-fg-color-bright;
+		}
+		.DayPicker-Day--selected {
+			background-color: @primary-color;
+		}
+	}
+
+	.bp4-datepicker-caption {
+		select {
+			color: @text-color;
+			&:hover {
+				color: @text-color;
+			}
+		}
+		option {
+			color: @container-fg-color;
+		}
+	}
+
+	.bp4-timepicker-input {
+		color: @text-color;
+	}
+
+	.bp4-timepicker-input-row {
+		background-color: @container-fg-color;
 	}
 }
