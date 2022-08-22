@@ -1,0 +1,10 @@
+# .prettierignore
+.gitignore
+.gitattributes
+.circleci
+*.md
+
+build
+release
+
+package-lock.json

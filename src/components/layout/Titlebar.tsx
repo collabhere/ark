@@ -291,8 +291,7 @@ export const TitleBar = (): JSX.Element => {
 			)}
 			<div className="header-container">
 				<div className="logo">
-					<Logo width={"2.5rem"} height={"2.5rem"} opacity="80%" />
-					{/* Ark */}
+					<Logo width={"1.7rem"} height={"1.7rem"} opacity="80%" />
 				</div>
 				<DropdownMenu
 					position="bottom-right"
