@@ -17,6 +17,16 @@
 		fill: @background-color;
 	}
 
+	// annoying override: blueprint's datepicker sets inline height on the month select's caret icon
+	.bp4-html-select select {
+		width: unset;
+		right: unset;
+	}
+	div.bp4-html-select.bp4-minimal.bp4-datepicker-month-select > span {
+		right: 2px !important;
+	}
+	// annoying override end
+
 	.bp4-tag {
 		background-color: @container-fg-color;
 		color: @text-color;
