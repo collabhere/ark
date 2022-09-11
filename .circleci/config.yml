@@ -53,12 +53,23 @@ jobs:
           at: ./artifacts
       - run:
           name: "Publish Release on GitHub"
-          command: ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete $(npx -c 'echo "$npm_package_version"') /tmp/release
+          command: |
+            PACKAGE_VERSION=$(cat package.json \
+              | grep version \
+              | head -1 \
+              | awk -F:'{ print $2 }' \
+              | sed 's/[",]//g');
+            ghr -t ${GH_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete $PACKAGE_VERSION /tmp/release
 
 workflows:
   main:
     jobs:
-      - build_linux
+      - build_linux:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+                - /^\d+\.\d+\.\d+$/
       - publish-github-release:
           requires:
             - build_linux
@@ -66,6 +77,7 @@ workflows:
             branches:
               ignore: /.*/
             tags:
-              only: /^\d+\.\d+\.\d+$/
+              only:
+                - /^\d+\.\d+\.\d+$/
       # @todo: figure out how to test macos dmg files
       # - build_macos
