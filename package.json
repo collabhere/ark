@@ -39,7 +39,7 @@
 	"build": {
 		"productName": "ark",
 		"appId": "dev.makeark.ark",
-		"artifactName": "${name}_${os}_${version}_${arch}.${ext}",
+		"artifactName": "${name}-${os}-${version}-${arch}.${ext}",
 		"extends": null,
 		"files": [
 			"./build/**/*",
