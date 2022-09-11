@@ -14,11 +14,11 @@
 		"build:renderer": "vite build",
 		"build:main": "tsc --build electron/tsconfig.json",
 		"build": "rimraf build && npm run build:renderer && npm run build:main",
-		"dist:app_image": "electron-builder --publish never --linux",
-		"dist:deb": "electron-builder --publish never --linux deb",
-		"dist:macos_dmg": "electron-builder --publish never --macos",
+		"dist:app_image": "electron-builder --linux",
+		"dist:deb": "electron-builder --linux deb",
+		"dist:macos_dmg": "electron-builder --macos",
 		"dist:macos_deb": "echo 'Not supported for now'",
-		"dist:windows": "electron-builder --publish never --windows",
+		"dist:windows": "electron-builder --windows",
 		"storybook": "start-storybook -p 6006",
 		"build-storybook": "build-storybook",
 		"prepare": "husky install"
@@ -39,6 +39,7 @@
 	"build": {
 		"productName": "ark",
 		"appId": "dev.makeark.ark",
+		"artifactName": "${name}_${os}_${version}_${arch}.${ext}",
 		"extends": null,
 		"files": [
 			"./build/**/*",
@@ -47,6 +48,10 @@
 				"to": "build/mongoshell.d.ts"
 			}
 		],
+		"extraResources": [
+			"./node_modules/**/*"
+		],
+		"publish": null,
 		"npmArgs": [
 			"--ignore-scripts"
 		],
@@ -95,14 +100,6 @@
 				"AppImage"
 			],
 			"category": "Development"
-		},
-		"extraResources": [
-			"./node_modules/**/*"
-		],
-		"publish": {
-			"provider": "github",
-			"owner": "makeark",
-			"repo": "ark-foss"
 		}
 	},
 	"devDependencies": {

@@ -23,6 +23,11 @@ jobs:
           command: "mkdir -p /tmp/release && mv ./release/*.AppImage ./release/*.deb /tmp/release"
       - store_artifacts:
           path: /tmp/release
+      - persist_to_workspace:
+          root: /tmp/release
+          paths:
+            - '*.AppImage'
+            - '*.deb'
 
   build_macos:
     macos:
@@ -44,6 +49,8 @@ jobs:
           command: "mkdir -p /tmp/release && mv ./release/*.dmg /tmp/release"
       - store_artifacts:
           path: /tmp/release
+      - persist_to_workspace:
+          root: /tmp/release
 
   publish-github-release:
     docker:
