@@ -49,18 +49,11 @@ jobs:
     docker:
       - image: cibuilds/github:0.10
     steps:
-      - checkout
       - attach_workspace:
           at: /tmp/release
       - run:
           name: "Publish Release on GitHub"
-          command: |
-            PACKAGE_VERSION=$(cat package.json \
-              | grep version \
-              | head -1 \
-              | awk -F:'{ print $2 }' \
-              | sed 's/[",]//g');
-            ghr -t ${GH_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete $PACKAGE_VERSION /tmp/release
+          command: ghr -t ${GH_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} /tmp/release
 
 workflows:
   main:
