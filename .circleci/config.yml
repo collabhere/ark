@@ -1,7 +1,8 @@
 version: 2.1
 
 jobs:
-  build_linux:
+
+  build:
     docker:
       - image: node:16
     steps:
@@ -10,21 +11,70 @@ jobs:
           name: "Install dependencies"
           command: "npm ci"
       - run:
-          name: "Build electron & react"
+          name: "Build processes"
           command: "npm run build"
       - run:
-          name: "Build AppImage"
-          command: "npm run dist:app_image"
+          name: "Move build assets"
+          command: "mkdir -p /tmp/release && mv node_modules build package.json /tmp/release"
+      - persist_to_workspace:
+          root: /tmp/release
+          paths:
+            - build
+            - node_modules
+            - package.json
+
+  publish_linux:
+    docker:
+      - image: node:16
+    working_directory: /tmp/release
+    steps:
+      - attach_workspace:
+          at: /tmp/release
       - run:
-          name: "Build deb"
-          command: "npm run dist:deb"
+          name: "Install extra linux dependencies"
+          command: apt-get update && apt-get install rpm -y
       - run:
-          name: "Move necessary build output"
-          command: "mkdir -p /tmp/release && mv ./release/*.AppImage ./release/*.deb /tmp/release"
-      - store_artifacts:
-          path: /tmp/release
+          name: "Build distributable"
+          command: "npm run dist:linux"
+
+  publish_macos:
+    macos:
+      xcode: 13.4.1
+    working_directory: /tmp/release
+    steps:
+      - attach_workspace:
+          at: /tmp/release
+      - run:
+          name: "Install dmg-license"
+          command: "npm i dmg-license"
+      - run:
+          name: "Build distributable"
+          command: "npm run dist:macos"
+          no_output_timeout: 30m
 
 workflows:
   main:
     jobs:
-      - build_linux
+      - build:
+          filters:
+            tags:
+              only:
+                - /^\d+\.\d+\.\d+$/
+      - publish_linux:
+          requires:
+            - 'build'
+          filters:
+              branches:
+                ignore: /.*/
+              tags:
+                only:
+                  - /^\d+\.\d+\.\d+$/
+      - publish_macos:
+          requires:
+            - 'build'
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only:
+                - /^\d+\.\d+\.\d+$/

@@ -48,7 +48,7 @@ export function createDriver(stores: Ark.DriverStores) {
 			}
 
 			const mem = args && args.id && memoryStore.has(args.id) ? memoryStore.get(args.id) : undefined;
-			const stored = args && args.id && diskStore.has(args.id) ? await diskStore.get(args.id) : undefined;
+			const stored = args && args.id && (await diskStore.has(args.id)) ? await diskStore.get(args.id) : undefined;
 
 			const icon = args && args.id ? await iconStore.get(args.id) : undefined;
 
