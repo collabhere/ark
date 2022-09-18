@@ -55,7 +55,11 @@ jobs:
 workflows:
   main:
     jobs:
-      - build
+      - build:
+          filters:
+            tags:
+              only:
+                - /^\d+\.\d+\.\d+$/
       - publish_linux:
           requires:
             - 'build'
