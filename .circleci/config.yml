@@ -1,7 +1,8 @@
 version: 2.1
 
 jobs:
-  build_linux:
+
+  build:
     docker:
       - image: node:16
     steps:
@@ -10,76 +11,66 @@ jobs:
           name: "Install dependencies"
           command: "npm ci"
       - run:
-          name: "Build electron & react"
+          name: "Build processes"
           command: "npm run build"
       - run:
-          name: "Build AppImage"
-          command: "npm run dist:app_image"
-      - run:
-          name: "Build deb"
-          command: "npm run dist:deb"
-      - run:
-          name: "Move necessary build output"
-          command: "mkdir -p /tmp/release && mv ./release/*.AppImage ./release/*.deb /tmp/release"
-      - store_artifacts:
-          path: /tmp/release
+          name: "Move build assets"
+          command: "mkdir -p /tmp/release && mv node_modules build package.json /tmp/release"
       - persist_to_workspace:
           root: /tmp/release
           paths:
-            - '*.AppImage'
-            - '*.deb'
+            - build
+            - node_modules
+            - package.json
 
-  build_macos:
-    macos:
-      xcode: 13.4.1
-    steps:
-      - checkout
-      - run:
-          name: "Install dependencies"
-          command: "npm ci && npm i dmg-license"
-      - run:
-          name: "Build electron & react"
-          command: "npm run build"
-      - run:
-          name: "Build dmg"
-          command: "npm run dist:macos_dmg"
-          no_output_timeout: 30m
-      - run:
-          name: "Move necessary build output"
-          command: "mkdir -p /tmp/release && mv ./release/*.dmg /tmp/release"
-      - store_artifacts:
-          path: /tmp/release
-      - persist_to_workspace:
-          root: /tmp/release
-
-  publish-github-release:
+  publish_linux:
     docker:
-      - image: cibuilds/github:0.10
+      - image: node:16
+    working_directory: /tmp/release
     steps:
       - attach_workspace:
           at: /tmp/release
       - run:
-          name: "Publish Release on GitHub"
-          command: ghr -t ${GH_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} /tmp/release
+          name: "Install extra linux dependencies"
+          command: apt-get update && apt-get install rpm -y
+      - run:
+          name: "Build distributable"
+          command: "npm run dist:linux"
+
+  publish_macos:
+    macos:
+      xcode: 13.4.1
+    working_directory: /tmp/release
+    steps:
+      - attach_workspace:
+          at: /tmp/release
+      - run:
+          name: "Install dmg-license"
+          command: "npm i dmg-license"
+      - run:
+          name: "Build distributable"
+          command: "npm run dist:macos"
+          no_output_timeout: 30m
 
 workflows:
   main:
     jobs:
-      - build_linux:
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only:
-                - /^\d+\.\d+\.\d+$/
-      - publish-github-release:
+      - build
+      - publish_linux:
           requires:
-            - build_linux
+            - 'build'
+          filters:
+              branches:
+                ignore: /.*/
+              tags:
+                only:
+                  - /^\d+\.\d+\.\d+$/
+      - publish_macos:
+          requires:
+            - 'build'
           filters:
             branches:
               ignore: /.*/
             tags:
               only:
                 - /^\d+\.\d+\.\d+$/
-      # @todo: figure out how to test macos dmg files
-      # - build_macos

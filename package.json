@@ -5,6 +5,7 @@
 	"private": true,
 	"homepage": "./",
 	"main": "./build/renderer/electron/main.js",
+	"repository": "github:makeark/ark",
 	"scripts": {
 		"start": "BROWSER=none ARK_ENTRY_URL=http://localhost:5173 concurrently \"vite\" \"sleep 2 && electron .\"",
 		"dev:electron": "tsc --build electron/tsconfig.json -w",
@@ -14,14 +15,16 @@
 		"build:renderer": "vite build",
 		"build:main": "tsc --build electron/tsconfig.json",
 		"build": "rimraf build && npm run build:renderer && npm run build:main",
-		"dist:app_image": "electron-builder --linux",
-		"dist:deb": "electron-builder --linux deb",
-		"dist:macos_dmg": "electron-builder --macos",
-		"dist:macos_deb": "echo 'Not supported for now'",
+		"dist:linux": "electron-builder --linux",
+		"dist:macos": "electron-builder --macos",
 		"dist:windows": "electron-builder --windows",
 		"storybook": "start-storybook -p 6006",
 		"build-storybook": "build-storybook",
 		"prepare": "husky install"
+	},
+	"author": {
+		"email": "contact@shashank.gg",
+		"name": "Shashank Kaul"
 	},
 	"browser": "none",
 	"browserslist": {
@@ -48,16 +51,19 @@
 				"to": "build/mongoshell.d.ts"
 			}
 		],
-		"extraResources": [
-			"./node_modules/**/*"
+		"publish": [
+			{
+				"provider": "github",
+				"vPrefixedTagName": false,
+				"publishAutoUpdate": true
+			}
 		],
-		"publish": null,
 		"npmArgs": [
 			"--ignore-scripts"
 		],
 		"directories": {
 			"output": "release",
-			"buildResources": "resources",
+			"buildResources": "src/assets",
 			"app": "./"
 		},
 		"mac": {
@@ -84,9 +90,12 @@
 		},
 		"linux": {
 			"target": [
+				"deb",
+				"rpm",
 				"AppImage"
 			],
-			"category": "Development"
+			"category": "Development",
+			"icon": "src/assets/icon.png"
 		}
 	},
 	"devDependencies": {
